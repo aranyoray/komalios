@@ -1,0 +1,80 @@
+# k8s/komal_longjob.yaml — kubernetes job for long pretrain with PVC
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: komal-pretrain
+  namespace: komal
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: komal-pretrain
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector:
+        nvidia.com/gpu.product: A100-SXM4-80GB  # edit for your cluster
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: komal-train
+          image: {{DOCKER_REGISTRY}}/komal:latest
+          imagePullPolicy: Always
+          command: ["bash", "-c"]
+          args:
+            - |
+              python run_pretrain.py \
+                --model_dim 1024 \
+                --num_layers 24 \
+                --batch_size 32 \
+                --fp16 \
+                --use_fsdp \
+                --activation_checkpointing \
+                --checkpoint_dir /checkpoints \
+                --dataset_root /data
+          resources:
+            requests:
+              nvidia.com/gpu: 8
+              memory: 480Gi
+              cpu: 96
+            limits:
+              nvidia.com/gpu: 8
+              memory: 512Gi
+              cpu: 128
+          volumeMounts:
+            - name: checkpoint-pvc
+              mountPath: /checkpoints
+            - name: data-pvc
+              mountPath: /data
+          env:
+            - name: WANDB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: komal-secrets
+                  key: wandb-api-key
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "df -h /checkpoints | awk 'NR==2 {print $5}' | sed 's/%//' | xargs -I {} test {} -lt 95"
+            initialDelaySeconds: 300
+            periodSeconds: 600
+          readinessProbe:
+            exec:
+              command:
+                - test
+                - -f
+                - /checkpoints/training_started
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: checkpoint-pvc
+          persistentVolumeClaim:
+            claimName: komal-checkpoints
+        - name: data-pvc
+          persistentVolumeClaim:
+            claimName: komal-data

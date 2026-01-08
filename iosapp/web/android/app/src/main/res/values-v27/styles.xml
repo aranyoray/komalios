@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- API 27+ specific attributes for edge-to-edge support -->
+    <!-- android:windowLayoutInDisplayCutoutMode requires API level 27 -->
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+        <!-- Ensure content extends behind system bars for edge-to-edge -->
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <!-- Note: android:statusBarColor requires API 21+, but we set it in values-v31/styles.xml for API 31+ -->
+        <!-- For API 27-30, windowTranslucentStatus=false with edge-to-edge should work -->
+    </style>
+</resources>
+

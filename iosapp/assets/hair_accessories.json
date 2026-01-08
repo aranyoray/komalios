@@ -1,0 +1,72 @@
+{
+  "hair_styles": {
+    "none": {
+      "display_name": "No Hair",
+      "render_layer": 0
+    },
+    "short": {
+      "display_name": "Short",
+      "render_layer": 1,
+      "coverage": 0.3
+    },
+    "long": {
+      "display_name": "Long",
+      "render_layer": 1,
+      "coverage": 0.6
+    },
+    "curly": {
+      "display_name": "Curly",
+      "render_layer": 1,
+      "coverage": 0.5
+    },
+    "spiky": {
+      "display_name": "Spiky",
+      "render_layer": 1,
+      "coverage": 0.4
+    }
+  },
+  "accessories": {
+    "none": {
+      "display_name": "None",
+      "render_layer": 0
+    },
+    "bow": {
+      "display_name": "Bow",
+      "render_layer": 2,
+      "position": "top"
+    },
+    "glasses": {
+      "display_name": "Glasses",
+      "render_layer": 2,
+      "position": "eyes"
+    },
+    "hat": {
+      "display_name": "Hat",
+      "render_layer": 3,
+      "position": "top"
+    },
+    "headband": {
+      "display_name": "Headband",
+      "render_layer": 2,
+      "position": "forehead"
+    }
+  },
+  "skin_tones": [
+    {"hex": "#FFE0BD", "name": "Light"},
+    {"hex": "#F5D0A9", "name": "Fair"},
+    {"hex": "#E5BA8C", "name": "Medium Light"},
+    {"hex": "#C9A06B", "name": "Medium"},
+    {"hex": "#A67C52", "name": "Medium Dark"},
+    {"hex": "#8D5524", "name": "Dark"}
+  ],
+  "hair_colors": [
+    {"hex": "#2C1810", "name": "Black"},
+    {"hex": "#4A3728", "name": "Dark Brown"},
+    {"hex": "#8B4513", "name": "Brown"},
+    {"hex": "#D2691E", "name": "Auburn"},
+    {"hex": "#FFD700", "name": "Blonde"},
+    {"hex": "#FF6B6B", "name": "Pink"},
+    {"hex": "#9370DB", "name": "Purple"},
+    {"hex": "#20B2AA", "name": "Teal"}
+  ]
+}

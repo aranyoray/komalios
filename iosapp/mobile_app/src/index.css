@@ -1,0 +1,107 @@
+/* Ionic CSS Variables - Kid-Friendly Theme */
+:root {
+  --ion-color-primary: #FF6B9D;
+  --ion-color-primary-rgb: 255, 107, 157;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #e05e8a;
+  --ion-color-primary-tint: #ff7aa7;
+
+  --ion-color-secondary: #4ECDC4;
+  --ion-color-secondary-rgb: 78, 205, 196;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #44b4ad;
+  --ion-color-secondary-tint: #60d2ca;
+
+  --ion-color-accent: #FFE66D;
+  --ion-color-accent-rgb: 255, 230, 109;
+  --ion-color-accent-contrast: #000000;
+  --ion-color-accent-contrast-rgb: 0, 0, 0;
+  --ion-color-accent-shade: #e0ca60;
+  --ion-color-accent-tint: #ffe97c;
+
+  --ion-background-color: #F8F9FA;
+  --ion-text-color: #2C3E50;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--ion-background-color);
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+ion-app {
+  pointer-events: auto;
+}
+
+ion-content {
+  pointer-events: auto;
+}
+
+/* Kid-friendly button styles */
+.kid-button {
+  border-radius: 16px;
+  font-weight: bold;
+  font-size: 16px;
+  padding: 16px 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s, box-shadow 0.2s;
+  pointer-events: auto;
+  z-index: 10;
+  position: relative;
+  cursor: pointer;
+}
+
+.kid-button:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.kid-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+ion-button {
+  pointer-events: auto !important;
+  z-index: 10;
+  cursor: pointer;
+}
+
+/* Custom scrollbar for kids */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #FF6B9D;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #e05e8a;
+}
+
