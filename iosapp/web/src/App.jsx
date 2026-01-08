@@ -14,6 +14,7 @@ import { LanguageProvider } from './i18n/LanguageContext';
 import theme from './theme';
 import Layout from './components/Layout';
 import SplashScreen from './components/SplashScreen';
+import LinkInterceptor from './components/LinkInterceptor';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -368,6 +369,7 @@ function App() {
           <AuthProvider>
             <Router>
               <DeepLinkHandler />
+              <LinkInterceptor />
               <AppRoutes />
             </Router>
           </AuthProvider>

@@ -33,6 +33,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../i18n/LanguageContext';
 import { getTranslation } from '../i18n/translations-ui';
 import { useAuth } from '../contexts/AuthContext';
+import ParentControlsButton from './ParentControlsButton';
 const monkeyLogo = '/assets/finalstrokemonkey.png';
 
 // Primary gradient used throughout the app
@@ -192,6 +193,9 @@ const Header = ({ showHeader = true, onSidebarToggle }) => {
                 justifyContent: 'flex-end',
               }}
             >
+              {/* Parent Controls Button (iOS only, when authenticated) */}
+              {isAuthenticated && <ParentControlsButton />}
+
               {/* Sign In Button (only show if not authenticated and not on mode-selection) */}
               {!isAuthenticated && location.pathname !== '/mode-selection' && (
                 <Button
