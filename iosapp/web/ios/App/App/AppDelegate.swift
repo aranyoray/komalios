@@ -7,8 +7,47 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Initialize Content Filtering System
+        initializeContentFilter()
+
         return true
+    }
+
+    // MARK: - Content Filter Initialization
+    private func initializeContentFilter() {
+        let parentControl = ParentControlService.shared
+
+        // Enable auto-cleanup on launch
+        parentControl.enableAutoCleanup()
+
+        // Request notification permissions
+        NotificationHelper.shared.requestAuthorization { granted in
+            if granted {
+                print("Notifications authorized for content filtering alerts")
+            }
+        }
+
+        // Show onboarding if needed
+        if !parentControl.isOnboardingCompleted {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.showOnboardingIfNeeded()
+            }
+        }
+    }
+
+    private func showOnboardingIfNeeded() {
+        let parentControl = ParentControlService.shared
+
+        guard !parentControl.isOnboardingCompleted,
+              let rootVC = window?.rootViewController else {
+            return
+        }
+
+        let onboardingVC = OnboardingViewController()
+        let navController = UINavigationController(rootViewController: onboardingVC)
+        navController.modalPresentationStyle = .fullScreen
+
+        rootVC.present(navController, animated: true)
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

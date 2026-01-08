@@ -60,5 +60,8 @@
 	<string>Komal uses your photo library to let you select and upload images/videos.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Komal saves photos/videos to your library when you choose to export or download media.</string>
+	<!-- Content Filtering - Face ID / Touch ID permission -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Komal uses Face ID to secure parent controls and settings.</string>
 </dict>
 </plist>
