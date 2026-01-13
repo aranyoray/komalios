@@ -242,6 +242,7 @@ struct WebView: UIViewRepresentable {
                 updated.append(URLQueryItem(name: name, value: value))
             }
             return updated
+        }
     }
 }
 

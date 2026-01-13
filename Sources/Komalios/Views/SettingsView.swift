@@ -36,14 +36,6 @@ struct SettingsView: View {
                                 }
                             }
                             .pickerStyle(.segmented)
-                            .colorMultiply(KomalColors.bubblegumPink.opacity(0.1)) // Subtle tint to the picker
-                            
-                            Text(appState.accountMode == .guest 
-                                 ? "Guest mode keeps browsing anonymous with default filters." 
-                                 : "Child mode applies your personalized safety settings.")
-                                .font(.system(size: 13, weight: .medium, design: .rounded))
-                                .foregroundColor(KomalColors.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
 
