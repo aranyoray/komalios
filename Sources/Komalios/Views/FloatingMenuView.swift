@@ -3,7 +3,7 @@ import SwiftUI
 
 enum NavigationTab: String, CaseIterable {
     case browser = "Browser"
-    case riki = "Riki"
+    case riki = "Talk"
     case settings = "Settings"
     
     var icon: String {
@@ -18,11 +18,13 @@ enum NavigationTab: String, CaseIterable {
 struct FloatingMenuView: View {
     @Binding var selectedTab: NavigationTab
     var onNewTab: (() -> Void)? = nil
+    var onPastTabs: (() -> Void)? = nil
     @State private var isExpanded = false
+    @State private var showBrowserMenu = false
     
     // Reduced sizes based on user feedback
     private let mainButtonSize: CGFloat = 72 // Increased for larger Komal image
-    private let optionButtonSize: CGFloat = 64 // Increased
+    private let optionButtonSize: CGFloat = 80 // Increased
     private let secondaryButtonSize: CGFloat = 48
     private let expansionRadius: CGFloat = 125 // Increased for larger buttons
     
@@ -35,6 +37,18 @@ struct FloatingMenuView: View {
                     .onTapGesture {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                             isExpanded = false
+                        }
+                    }
+                    .zIndex(0)
+            }
+            
+            // Dismiss browser menu when tapping outside
+            if showBrowserMenu {
+                Color.black.opacity(0.001)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3)) {
+                            showBrowserMenu = false
                         }
                     }
                     .zIndex(0)
@@ -58,8 +72,67 @@ struct FloatingMenuView: View {
     // MARK: - Browser Layout (Komal on right, new tab button on left)
     private var browserLayout: some View {
         HStack(alignment: .bottom) {
-            // Left: New tab button (3 dots)
-            newTabButton
+            // Left: New tab button (3 dots) with popup menu
+            ZStack(alignment: .bottomLeading) {
+                newTabButton
+                
+                // Popup menu
+                if showBrowserMenu {
+                    VStack(spacing: 0) {
+                        // New Tab option
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3)) {
+                                showBrowserMenu = false
+                                onNewTab?()
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "plus.square")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(KomalColors.pearlAqua)
+                                Text("New Tab")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.primary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                        }
+                        
+                        Divider()
+                            .padding(.horizontal, 12)
+                        
+                        // Past Tabs option
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3)) {
+                                showBrowserMenu = false
+                                onPastTabs?()
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(KomalColors.bubblegumPink)
+                                Text("Past Tabs")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.primary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                        }
+                    }
+                    .frame(width: 180)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(.ultraThinMaterial)
+                            .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 4)
+                    )
+                    .offset(y: -60)
+                    .transition(.scale(scale: 0.8, anchor: .bottomLeading).combined(with: .opacity))
+                    .zIndex(10)
+                }
+            }
             
             Spacer()
             
@@ -107,7 +180,9 @@ struct FloatingMenuView: View {
     // MARK: - New Tab Button
     private var newTabButton: some View {
         Button {
-            onNewTab?()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                showBrowserMenu.toggle()
+            }
         } label: {
             ZStack {
                 Circle()
@@ -117,6 +192,7 @@ struct FloatingMenuView: View {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(.primary)
+                    .rotationEffect(.degrees(showBrowserMenu ? 90 : 0))
             }
         }
         .frame(width: secondaryButtonSize, height: secondaryButtonSize)
@@ -169,7 +245,7 @@ struct FloatingMenuView: View {
         } label: {
             ZStack {
                 Circle()
-                    .fill(.ultraThinMaterial)
+                    .fill(Color.white)
                     .frame(width: optionButtonSize, height: optionButtonSize)
                 
                 VStack(spacing: 2) {

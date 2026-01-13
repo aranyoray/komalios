@@ -10,6 +10,17 @@ final class BrowserState: ObservableObject {
     @Published var showGate = false
     @Published var showBlocked = false
     @Published var loading = false
+    @Published var tabHistory: [URL] = []
+    @Published var showPastTabs = false
+    
+    func addToHistory(_ url: URL) {
+        if !tabHistory.contains(url) {
+            tabHistory.insert(url, at: 0)
+            if tabHistory.count > 20 {
+                tabHistory.removeLast()
+            }
+        }
+    }
 }
 
 struct BrowserView: View {
@@ -49,6 +60,9 @@ struct BrowserView: View {
         }
         .fullScreenCover(isPresented: $browserState.showBlocked) {
             BlockedView(category: browserState.category, reason: browserState.blockReason)
+        }
+        .sheet(isPresented: $browserState.showPastTabs) {
+            PastTabsView(browserState: browserState)
         }
     }
 
@@ -141,6 +155,9 @@ struct WebView: UIViewRepresentable {
             browserState.loading = false
             browserState.currentURL = webView.url
             browserState.showGate = false
+            if let url = webView.url {
+                browserState.addToHistory(url)
+            }
         }
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -225,6 +242,101 @@ struct WebView: UIViewRepresentable {
                 updated.append(URLQueryItem(name: name, value: value))
             }
             return updated
+    }
+}
+
+// MARK: - Past Tabs View
+struct PastTabsView: View {
+    @ObservedObject var browserState: BrowserState
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                GradientBackground()
+                
+                if browserState.tabHistory.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "clock.badge.questionmark")
+                            .font(.system(size: 60, weight: .light))
+                            .foregroundColor(KomalColors.pearlAqua.opacity(0.6))
+                        Text("No past tabs yet")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundColor(KomalColors.textSecondary)
+                        Text("Websites you visit will appear here")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(KomalColors.textSecondary.opacity(0.7))
+                    }
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(browserState.tabHistory, id: \.self) { url in
+                                Button(action: {
+                                    browserState.urlString = url.absoluteString
+                                    browserState.currentURL = url
+                                    dismiss()
+                                }) {
+                                    HStack(spacing: 14) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [KomalColors.pearlAqua.opacity(0.3), KomalColors.bubblegumPink.opacity(0.3)],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                                .frame(width: 44, height: 44)
+                                            
+                                            Image(systemName: "globe")
+                                                .font(.system(size: 18, weight: .medium))
+                                                .foregroundColor(KomalColors.pearlAqua)
+                                        }
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(url.host ?? "Unknown")
+                                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                                .foregroundColor(KomalColors.textPrimary)
+                                                .lineLimit(1)
+                                            
+                                            Text(url.absoluteString)
+                                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                                .foregroundColor(KomalColors.textSecondary)
+                                                .lineLimit(1)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(KomalColors.textSecondary.opacity(0.5))
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 14)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(KomalColors.white)
+                                            .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                                    )
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                    }
+                }
+            }
+            .navigationTitle("Past Tabs")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(KomalColors.bubblegumPink)
+                }
+            }
         }
     }
 }

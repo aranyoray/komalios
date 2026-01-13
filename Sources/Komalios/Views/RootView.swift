@@ -20,11 +20,14 @@ struct RootView: View {
             }
             
             // Floating menu overlay
-            FloatingMenuView(selectedTab: $selectedTab) {
-                // New tab action - reset browser to home
-                browserState.urlString = "https://www.khanacademy.org"
-                browserState.currentURL = URL(string: "https://www.khanacademy.org")
-            }
+            FloatingMenuView(selectedTab: $selectedTab, onNewTab: {
+                // New tab action - open Google
+                browserState.urlString = "https://www.google.com"
+                browserState.currentURL = URL(string: "https://www.google.com")
+            }, onPastTabs: {
+                // Show past tabs
+                browserState.showPastTabs = true
+            })
         }
     }
 }
@@ -67,6 +70,9 @@ struct BrowserViewWithState: View {
         }
         .fullScreenCover(isPresented: $browserState.showBlocked) {
             BlockedView(category: browserState.category, reason: browserState.blockReason)
+        }
+        .sheet(isPresented: $browserState.showPastTabs) {
+            PastTabsView(browserState: browserState)
         }
     }
     
