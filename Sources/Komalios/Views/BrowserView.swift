@@ -17,11 +17,15 @@ struct BrowserView: View {
     @StateObject private var browserState = BrowserState()
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 12) {
+        ZStack {
+            GradientBackground()
+
+            VStack(spacing: 8) {
                 AddressBar(urlString: $browserState.urlString) {
                     browserState.currentURL = normalizedURL(from: browserState.urlString)
                 }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
 
                 ZStack {
                     WebView(
@@ -29,24 +33,22 @@ struct BrowserView: View {
                         browserState: browserState,
                         appState: appState
                     )
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
 
                     if browserState.loading {
-                        ProgressView("Scanning for safe browsing…")
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        PlayfulLoadingView()
                     }
                 }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
             }
-            .padding()
-            .navigationTitle("Komal Browser • \(appState.currentProfileName)")
-            .sheet(isPresented: $browserState.showGate) {
-                GateView(category: browserState.category)
-                    .environmentObject(appState)
-            }
-            .fullScreenCover(isPresented: $browserState.showBlocked) {
-                BlockedView(category: browserState.category, reason: browserState.blockReason)
-            }
+        }
+        .sheet(isPresented: $browserState.showGate) {
+            GateView(category: browserState.category)
+                .environmentObject(appState)
+        }
+        .fullScreenCover(isPresented: $browserState.showBlocked) {
+            BlockedView(category: browserState.category, reason: browserState.blockReason)
         }
     }
 
@@ -63,21 +65,31 @@ struct AddressBar: View {
     var onSubmit: () -> Void
 
     var body: some View {
-        HStack {
-            Image(systemName: "lock.shield")
-                .foregroundColor(.green)
+        HStack(spacing: 10) {
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(KomalColors.pearlAqua)
+
             TextField("Search or enter address", text: $urlString)
+                .font(.system(size: 16, weight: .medium, design: .rounded))
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
+                .foregroundColor(KomalColors.textPrimary)
                 .onSubmit(onSubmit)
+
             Button(action: onSubmit) {
                 Image(systemName: "arrow.right.circle.fill")
-                    .font(.title2)
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundColor(KomalColors.bubblegumPink)
             }
         }
-        .padding(10)
-        .background(Color(.systemGray6))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Capsule().fill(KomalColors.white))
+        .overlay(
+            Capsule()
+                .stroke(KomalColors.bubblegumPink, lineWidth: 2)
+        )
     }
 }
 

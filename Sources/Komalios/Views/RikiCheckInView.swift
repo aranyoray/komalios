@@ -11,32 +11,50 @@ struct RikiCheckInView: View {
     ]
 
     var body: some View {
-        VStack(spacing: 20) {
-            StepHeader(step: step)
-            RikiAvatarView()
-            Text(prompts[step])
-                .font(.title3)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+        ZStack {
+            GradientBackground()
 
-            Button(action: advance) {
-                Text(step == prompts.count - 1 ? "Continue" : "Next")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
+            VStack(spacing: 20) {
+                Spacer()
 
-            if step == prompts.count - 1 {
-                Text("Riki is here whenever you need a calm reset.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                StepIndicator(currentStep: step, totalSteps: prompts.count)
+
+                RikiAvatarView()
+
+                BubblyCard {
+                    VStack(spacing: 12) {
+                        Text(prompts[step])
+                            .font(.system(size: 22, weight: .semibold, design: .rounded))
+                            .foregroundColor(KomalColors.textPrimary)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+                    }
+                }
+                .padding(.horizontal, 16)
+
+                Button(action: advance) {
+                    Text(step == prompts.count - 1 ? "Continue" : "Next")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(PillButtonStyle())
+                .padding(.horizontal, 24)
+
+                if step == prompts.count - 1 {
+                    Text("Riki is here whenever you need a calm reset.")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                }
+
+                Spacer()
             }
         }
-        .padding()
     }
 
     private func advance() {
-        if step < prompts.count - 1 {
-            step += 1
+        withAnimation(KomalAnimations.spring) {
+            if step < prompts.count - 1 {
+                step += 1
+            }
         }
     }
 }
@@ -48,7 +66,7 @@ struct StepHeader: View {
         HStack(spacing: 8) {
             ForEach(0..<4) { index in
                 Circle()
-                    .fill(index <= step ? Color.green : Color.gray.opacity(0.3))
+                    .fill(index <= step ? KomalColors.bubblegumPink : KomalColors.lavenderPurple.opacity(0.3))
                     .frame(width: 10, height: 10)
             }
         }
@@ -62,39 +80,44 @@ struct RikiAssistantCard: View {
     let action: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            RikiAvatarView()
-            Text(title)
-                .font(.headline)
-            Text(message)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-            Button(buttonTitle, action: action)
-                .buttonStyle(.bordered)
+        BubblyCard(tintColor: KomalColors.violet) {
+            VStack(spacing: 12) {
+                RikiAvatarView(size: 100)
+
+                Text(title)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(KomalColors.textPrimary)
+
+                Text(message)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(KomalColors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+
+                Button(buttonTitle, action: action)
+                    .buttonStyle(SecondaryPillButtonStyle())
+            }
         }
-        .padding()
-        .background(Color.green.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 
 struct RikiAvatarView: View {
+    var size: CGFloat = 150
+
     var body: some View {
         ZStack {
-            Circle()
-                .fill(Color.green.opacity(0.15))
-                .frame(width: 180, height: 180)
-            Circle()
-                .fill(Color.green.opacity(0.3))
-                .frame(width: 140, height: 140)
+            BreathingCircle(size: size, color: KomalColors.bubblegumPink.opacity(0.3))
+
+            BreathingCircle(size: size * 0.75, color: KomalColors.pearlAqua.opacity(0.5))
+
             Image(systemName: "pawprint.fill")
-                .font(.system(size: 60))
-                .foregroundStyle(Color.green)
+                .font(.system(size: size * 0.35, weight: .semibold))
+                .foregroundColor(KomalColors.bubblegumPink)
         }
         .overlay(
             Text("Riki")
-                .font(.caption)
-                .foregroundStyle(.secondary),
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .foregroundColor(KomalColors.textSecondary),
             alignment: .bottom
         )
     }

@@ -6,25 +6,48 @@ struct MindfulBreakView: View {
     @State private var timer = 10
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Mindful Break")
-                .font(.title2)
-                .bold()
-            RikiAvatarView()
-            Text("Take a gentle pause. Notice your breath and the room around you.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+        ZStack {
+            GradientBackground()
 
-            Text("\(timer)s")
-                .font(.largeTitle)
-                .bold()
+            VStack(spacing: 20) {
+                Spacer()
 
-            Button("I'm ready") {
-                dismiss()
+                Text("Mindful Break")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundColor(KomalColors.textPrimary)
+
+                RikiAvatarView(size: 160)
+
+                BubblyCard(tintColor: KomalColors.yellow) {
+                    VStack(spacing: 14) {
+                        Text("Take a gentle pause. Notice your breath and the room around you.")
+                            .font(.system(size: 18, weight: .medium, design: .rounded))
+                            .foregroundColor(KomalColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+
+                        ZStack {
+                            Circle()
+                                .fill(KomalColors.pearlAqua.opacity(0.3))
+                                .frame(width: 100, height: 100)
+
+                            Text("\(timer)s")
+                                .font(.system(size: 40, weight: .bold, design: .rounded))
+                                .foregroundColor(KomalColors.bubblegumPink)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+
+                Button("I'm ready") {
+                    dismiss()
+                }
+                .buttonStyle(PillButtonStyle())
+                .padding(.horizontal, 24)
+
+                Spacer()
             }
-            .buttonStyle(.borderedProminent)
         }
-        .padding()
         .onAppear(perform: startTimer)
     }
 

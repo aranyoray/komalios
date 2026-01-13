@@ -6,24 +6,54 @@ struct BlockedView: View {
     let reason: String
 
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "shield.slash")
-                .font(.system(size: 60))
-                .foregroundStyle(.red)
-            Text("This content is blocked")
-                .font(.title2)
-                .bold()
-            Text("Komal blocked this page because it includes \(category.label.lowercased()) content.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-            Text(reason)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Text("Ask a parent if you need access.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+        ZStack {
+            GradientBackground()
+
+            VStack(spacing: 20) {
+                Spacer()
+
+                AnimatedIcon(
+                    systemName: "shield.slash",
+                    size: 64,
+                    color: KomalColors.pearlAqua
+                )
+
+                BubblyCard {
+                    VStack(spacing: 14) {
+                        Text("This content is blocked")
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .foregroundColor(KomalColors.textPrimary)
+
+                        Text("Komal blocked this page because it includes \(category.label.lowercased()) content.")
+                            .font(.system(size: 17, weight: .medium, design: .rounded))
+                            .foregroundColor(KomalColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+
+                        Text(reason)
+                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .foregroundColor(KomalColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+
+                        Divider()
+                            .padding(.vertical, 8)
+
+                        HStack(spacing: 8) {
+                            Image(systemName: "hand.raised.fill")
+                                .foregroundColor(KomalColors.softPink)
+
+                            Text("Ask a parent if you need access.")
+                                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                .foregroundColor(KomalColors.textPrimary)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+
+                Spacer()
+            }
         }
-        .padding()
     }
 }
 #endif
