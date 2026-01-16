@@ -7,8 +7,16 @@ struct KomaliosApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            if appState.hasCompletedOnboarding {
+                RootView()
+                    .environmentObject(appState)
+            } else {
+                OnboardingView {
+                    // Onboarding completed
+                    appState.savePreferences()
+                }
                 .environmentObject(appState)
+            }
         }
     }
 }

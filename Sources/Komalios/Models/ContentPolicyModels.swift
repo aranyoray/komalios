@@ -1,6 +1,6 @@
 import Foundation
 
-enum AgeGroup: String, CaseIterable, Identifiable {
+enum AgeGroup: String, CaseIterable, Identifiable, Codable {
     case under10 = "< 10"
     case tenToThirteen = "10–13"
     case thirteenToSixteen = "13–16"
@@ -10,15 +10,15 @@ enum AgeGroup: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum AccountMode: String, CaseIterable, Identifiable {
+enum AccountMode: String, CaseIterable, Identifiable, Codable {
     case child = "Child Account"
     case guest = "Guest Mode"
 
     var id: String { rawValue }
 }
 
-struct ChildProfile: Identifiable {
-    let id = UUID()
+struct ChildProfile: Identifiable, Codable {
+    var id = UUID()
     var name: String
     var ageGroup: AgeGroup
 
