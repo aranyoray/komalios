@@ -26,6 +26,7 @@ final class BrowserState: ObservableObject {
 struct BrowserView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var browserState = BrowserState()
+    @State private var hasLoadedInitial = false
 
     var body: some View {
         ZStack {
@@ -52,6 +53,13 @@ struct BrowserView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 8)
+            }
+        }
+        .onAppear {
+            // Auto-load default URL on first appearance
+            if !hasLoadedInitial {
+                browserState.currentURL = normalizedURL(from: browserState.urlString)
+                hasLoadedInitial = true
             }
         }
         .sheet(isPresented: $browserState.showGate) {
