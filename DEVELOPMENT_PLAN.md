@@ -1,680 +1,655 @@
-# 🚀 1-WEEK INTENSE COREML INTEGRATION PLAN
-## 10 Hours Total | 5 CoreML Models | Daily 2-Hour Sprints
+# 🚀 7-DAY COREML SPRINT: JAN 19-26
+## Objective: Ship App Store Update with 5 CoreML Models + Demo Ready
 
 ---
 
 ## 📊 OVERVIEW
 
-**Objective**: Train and integrate 5 CoreML text classification models into Komalios SwiftUI app
+**Start Date**: Sunday, Jan 19, 2025
+**Demo Date**: Sunday, Jan 26, 2025
+**App Store Push**: Friday, Jan 24, 2025
 
-**Models to Build**:
-1. **Horror/Paranormal Classifier** - Detects scary, creepy, jumpscare content
-2. **Cyberbullying Classifier** - Detects harassment, slut-shaming, body-shaming
-3. **Parasocial Content Classifier** - Detects manipulative influencer content, FOMO triggers
-4. **Financial Advice Classifier** - Detects unregulated crypto/stock tips
-5. **Mature Content Classifier** - Detects sexual/LGBTQ+/religious content (multi-label)
+**Available Resources**:
+- ✅ Pre-trained GCP models (high accuracy)
+- ✅ Cursor Pro + Claude Pro + Codex access
+- ✅ Existing web flow at komalkids.com/demo
+- ✅ Senior SwiftUI developer (5.2 years exp)
 
-**Tech Stack**:
-- **Training**: Python + scikit-learn/CoreMLTools OR Create ML (macOS)
-- **Integration**: Swift 5.9, CoreML, NaturalLanguage framework
-- **Architecture**: MVVM pattern with async/await
-- **Testing**: XCTest for model validation
+**Models to Integrate** (already trained on GCP):
+1. Horror/Paranormal Classifier
+2. Cyberbullying Classifier
+3. Parasocial Content Classifier
+4. Financial Advice Classifier
+5. Mature Content Classifier
 
----
-
-## 📅 DAY 1: MONDAY (2 HOURS)
-### Environment Setup + Dataset Preparation + Model 1
-
-**TIME**: 9:00 AM - 11:00 AM
-
-#### ✅ MILESTONE 1.1: Development Environment (30 min)
-**Tasks**:
-- [ ] Install Python 3.9+ with pip
-- [ ] Install dependencies: `pip install coremltools scikit-learn pandas numpy transformers`
-- [ ] Create project directory: `komalios/MLModels/`
-- [ ] Set up Xcode 15+ with SwiftUI project open
-- [ ] Create new Swift file: `Sources/Komalios/Services/MLContentClassifier.swift`
-
-**Deliverable**: Screenshot of successful `import coremltools` in Python
+**Critical Requirements**:
+- ❌ ZERO BUGS - Must pass all testing
+- ❌ ZERO APP STORE REJECTIONS - Follow all guidelines
+- ✅ Full E2E data pipeline (GCP → CoreML → On-device storage)
+- ✅ Production-ready code with proper error handling
+- ✅ Demo-ready by Jan 26
 
 ---
 
-#### ✅ MILESTONE 1.2: Dataset Preparation (45 min)
-**Tasks**:
-- [ ] Create `MLModels/datasets/` folder
-- [ ] Build 5 CSV files (one per model) with columns: `text, label`
-  - `horror_dataset.csv` (200+ samples: 100 horror, 100 safe)
-  - `cyberbullying_dataset.csv` (200+ samples: 100 bullying, 100 safe)
-  - `parasocial_dataset.csv` (200+ samples: 100 manipulative, 100 safe)
-  - `financial_dataset.csv` (200+ samples: 100 risky advice, 100 safe)
-  - `mature_dataset.csv` (300+ samples: multi-label for sexual/lgbtq/religion)
-
-**Data Sources**:
-- Use keywords from your table as seed data
-- Augment with synthetic examples using GPT-4 prompts
-- Manual labeling for 50-100 examples per category
-- Web scraping from Reddit/Twitter (use existing datasets if available)
-
-**Example `horror_dataset.csv`**:
-```csv
-text,label
-"This creepy ghost story gave me nightmares",horror
-"Paranormal activity caught on camera at 3AM",horror
-"Best chocolate cake recipe tutorial",safe
-"Jumpscare compilation that will terrify you",horror
-```
-
-**Deliverable**: 5 CSV files with 200-300 labeled examples each
+## 📅 DAILY MILESTONES (11 PM Check-ins)
 
 ---
 
-#### ✅ MILESTONE 1.3: Train Model 1 - Horror Classifier (45 min)
-**Tasks**:
-- [ ] Create `MLModels/train_horror_model.py`
-- [ ] Load `horror_dataset.csv`
-- [ ] Train TF-IDF + Logistic Regression classifier
-- [ ] Evaluate with 80/20 train-test split (target: >85% accuracy)
-- [ ] Convert to CoreML using `coremltools`
-- [ ] Save as `HorrorClassifier.mlmodel`
-- [ ] Test model with sample inputs
+## DAY 1: SUNDAY, JAN 19
+### 🎯 Milestone: GCP Model Download + Web Flow Understanding + CoreML Conversion Setup
 
-**Python Script Structure**:
-```python
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
-import coremltools as ct
+#### Deliverables by 11 PM:
+- [ ] **Clone and explore komalweb repo** (https://github.com/aranyoray/komalweb)
+  - Understand NLP vector search/algorithm flow at komalkids.com/demo
+  - Document how web demo classifies content (API endpoints, model calls, data flow)
+  - Map web flow to iOS requirements
+  - Create architecture diagram showing GCP → iOS pipeline
 
-# Load data
-df = pd.read_csv('datasets/horror_dataset.csv')
-X_train, X_test, y_train, y_test = train_test_split(
-    df['text'], df['label'], test_size=0.2, random_state=42
-)
+- [ ] **Download all 5 trained models from GCP**
+  - Get model files (TensorFlow/PyTorch/ONNX format)
+  - Download model metadata (accuracy metrics, label mappings, preprocessing steps)
+  - Verify model formats and compatibility
+  - Store in `MLModels/gcp_models/` folder
 
-# Train TF-IDF + Logistic Regression
-vectorizer = TfidfVectorizer(max_features=1000, ngram_range=(1,2))
-X_train_vec = vectorizer.fit_transform(X_train)
-X_test_vec = vectorizer.transform(X_test)
+- [ ] **Set up CoreML conversion environment**
+  - Install coremltools: `pip install coremltools tensorflow torch`
+  - Create conversion script: `convert_to_coreml.py`
+  - Test conversion with ONE model (Horror classifier as proof of concept)
+  - Validate converted model runs in Python before iOS integration
 
-clf = LogisticRegression(max_iter=1000)
-clf.fit(X_train_vec, y_train)
+- [ ] **Create iOS data pipeline architecture document**
+  - Design: GCP API → Local cache → CoreML inference → Result storage
+  - Define data models for classification results
+  - Plan on-device storage strategy (Core Data vs UserDefaults vs files)
+  - Document error handling strategy
 
-# Evaluate
-y_pred = clf.predict(X_test_vec)
-print(classification_report(y_test, y_pred))
-
-# Convert to CoreML (requires coremltools pipeline)
-# Use sklearn-coreml or custom conversion
-# Save HorrorClassifier.mlmodel
-```
-
-**Deliverable**: `HorrorClassifier.mlmodel` file with >85% accuracy report
+#### Success Criteria:
+✅ komalweb demo flow fully understood and documented
+✅ All 5 GCP models downloaded locally
+✅ At least 1 model successfully converted to CoreML (.mlmodel file)
+✅ Architecture doc shows complete data pipeline
 
 ---
 
-## 📅 DAY 2: TUESDAY (2 HOURS)
-### Train Model 2 & 3 + Initial Swift Integration
+## DAY 2: MONDAY, JAN 20
+### 🎯 Milestone: Convert All 5 Models to CoreML + Create iOS ML Service Layer
 
-**TIME**: 9:00 AM - 11:00 AM
+#### Deliverables by 11 PM:
+- [ ] **Convert all 5 GCP models to CoreML**
+  - Run conversion script for all models
+  - Generate `.mlmodel` files: `HorrorClassifier.mlmodel`, `CyberbullyingClassifier.mlmodel`, etc.
+  - Validate each model with test inputs in Python
+  - Document input/output specs for each model
+  - Ensure models are optimized for iOS (quantization if needed)
 
-#### ✅ MILESTONE 2.1: Train Model 2 - Cyberbullying Classifier (45 min)
-**Tasks**:
-- [ ] Create `train_cyberbullying_model.py`
-- [ ] Load `cyberbullying_dataset.csv`
-- [ ] Train TF-IDF + Logistic Regression (same pipeline as Day 1)
-- [ ] Evaluate (target: >85% accuracy)
-- [ ] Convert to `CyberbullyingClassifier.mlmodel`
-- [ ] Test with examples: "you're so ugly", "nice outfit!", etc.
+- [ ] **Add models to Xcode project**
+  - Drag all 5 `.mlmodel` files into `Sources/Komalios/Resources/`
+  - Verify Xcode auto-generates Swift classes
+  - Check model metadata in Xcode (Preview tab)
+  - Ensure models compile without errors
 
-**Deliverable**: `CyberbullyingClassifier.mlmodel` with validation report
+- [ ] **Create comprehensive ML service layer**
+  - Build `Sources/Komalios/Services/MLClassificationService.swift`
+  - Implement model loading with error handling
+  - Create async classification methods for each model
+  - Add caching layer (NSCache) for performance
+  - Implement text preprocessing (matching web demo logic)
+  - Add logging/telemetry for debugging
 
----
+- [ ] **Create data models for results**
+  - `ClassificationResult` struct with all metadata
+  - `ContentCategory` enum matching web demo categories
+  - `MLModelMetrics` for tracking performance
+  - Codable conformance for storage
 
-#### ✅ MILESTONE 2.2: Train Model 3 - Parasocial Classifier (45 min)
-**Tasks**:
-- [ ] Create `train_parasocial_model.py`
-- [ ] Load `parasocial_dataset.csv`
-- [ ] Train model focusing on FOMO triggers, clickbait, manipulation
-- [ ] Evaluate (target: >80% accuracy - harder category)
-- [ ] Convert to `ParasocialClassifier.mlmodel`
-- [ ] Test with: "YOU MUST WATCH THIS NOW", "don't miss out", etc.
-
-**Deliverable**: `ParasocialClassifier.mlmodel` with validation report
-
----
-
-#### ✅ MILESTONE 2.3: Swift Service Setup (30 min)
-**Tasks**:
-- [ ] Create `Sources/Komalios/Services/MLContentClassifier.swift`
-- [ ] Import CoreML and NaturalLanguage frameworks
-- [ ] Add 3 CoreML model files to Xcode project (drag & drop into Resources)
-- [ ] Write class structure:
-
-```swift
-import Foundation
-import CoreML
-import NaturalLanguage
-
-@available(iOS 16.0, *)
-class MLContentClassifier: ObservableObject {
-    private var horrorModel: HorrorClassifier?
-    private var cyberbullyingModel: CyberbullyingClassifier?
-    private var parasocialModel: ParasocialClassifier?
-
-    init() {
-        loadModels()
-    }
-
-    private func loadModels() {
-        do {
-            let config = MLModelConfiguration()
-            horrorModel = try HorrorClassifier(configuration: config)
-            cyberbullyingModel = try CyberbullyingClassifier(configuration: config)
-            parasocialModel = try ParasocialClassifier(configuration: config)
-        } catch {
-            print("Error loading models: \(error)")
-        }
-    }
-
-    func classifyText(_ text: String) async throws -> ClassificationResult {
-        // TODO: Implement in Day 4
-        return ClassificationResult(isHarmful: false, categories: [], confidence: 0.0)
-    }
-}
-
-struct ClassificationResult {
-    let isHarmful: Bool
-    let categories: [String]
-    let confidence: Double
-}
-```
-
-**Deliverable**: Swift service stub with 3 models loaded successfully
+#### Success Criteria:
+✅ All 5 models converted and in Xcode
+✅ MLClassificationService compiles without errors
+✅ Can load all models successfully on app launch
+✅ Basic classification works with test strings
 
 ---
 
-## 📅 DAY 3: WEDNESDAY (2 HOURS)
-### Train Model 4 & 5 + Model Integration Architecture
+## DAY 3: TUESDAY, JAN 21
+### 🎯 Milestone: Full E2E Integration - First Model Working in BrowserView
 
-**TIME**: 9:00 AM - 11:00 AM
+#### Deliverables by 11 PM:
+- [ ] **Integrate Horror Classifier into BrowserView (end-to-end)**
+  - Hook into WKNavigationDelegate's `decidePolicyFor` method
+  - Extract URL + page title for classification
+  - Call MLClassificationService asynchronously
+  - Handle classification results (Block/Gate/Allow)
+  - Update BrowserState with results
+  - Trigger BlockedView when horror content detected
 
-#### ✅ MILESTONE 3.1: Train Model 4 - Financial Advice Classifier (45 min)
-**Tasks**:
-- [ ] Create `train_financial_model.py`
-- [ ] Load `financial_dataset.csv`
-- [ ] Train model detecting crypto tips, stock advice without disclaimers
-- [ ] Evaluate (target: >85% accuracy)
-- [ ] Convert to `FinancialAdviceClassifier.mlmodel`
-- [ ] Test with: "buy this crypto now", "investment opportunity", etc.
+- [ ] **Implement on-device result storage**
+  - Create Core Data model: `ClassificationHistory` entity
+  - Fields: url, timestamp, category, confidence, action (blocked/gated/allowed)
+  - Create `ClassificationStorageService.swift`
+  - Implement save, fetch, delete operations
+  - Add batch operations for performance
+  - Test with 100+ classification results
 
-**Deliverable**: `FinancialAdviceClassifier.mlmodel` with validation report
+- [ ] **Update BlockedView to show ML results**
+  - Display detected category (e.g., "Horror/Paranormal")
+  - Show confidence score with visual indicator
+  - Add "Detected by AI" badge
+  - Implement "Report Incorrect" button (stores feedback)
+  - Match design to existing KomalTheme
 
----
+- [ ] **Add comprehensive logging**
+  - Log every classification attempt
+  - Log model inference time
+  - Log storage operations
+  - Create debug overlay showing ML stats
+  - Use OSLog for production logging
 
-#### ✅ MILESTONE 3.2: Train Model 5 - Mature Content Classifier (45 min)
-**Tasks**:
-- [ ] Create `train_mature_content_model.py`
-- [ ] Load `mature_dataset.csv` (multi-label: sexual, lgbtq, religious)
-- [ ] Train multi-label classifier (use `MultiOutputClassifier` or separate models)
-- [ ] Alternative: Train 3 sub-models or single model with probability outputs
-- [ ] Evaluate (target: >80% accuracy per label)
-- [ ] Convert to `MatureContentClassifier.mlmodel`
-- [ ] Test with: "LGBTQ+ pride event", "religious sermon", "kissing scene", etc.
+- [ ] **Test Horror classifier thoroughly**
+  - Test with 20+ horror-related URLs
+  - Test with 20+ safe URLs
+  - Verify no false positives on Khan Academy, Wikipedia
+  - Check classification latency (<100ms)
+  - Test offline behavior (models work without network)
 
-**Python Multi-Label Approach**:
-```python
-from sklearn.multioutput import MultiOutputClassifier
-
-# Assume labels are: sexual, lgbtq, religious (0/1 for each)
-clf = MultiOutputClassifier(LogisticRegression(max_iter=1000))
-clf.fit(X_train_vec, y_train_multilabel)
-```
-
-**Deliverable**: `MatureContentClassifier.mlmodel` with multi-label validation
-
----
-
-#### ✅ MILESTONE 3.3: Add Models to Xcode + Update Service (30 min)
-**Tasks**:
-- [ ] Drag `FinancialAdviceClassifier.mlmodel` and `MatureContentClassifier.mlmodel` into Xcode
-- [ ] Verify all 5 `.mlmodel` files compile to Swift classes
-- [ ] Update `MLContentClassifier.swift` to load all 5 models
-- [ ] Add model properties:
-
-```swift
-private var financialModel: FinancialAdviceClassifier?
-private var matureContentModel: MatureContentClassifier?
-```
-
-- [ ] Update `loadModels()` to initialize all 5 models
-- [ ] Create enum for content categories:
-
-```swift
-enum ContentCategory: String, CaseIterable {
-    case horror = "Horror/Paranormal"
-    case cyberbullying = "Cyberbullying"
-    case parasocial = "Parasocial/Manipulative"
-    case financialAdvice = "Financial Advice"
-    case matureContent = "Mature Content"
-}
-```
-
-**Deliverable**: All 5 models loaded in Swift without errors
+#### Success Criteria:
+✅ Horror classifier blocks scary content in real-time
+✅ All classifications stored in Core Data
+✅ BlockedView shows beautiful ML-powered UI
+✅ <100ms classification latency
+✅ Zero crashes during testing
 
 ---
 
-## 📅 DAY 4: THURSDAY (2 HOURS)
-### Full CoreML Integration + BrowserView Hook
+## DAY 4: WEDNESDAY, JAN 22
+### 🎯 Milestone: Integrate All 5 Models + Advanced Features
 
-**TIME**: 9:00 AM - 11:00 AM
+#### Deliverables by 11 PM:
+- [ ] **Integrate remaining 4 models into BrowserView**
+  - Add Cyberbullying classifier
+  - Add Parasocial classifier
+  - Add Financial Advice classifier
+  - Add Mature Content classifier
+  - Run all 5 models in parallel using async/await
+  - Aggregate results with weighted scoring
+  - Handle multi-category detection (e.g., content that's both horror AND mature)
 
-#### ✅ MILESTONE 4.1: Implement Classification Logic (60 min)
-**Tasks**:
-- [ ] Implement `classifyText(_ text: String) async throws -> ClassificationResult` method
-- [ ] Run all 5 models on input text in parallel using `async let`
-- [ ] Aggregate results with weighted scoring
-- [ ] Return harmful content detection with categories and confidence
+- [ ] **Implement smart classification pipeline**
+  - Quick pre-filter: Check static blocklist first (faster)
+  - If blocklist passes → Run ML models
+  - Combine blocklist + ML results intelligently
+  - Cache classifications by URL (avoid re-running models)
+  - Implement confidence threshold tuning per category
+  - Add fallback logic if models fail to load
 
-**Implementation**:
-```swift
-func classifyText(_ text: String) async throws -> ClassificationResult {
-    guard !text.isEmpty else {
-        return ClassificationResult(isHarmful: false, categories: [], confidence: 0.0)
-    }
+- [ ] **Build parent dashboard for ML insights**
+  - Create new SettingsView section: "AI Content Reports"
+  - Show classification history grouped by category
+  - Display charts: blocked categories over time
+  - Show most blocked websites
+  - Export data as CSV for parent review
+  - Add "Clear History" button
 
-    // Preprocess text (lowercase, remove URLs, etc.)
-    let cleanText = preprocessText(text)
+- [ ] **Implement age-appropriate thresholds**
+  - Different confidence thresholds per age group
+  - <10: Strict (0.5 threshold = block)
+  - 10-13: Moderate (0.65 threshold)
+  - 13-16: Relaxed (0.75 threshold)
+  - 16+: Very relaxed (0.85 threshold)
+  - Load from ContentFilterPreferences
+  - Allow parent customization
 
-    // Run all 5 models in parallel
-    async let horrorResult = classifyHorror(cleanText)
-    async let bullyingResult = classifyCyberbullying(cleanText)
-    async let parasocialResult = classifyParasocial(cleanText)
-    async let financialResult = classifyFinancial(cleanText)
-    async let matureResult = classifyMature(cleanText)
+- [ ] **Performance optimization**
+  - Profile with Instruments (Time Profiler)
+  - Optimize model loading (lazy loading if needed)
+  - Reduce memory footprint (<50MB for all models)
+  - Implement result caching (LRU cache, 500 entries)
+  - Test with rapid navigation (10 URLs in 10 seconds)
 
-    let results = try await [
-        horrorResult,
-        bullyingResult,
-        parasocialResult,
-        financialResult,
-        matureResult
-    ]
-
-    // Aggregate results
-    var detectedCategories: [String] = []
-    var maxConfidence: Double = 0.0
-
-    for (index, result) in results.enumerated() {
-        if result.isHarmful {
-            detectedCategories.append(ContentCategory.allCases[index].rawValue)
-            maxConfidence = max(maxConfidence, result.confidence)
-        }
-    }
-
-    let isHarmful = !detectedCategories.isEmpty
-    return ClassificationResult(
-        isHarmful: isHarmful,
-        categories: detectedCategories,
-        confidence: maxConfidence
-    )
-}
-
-private func classifyHorror(_ text: String) async throws -> (isHarmful: Bool, confidence: Double) {
-    guard let model = horrorModel else {
-        throw MLError.modelNotLoaded
-    }
-
-    // Call CoreML model (depends on model input/output structure)
-    // Example assuming text input and probability output:
-    let input = HorrorClassifierInput(text: text)
-    let output = try model.prediction(input: input)
-
-    // Assuming output has "horror" probability
-    let probability = output.horrorProbability // Adjust based on actual model
-    return (isHarmful: probability > 0.7, confidence: probability)
-}
-
-// Repeat for other 4 models...
-```
-
-- [ ] Create helper methods: `preprocessText()`, `classifyHorror()`, `classifyCyberbullying()`, etc.
-- [ ] Handle CoreML errors gracefully
-- [ ] Add logging for debugging
-
-**Deliverable**: Complete `MLContentClassifier` service with all 5 models working
+#### Success Criteria:
+✅ All 5 models working simultaneously
+✅ Classification pipeline handles complex cases
+✅ Parent dashboard shows beautiful insights
+✅ Age-based thresholds work correctly
+✅ App stays responsive during heavy ML usage
 
 ---
 
-#### ✅ MILESTONE 4.2: Integrate with BrowserView (45 min)
-**Tasks**:
-- [ ] Open `Sources/Komalios/Views/BrowserView.swift`
-- [ ] Add `@StateObject var mlClassifier = MLContentClassifier()` to BrowserView
-- [ ] Hook into WKNavigationDelegate's `decidePolicyFor` method
-- [ ] Extract page title + URL for classification
-- [ ] Call `mlClassifier.classifyText()` asynchronously
-- [ ] If harmful content detected → trigger `BlockedView` or `GateView`
-- [ ] Pass detected categories to BlockedView for user feedback
+## DAY 5: THURSDAY, JAN 23
+### 🎯 Milestone: Comprehensive Testing + Bug Fixes + App Store Prep
 
-**Integration Code**:
-```swift
-// In BrowserView's WKNavigationDelegate
-func webView(_ webView: WKWebView,
-             decidePolicyFor navigationAction: WKNavigationAction,
-             decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+#### Deliverables by 11 PM:
+- [ ] **Unit testing (XCTest)**
+  - Create `Tests/KomaliosTests/MLClassificationServiceTests.swift`
+  - Test each model with 10+ examples (true positives/negatives)
+  - Test edge cases: empty strings, very long URLs, special characters, emojis
+  - Test caching behavior
+  - Test error handling (model fails to load, invalid input)
+  - Test Core Data storage (CRUD operations)
+  - Test performance (measure block - each model <50ms)
+  - **Target: 30+ passing tests, 0 failures**
 
-    guard let url = navigationAction.request.url else {
-        decisionHandler(.allow)
-        return
-    }
+- [ ] **Integration testing**
+  - Test complete user flows:
+    - Child opens browser → Navigates to horror site → Blocked by ML
+    - Parent reviews AI reports → Sees correct data
+    - Child switches age group → Thresholds update correctly
+  - Test onboarding flow with ML features
+  - Test settings changes persist correctly
+  - Test app backgrounding/foregrounding (models stay loaded)
+  - Test memory warnings (models reload gracefully)
 
-    // Existing blocklist check...
+- [ ] **Real-world URL testing**
+  - Test with 50+ real URLs across all categories:
+    - Horror: reddit.com/r/nosleep, creepypasta.com
+    - Cyberbullying: twitter posts with harassment
+    - Parasocial: youtube.com/watch?v=mr-beast-challenge
+    - Financial: crypto pump groups, stock tip sites
+    - Mature: LGBTQ+ content, religious sites
+  - Verify accuracy matches GCP model performance
+  - Document false positives/negatives
+  - Tune thresholds to reduce false positives
 
-    // NEW: ML-based classification
-    Task {
-        let textToClassify = "\(url.host ?? "") \(url.path) \(webView.title ?? "")"
+- [ ] **Bug hunting and fixing**
+  - Use Cursor Pro AI to review all ML-related code for bugs
+  - Fix memory leaks (Instruments - Leaks)
+  - Fix any crashes (Xcode crash logs)
+  - Fix UI glitches in BlockedView
+  - Fix race conditions in async code
+  - Fix Core Data threading issues
+  - **Goal: Zero known bugs by EOD**
 
-        do {
-            let result = try await mlClassifier.classifyText(textToClassify)
+- [ ] **App Store compliance check**
+  - Review App Store Review Guidelines (especially 1.4.4 - Physical Harm)
+  - Ensure privacy disclosures for ML usage (PrivacyInfo.xcprivacy)
+  - Add App Store description mentioning AI features
+  - Prepare screenshots showing ML blocking
+  - Update "What's New" for this version
+  - Check for any rejected API usage
+  - Verify all third-party dependencies are compliant
 
-            if result.isHarmful {
-                await MainActor.run {
-                    // Show BlockedView with ML-detected categories
-                    browserState.blockedCategories = result.categories
-                    browserState.showBlockedOverlay = true
-                    decisionHandler(.cancel)
-                }
-            } else {
-                decisionHandler(.allow)
-            }
-        } catch {
-            print("ML classification error: \(error)")
-            decisionHandler(.allow) // Fallback to allow on error
-        }
-    }
-}
-```
+- [ ] **Privacy manifest updates**
+  - Update `Resources/PrivacyInfo.xcprivacy`
+  - Add data collection disclosure for classification history
+  - Document ML model usage (on-device processing)
+  - Add required reasons for API usage
+  - Ensure COPPA compliance (app is for children)
 
-- [ ] Update `BrowserState` model to include `blockedCategories: [String]`
-- [ ] Update `BlockedView.swift` to display ML-detected categories
-- [ ] Test with sample URLs
-
-**Deliverable**: Browser blocks harmful content using ML models in real-time
-
----
-
-#### ✅ MILESTONE 4.3: Update BlockedView UI (15 min)
-**Tasks**:
-- [ ] Open `Sources/Komalios/Views/BlockedView.swift`
-- [ ] Add display for ML-detected categories
-- [ ] Show confidence score (optional)
-- [ ] Add "This was detected by AI" badge
-
-**UI Update**:
-```swift
-VStack(spacing: 20) {
-    // Existing blocked icon...
-
-    Text("Content Blocked by AI")
-        .font(.title2.bold())
-
-    if !blockedCategories.isEmpty {
-        Text("Detected: \(blockedCategories.joined(separator: ", "))")
-            .font(.subheadline)
-            .foregroundColor(.secondary)
-    }
-
-    // Existing buttons...
-}
-```
-
-**Deliverable**: Enhanced BlockedView showing AI detection results
+#### Success Criteria:
+✅ 30+ unit tests passing
+✅ All integration tests pass
+✅ Zero known bugs
+✅ 95%+ accuracy on real-world URLs
+✅ App Store compliance verified
+✅ Privacy manifest complete
 
 ---
 
-## 📅 DAY 5: FRIDAY (2 HOURS)
-### Testing, Optimization & Deployment
+## DAY 6: FRIDAY, JAN 24
+### 🎯 Milestone: App Store Submission + Final Polish
 
-**TIME**: 9:00 AM - 11:00 AM
+#### Deliverables by 11 PM:
+- [ ] **Pre-submission checklist**
+  - [ ] All tests passing (`cmd+U`)
+  - [ ] No warnings in Xcode
+  - [ ] Build succeeds on Release configuration
+  - [ ] App runs perfectly on iOS 16, 17, 18 simulators
+  - [ ] Test on real device (if available)
+  - [ ] Memory usage <150MB during heavy use
+  - [ ] No crashes after 30min continuous use
+  - [ ] All analytics/logging working
 
-#### ✅ MILESTONE 5.1: Unit Testing (45 min)
-**Tasks**:
-- [ ] Create `Tests/KomaliosTests/MLContentClassifierTests.swift`
-- [ ] Write XCTest cases for each model
-- [ ] Test true positives (harmful content correctly detected)
-- [ ] Test true negatives (safe content correctly allowed)
-- [ ] Test edge cases (empty strings, very long text, special characters)
-- [ ] Measure inference latency (target: <100ms per classification)
+- [ ] **Version bump and changelog**
+  - Update version number (e.g., 1.1.0)
+  - Update build number
+  - Write detailed "What's New":
+    ```
+    🤖 AI-Powered Content Safety (NEW!)
+    • 5 advanced AI models protect your child from harmful content
+    • Real-time detection of horror, cyberbullying, manipulation, and more
+    • Smarter blocking with age-appropriate intelligence
+    • Parent dashboard shows AI-detected content insights
 
-**Test Structure**:
-```swift
-import XCTest
-@testable import Komalios
+    🛡️ Enhanced Protection
+    • Faster and more accurate content filtering
+    • Better handling of evolving online risks
+    • Improved performance and stability
 
-final class MLContentClassifierTests: XCTestCase {
-    var classifier: MLContentClassifier!
+    📊 For Parents
+    • New AI Content Reports in Settings
+    • See exactly what content was blocked and why
+    • Export reports for review
+    ```
+  - Update CHANGELOG.md in repo
 
-    override func setUp() async throws {
-        classifier = MLContentClassifier()
-    }
+- [ ] **Build and archive**
+  - Clean build folder (`cmd+shift+K`)
+  - Archive app (`Product > Archive`)
+  - Validate archive (Xcode validation)
+  - Fix any validation errors
+  - Submit to App Store Connect
+  - Fill out App Store metadata
+  - Upload screenshots (including ML features)
+  - Submit for review
 
-    func testHorrorDetection() async throws {
-        let horrorText = "This paranormal ghost story has scary jumpscares"
-        let result = try await classifier.classifyText(horrorText)
+- [ ] **Monitor app currently in review**
+  - Check status of existing submission
+  - If approved → Great! Plan for next update
+  - If rejected → Address issues immediately
+  - Respond to any App Review questions within 2 hours
 
-        XCTAssertTrue(result.isHarmful)
-        XCTAssertTrue(result.categories.contains("Horror/Paranormal"))
-        XCTAssertGreaterThan(result.confidence, 0.7)
-    }
+- [ ] **Create fallback plan**
+  - If submission rejected, document exact issues
+  - Prepare fixes for common rejection reasons:
+    - Privacy issues → Update manifest
+    - Crashes → Fix and resubmit same day
+    - Guideline violations → Adjust features
+  - Keep Jan 25 as buffer for resubmission
 
-    func testSafeContent() async throws {
-        let safeText = "Learn how to bake a delicious chocolate cake"
-        let result = try await classifier.classifyText(safeText)
-
-        XCTAssertFalse(result.isHarmful)
-        XCTAssertEqual(result.categories.count, 0)
-    }
-
-    func testCyberbullyingDetection() async throws {
-        let bullyingText = "You're so ugly and worthless, slut"
-        let result = try await classifier.classifyText(bullyingText)
-
-        XCTAssertTrue(result.isHarmful)
-        XCTAssertTrue(result.categories.contains("Cyberbullying"))
-    }
-
-    func testPerformance() {
-        measure {
-            let text = "Sample text for performance testing"
-            Task {
-                _ = try? await classifier.classifyText(text)
-            }
-        }
-    }
-
-    // Add 10+ more tests...
-}
-```
-
-- [ ] Run all tests: `cmd+U` in Xcode
-- [ ] Fix any failing tests
-- [ ] Achieve >90% pass rate
-
-**Deliverable**: 15+ passing unit tests with performance benchmarks
+#### Success Criteria:
+✅ App successfully submitted to App Store Connect
+✅ No validation errors
+✅ All metadata and screenshots uploaded
+✅ Status shows "Waiting for Review" or "In Review"
+✅ Fallback plan documented
 
 ---
 
-#### ✅ MILESTONE 5.2: End-to-End Testing (30 min)
-**Tasks**:
-- [ ] Manual testing in iOS Simulator
-- [ ] Test URLs that should be blocked:
-  - Horror: "reddit.com/r/nosleep"
-  - Cyberbullying: "twitter.com/example-bully-post"
-  - Parasocial: "youtube.com/watch?v=clickbait-fomo"
-  - Financial: "crypto-pump-group.com"
-  - Mature: "lgbtq-pride-event.org"
-- [ ] Test URLs that should be allowed:
-  - "khanacademy.org"
-  - "wikipedia.org"
-  - "bbc.com/news/science"
-- [ ] Test edge cases:
-  - Very long URLs
-  - Non-English text (if datasets support)
-  - Rapid navigation (stress test)
-- [ ] Verify BlockedView displays correct categories
-- [ ] Test GateView PIN unlock for gated content
-- [ ] Test with different age group settings in SettingsView
+## DAY 7: SATURDAY, JAN 25
+### 🎯 Milestone: Demo Preparation + Documentation
 
-**Deliverable**: Documented test results with screenshots
+#### Deliverables by 11 PM:
+- [ ] **Create comprehensive demo script**
+  - Write step-by-step demo flow (10-15 minutes)
+  - Script covers all 5 ML models in action
+  - Shows parent dashboard with AI insights
+  - Demonstrates age-based intelligence
+  - Highlights performance (speed, accuracy)
+  - Include "wow moments" (blocking harmful content in real-time)
+
+- [ ] **Demo video recording**
+  - Record 5-minute demo video showing:
+    1. Child mode: Browse safe content (Khan Academy) ✅
+    2. Navigate to horror site → ML blocks instantly with category shown
+    3. Try cyberbullying content → Blocked with confidence score
+    4. Try manipulative influencer content → Blocked
+    5. Parent mode: Open AI Reports → Show beautiful charts
+    6. Switch age groups → Demonstrate threshold changes
+  - Edit with captions/annotations
+  - Export in 1080p
+
+- [ ] **Create demo environment**
+  - Prepare test URLs list (20+ URLs across categories)
+  - Clear classification history for fresh demo
+  - Set up demo child profile (age 8-10 for strict blocking)
+  - Pre-load app on demo device/simulator
+  - Test complete demo flow 3 times (practice!)
+
+- [ ] **Build presentation deck** (10 slides max)
+  - Slide 1: Problem (kids exposed to harmful content)
+  - Slide 2: Solution (AI-powered safety)
+  - Slide 3: Architecture (GCP models → CoreML pipeline)
+  - Slide 4: 5 Model Categories (with examples)
+  - Slide 5: Demo - Horror Blocking
+  - Slide 6: Demo - Cyberbullying Blocking
+  - Slide 7: Parent Dashboard
+  - Slide 8: Performance Metrics (speed, accuracy, battery)
+  - Slide 9: App Store Readiness
+  - Slide 10: Next Steps
+
+- [ ] **Prepare FAQ responses**
+  - "How accurate are the models?" → Show GCP metrics
+  - "Does it work offline?" → Yes, models on-device
+  - "Battery impact?" → Negligible, <2% increase
+  - "Privacy concerns?" → All processing on-device, zero data sent to servers
+  - "False positives?" → Parent can override, feedback loop planned
+  - "What if App Store rejects?" → On-device ML is compliant, worst case we iterate
+
+- [ ] **Documentation for handoff**
+  - Update README.md with ML features section
+  - Create ARCHITECTURE.md showing data flow diagrams
+  - Document all model files and their purposes
+  - Create TESTING.md with test URLs and expected results
+  - Write TROUBLESHOOTING.md for common issues
+
+- [ ] **Final polish**
+  - Review all UI text for typos
+  - Check all animations are smooth
+  - Verify color consistency with KomalTheme
+  - Test on largest iPhone (Pro Max) and smallest (SE)
+  - Fix any UI layout issues
+  - Ensure accessibility (VoiceOver support for ML features)
+
+#### Success Criteria:
+✅ Demo script finalized and practiced
+✅ Demo video recorded and polished
+✅ Presentation deck complete
+✅ FAQ document ready
+✅ All documentation updated
+✅ App is pixel-perfect
 
 ---
 
-#### ✅ MILESTONE 5.3: Performance Optimization (30 min)
-**Tasks**:
-- [ ] Profile app with Instruments (Time Profiler)
-- [ ] Identify bottlenecks in ML inference
-- [ ] Optimize if inference >200ms:
-  - Cache recent classifications (LRU cache)
-  - Reduce model size (quantization)
-  - Limit text input length (first 500 chars)
-- [ ] Add background queue for ML processing
-- [ ] Implement debouncing for rapid URL changes
-- [ ] Monitor memory usage (target: <50MB increase)
+## DAY 8: SUNDAY, JAN 26
+### 🎯 DEMO DAY - Show Everything
 
-**Caching Implementation**:
-```swift
-private var classificationCache = NSCache<NSString, ClassificationResult>()
+#### Demo Checklist (Practice at 9 AM, Demo at TBD):
+- [ ] **Environment ready**
+  - Device/simulator charged and ready
+  - Demo URLs bookmarked
+  - Presentation deck open
+  - Demo video as backup
+  - Internet connection stable (if needed for live demo)
 
-func classifyText(_ text: String) async throws -> ClassificationResult {
-    let cacheKey = text.prefix(200) as NSString
-    if let cached = classificationCache.object(forKey: cacheKey) {
-        return cached
-    }
+- [ ] **Demo flow (15 minutes)**
+  1. **Intro** (2 min)
+     - Problem: Online safety for kids
+     - Solution: AI-powered content filtering
 
-    let result = try await performClassification(text)
-    classificationCache.setObject(result, forKey: cacheKey)
-    return result
-}
-```
+  2. **Live Demo** (8 min)
+     - Launch app in child mode
+     - Browse safe content (Khan Academy) - works perfectly
+     - Navigate to horror subreddit → **Blocked instantly**
+       - Show BlockedView with "Horror/Paranormal" category
+       - Show confidence: 92%
+     - Try cyberbullying Twitter post → **Blocked**
+       - Category: "Cyberbullying"
+       - Confidence: 88%
+     - Try Mr Beast FOMO video → **Blocked**
+       - Category: "Parasocial/Manipulative"
+       - Confidence: 85%
+     - Switch to parent mode (PIN unlock)
+     - Open AI Content Reports
+       - Show 3 blocked items
+       - Show category breakdown chart
+       - Export CSV demo
 
-**Deliverable**: App runs smoothly with <100ms classification latency
+  3. **Technical Deep Dive** (3 min)
+     - Show architecture diagram
+     - Explain GCP → CoreML pipeline
+     - Highlight on-device processing (privacy!)
+     - Show performance: <100ms per classification
+     - Show model sizes: ~5MB total
 
----
+  4. **App Store Status** (1 min)
+     - Show submission confirmation
+     - Current status: [In Review / Waiting for Review]
+     - Expected approval: [Date]
 
-#### ✅ MILESTONE 5.4: Documentation & Handoff (15 min)
-**Tasks**:
-- [ ] Create `MLModels/README.md` with:
-  - Model training instructions
-  - Dataset format specifications
-  - Retraining guide for future updates
-  - Performance benchmarks
-- [ ] Add inline code comments to `MLContentClassifier.swift`
-- [ ] Update main `README.md` with ML features section
-- [ ] Create demo video showing ML blocking in action
-- [ ] Prepare handoff document with known limitations
+  5. **Q&A** (1 min)
+     - Handle questions from FAQ doc
 
-**Deliverable**: Complete documentation package
+#### Backup Plan:
+- If live demo fails → Play pre-recorded video
+- If questions arise → Reference documentation
+- If technical deep dive requested → Show actual code in Xcode
+
+#### Post-Demo:
+- [ ] Gather feedback
+- [ ] Document any issues discovered
+- [ ] Plan iteration based on feedback
+- [ ] Celebrate! 🎉
 
 ---
 
 ## 📦 FINAL DELIVERABLES CHECKLIST
 
-### ✅ Code Artifacts
-- [ ] 5 CoreML models (.mlmodel files) in Xcode project
-- [ ] `MLContentClassifier.swift` service (200+ lines)
+### Code Artifacts
+- [ ] 5 CoreML models integrated and working
+- [ ] `MLClassificationService.swift` (300+ lines)
+- [ ] `ClassificationStorageService.swift` (200+ lines)
 - [ ] Updated `BrowserView.swift` with ML integration
-- [ ] Updated `BlockedView.swift` with AI detection UI
-- [ ] Updated `BrowserState.swift` model
-- [ ] `MLContentClassifierTests.swift` with 15+ tests
+- [ ] Updated `BlockedView.swift` with AI UI
+- [ ] New `AIReportsView.swift` (parent dashboard)
+- [ ] Core Data model for classification history
+- [ ] 30+ unit tests all passing
 
-### ✅ ML Artifacts
-- [ ] 5 Python training scripts
-- [ ] 5 CSV datasets (1000+ total samples)
-- [ ] 5 trained models with >80% accuracy
-- [ ] Training reports (accuracy, precision, recall, F1)
+### ML Artifacts
+- [ ] 5 `.mlmodel` files in Xcode
+- [ ] Conversion scripts from GCP models
+- [ ] Model metadata documentation
+- [ ] Performance benchmarks
 
-### ✅ Documentation
-- [ ] `MLModels/README.md` - Training guide
-- [ ] Updated main `README.md` - ML features
-- [ ] Code comments in Swift files
-- [ ] Test results document
-- [ ] Demo video (2-3 min)
+### Documentation
+- [ ] README.md updated
+- [ ] ARCHITECTURE.md created
+- [ ] TESTING.md with test URLs
+- [ ] TROUBLESHOOTING.md
+- [ ] CHANGELOG.md updated
+- [ ] Demo script document
 
-### ✅ Git Commits
-- [ ] Day 1: "Add ML dataset preparation and Horror classifier"
-- [ ] Day 2: "Add Cyberbullying and Parasocial classifiers + Swift service"
-- [ ] Day 3: "Add Financial and Mature Content classifiers"
-- [ ] Day 4: "Integrate CoreML into BrowserView with real-time classification"
-- [ ] Day 5: "Add ML tests, optimization, and documentation"
+### Demo Materials
+- [ ] 5-minute demo video
+- [ ] 10-slide presentation deck
+- [ ] FAQ document
+- [ ] Test URLs list
+- [ ] Performance metrics sheet
 
----
-
-## 🎯 SUCCESS METRICS
-
-1. **Model Performance**: All 5 models achieve >80% accuracy on test sets
-2. **Integration**: ML classification runs on every URL navigation without crashes
-3. **Performance**: Classification completes in <100ms (90th percentile)
-4. **User Experience**: BlockedView clearly shows AI-detected categories
-5. **Code Quality**: All unit tests pass, no memory leaks
-6. **Documentation**: Future developers can retrain models independently
+### App Store
+- [ ] Version 1.1.0 submitted
+- [ ] "What's New" written
+- [ ] Screenshots updated
+- [ ] Privacy manifest updated
+- [ ] Metadata complete
 
 ---
 
-## 🚨 RISK MITIGATION
+## 🚨 CRITICAL SUCCESS FACTORS
 
-### If Behind Schedule:
-- **Day 1 overrun**: Skip manual labeling, use GPT-4 to generate all 1000+ samples
-- **Day 2 overrun**: Use Create ML app (GUI) instead of Python scripts
-- **Day 3 overrun**: Merge Financial + Mature into single model (4 total models)
-- **Day 4 overrun**: Skip caching, use synchronous classification
-- **Day 5 overrun**: Reduce test coverage to 5 core tests
+### App Store Rejection Risks - AVOID THESE:
+1. **Privacy Issues**
+   - ✅ Ensure PrivacyInfo.xcprivacy includes ML data collection
+   - ✅ Add "Required Reasons API" declarations
+   - ✅ COPPA compliance for child safety app
 
-### If Model Accuracy Low:
-- Increase dataset size (use data augmentation)
-- Try different algorithms (SVM, Random Forest, BERT embeddings)
-- Adjust confidence threshold (lower from 0.7 to 0.5)
-- Fall back to rule-based filtering for low-confidence predictions
+2. **Crashes**
+   - ✅ Handle model loading failures gracefully
+   - ✅ Catch all CoreML exceptions
+   - ✅ Test on iOS 16, 17, 18
+   - ✅ Test on low-memory devices
 
-### If CoreML Conversion Fails:
-- Use Apple's Create ML for direct .mlmodel output
-- Simplify model (use smaller vocabulary, simpler features)
-- Manual conversion using coremltools tutorials
+3. **Performance**
+   - ✅ App launches in <3 seconds
+   - ✅ No ANRs (Application Not Responding)
+   - ✅ Models load asynchronously (don't block main thread)
 
----
+4. **Content Guidelines**
+   - ✅ Don't show harmful content in screenshots
+   - ✅ Clearly explain AI features benefit children
+   - ✅ Emphasize parental control
 
-## 📞 DAILY STANDUPS (15 min each day)
-
-**9:00 AM - Check-in Questions**:
-1. What did you complete yesterday?
-2. What blockers do you have?
-3. What will you deliver today?
-
-**11:00 AM - Check-out**:
-1. Demo what you built
-2. Show test results
-3. Confirm tomorrow's goals
-
----
-
-## 🎓 DEVELOPER RESOURCES
-
-### CoreML Tutorials:
-- [Apple CoreML Documentation](https://developer.apple.com/documentation/coreml)
-- [coremltools Python Package](https://coremltools.readme.io/)
-- [Create ML App Guide](https://developer.apple.com/documentation/createml)
-
-### SwiftUI + ML Integration:
-- [Integrating CoreML in SwiftUI](https://developer.apple.com/videos/play/wwdc2022/10027/)
-- [NaturalLanguage Framework](https://developer.apple.com/documentation/naturallanguage)
-
-### Dataset Resources:
-- [Hate Speech Detection Dataset](https://huggingface.co/datasets/hate_speech18)
-- [Toxic Comments Dataset](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge)
-- [Reddit Comments Dataset](https://www.reddit.com/r/datasets/)
+### Zero Bug Tolerance - Testing Checklist:
+- [ ] Test on iPhone SE (smallest screen)
+- [ ] Test on iPhone 15 Pro Max (largest screen)
+- [ ] Test on iOS 16.0 (minimum supported)
+- [ ] Test on iOS 18.2 (latest)
+- [ ] Test in low power mode
+- [ ] Test with slow network
+- [ ] Test in airplane mode
+- [ ] Test rapid navigation (stress test)
+- [ ] Test with VoiceOver enabled
+- [ ] Test after app backgrounded for 1 hour
 
 ---
 
-**END OF PLAN**
+## 💡 PRODUCTIVITY BOOSTERS
 
-*Total Time: 10 hours | Total Models: 5 | Total Tests: 15+ | Total Commits: 5*
+### Cursor Pro / Claude Pro Usage:
+- Use AI to generate Core Data models
+- Ask Claude to review ML service code for thread-safety
+- Use Copilot to write boilerplate test cases
+- Ask AI to optimize slow code sections
+- Use AI to generate privacy manifest entries
+
+### Time Savers:
+- Copy web demo preprocessing logic directly
+- Reuse existing KomalTheme components
+- Don't reinvent caching - use NSCache
+- Use Xcode code snippets for repetitive code
+- Batch test runs (don't test after every line change)
+
+### Debug Shortcuts:
+- Add `#if DEBUG` logging throughout ML pipeline
+- Use breakpoints with conditions (not print statements)
+- Enable Xcode Memory Graph to catch leaks early
+- Use Instruments from Day 1 (don't wait for slowness)
+
+---
+
+## 📞 DAILY CHECK-IN FORMAT (11 PM)
+
+Post in team chat:
+```
+DAY X CHECK-IN ✅
+
+Completed:
+- ✅ [Task 1]
+- ✅ [Task 2]
+- ✅ [Task 3]
+
+In Progress:
+- 🟡 [Task 4 - 80% done]
+
+Blockers:
+- ❌ [Issue if any] → [How resolving]
+
+Tomorrow:
+- [ ] [Plan for next day]
+
+Demo Readiness: [%]
+App Store Readiness: [%]
+```
+
+---
+
+## 🎯 KEY METRICS TO TRACK
+
+| Metric | Target | Track Daily |
+|--------|--------|-------------|
+| Models Integrated | 5/5 | Day 4 |
+| Classification Latency | <100ms | Day 3+ |
+| Test Coverage | 30+ tests | Day 5 |
+| Memory Usage | <150MB | Day 5 |
+| Known Bugs | 0 | Day 5 |
+| App Store Submission | Done | Day 6 |
+| Demo Readiness | 100% | Day 7 |
+
+---
+
+## 🏆 SUCCESS = ALL OF THE FOLLOWING:
+
+1. ✅ **5 CoreML models** working in production iOS app
+2. ✅ **Full E2E pipeline**: GCP models → CoreML → On-device storage
+3. ✅ **Zero bugs** - Comprehensively tested
+4. ✅ **App Store submitted** by Jan 24
+5. ✅ **Demo ready** by Jan 26 (video + live + deck)
+6. ✅ **Performance**: <100ms classification, <150MB memory
+7. ✅ **Privacy compliant**: All manifests updated
+8. ✅ **Beautiful UI**: ML features integrated with KomalTheme
+9. ✅ **Parent dashboard**: AI insights visible
+10. ✅ **Documentation**: Complete and clear
+
+---
+
+**LET'S SHIP THIS! 🚀**
+
+*Timeline: 7 days | Models: 5 | Zero bugs | Demo ready Jan 26*
