@@ -5,7 +5,6 @@ struct RootView: View {
     @EnvironmentObject private var authViewModel: AuthViewModel
     @State private var selectedTab: NavigationTab = .browser
     @StateObject private var browserState = BrowserState()
-    @State private var showInsights = false
     
     var body: some View {
         ZStack {
@@ -13,33 +12,17 @@ struct RootView: View {
             Group {
                 switch selectedTab {
                 case .browser:
-//                    BrowserViewWithState(browserState: browserState)
                     KomalSafetyScannerView()
                 case .riki:
                     RikiCheckInView()
                 case .settings:
                     SettingsView()
                         .environmentObject(authViewModel)
-                case .insights:
-                    InsightsView()
                 }
             }
             
             // Floating menu overlay
-            FloatingMenuView(selectedTab: $selectedTab, onNewTab: {
-                // New tab action - open Google
-                browserState.urlString = "https://www.google.com"
-                browserState.currentURL = URL(string: "https://www.google.com")
-            }, onPastTabs: {
-                // Show past tabs
-                browserState.showPastTabs = true
-            }, onInsights: {
-                // Show insights view
-                showInsights = true
-            })
-        }
-        .sheet(isPresented: $showInsights) {
-            InsightsView()
+            FloatingMenuView(selectedTab: $selectedTab)
         }
     }
 }

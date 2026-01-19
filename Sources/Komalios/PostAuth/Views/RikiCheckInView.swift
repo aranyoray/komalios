@@ -112,28 +112,28 @@ struct CharacterSelectionView: View {
     let onSelect: (RikiCharacter) -> Void
     
     private let columns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16)
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
     ]
     
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             // Header
-            VStack(spacing: 8) {
-                Text("Choose Your Friend!")
+            VStack(spacing: 6) {
+                Text("Choose a Friend")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
                 
-                Text("Who would you like to chat with today?")
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                Text("Who would you like to chat with?")
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
             }
-            .padding(.top, 20)
+            .padding(.top, 16)
             
-            // Character Grid
+            // Character Grid - Bento Style
             ScrollView(showsIndicators: false) {
-                LazyVGrid(columns: columns, spacing: 16) {
+                LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(RikiCharacter.allCharacters) { character in
                         CharacterCard(character: character) {
                             onSelect(character)
@@ -141,52 +141,47 @@ struct CharacterSelectionView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 120) // Space for floating menu
+                .padding(.bottom, 100)
             }
         }
     }
 }
 
-// MARK: - Character Card
+// MARK: - Character Card (Bento Style)
 
 struct CharacterCard: View {
     let character: RikiCharacter
     let onTap: () -> Void
     
-    @State private var isPressed = false
+    // Grey color matching the image backgrounds (#86868a)
+    private let cardBackground = Color(red: 0x86/255, green: 0x86/255, blue: 0x8a/255)
     
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 8) {
                 // Character Image
-                ZStack {
-                    Circle()
-                        .fill(KomalColors.lavenderPurple.opacity(0.15))
-                        .frame(width: 80, height: 80)
-                    
-                    if let uiImage = UIImage(named: character.imageName) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 70, height: 70)
-                            .clipShape(Circle())
-                    } else {
-                        Image(systemName: "pawprint.fill")
-                            .font(.system(size: 30))
-                            .foregroundColor(KomalColors.bubblegumPink)
-                    }
+                if let uiImage = UIImage(named: character.imageName) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 56, height: 56)
+                } else {
+                    Image(systemName: "pawprint.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(KomalColors.bubblegumPink)
+                        .frame(width: 56, height: 56)
                 }
                 
-                // Character Name
+                // Character Name - White text
                 Text(character.name)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundColor(KomalColors.textPrimary)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
             }
-            .padding(12)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
             .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.white)
-                    .shadow(color: KomalColors.bubblegumPink.opacity(0.15), radius: 8, x: 0, y: 4)
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(cardBackground)
             )
         }
         .buttonStyle(ScaleButtonStyle())

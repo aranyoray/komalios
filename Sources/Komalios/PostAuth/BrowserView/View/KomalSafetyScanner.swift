@@ -39,25 +39,67 @@ struct KomalSafetyScannerView: View {
 private struct KomalSafetyScannerContentView: View {
     @ObservedObject var viewModel: KomalSafetyScannerViewModel
     let appState: AppState
+    @State private var showBrowserMenu = false
     
     var body: some View {
         ZStack {
             GradientBackground()
             
-                VStack(spacing: 8) {
-                    AddressBar(urlString: $viewModel.urlInput) {
-                        Task {
-                        UIApplication.shared.hideKeyboard()
-                        await viewModel.handleUrlSubmit()
+            VStack(spacing: 6) {
+                    // Address bar with menu button
+                    HStack(spacing: 10) {
+                        // Menu button
+                        Menu {
+                            Button(action: {
+                                // New tab - reset to Google
+                                viewModel.urlInput = "google.com"
+                                viewModel.currentURL = URL(string: "https://www.google.com")
+                            }) {
+                                Label("New Tab", systemImage: "plus.square")
+                            }
+                            
+                            Button(action: {
+                                // Refresh current page
+                                if let url = viewModel.currentURL {
+                                    viewModel.currentURL = nil
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        viewModel.currentURL = url
+                                    }
+                                }
+                            }) {
+                                Label("Refresh", systemImage: "arrow.clockwise")
+                            }
+                            
+                            Divider()
+                            
+                            Button(action: {
+                                // Clear and go home
+                                viewModel.urlInput = ""
+                                viewModel.currentURL = nil
+                            }) {
+                                Label("Close Tab", systemImage: "xmark.square")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle.fill")
+                                .font(.system(size: 28, weight: .medium))
+                                .foregroundStyle(KomalColors.bubblegumPink)
+                        }
+                        
+                        // Address bar (expanded)
+                        AddressBar(urlString: $viewModel.urlInput) {
+                            Task {
+                                UIApplication.shared.hideKeyboard()
+                                await viewModel.handleUrlSubmit()
+                            }
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.top, 8)
+                    .padding(.horizontal, 8)
+                    .padding(.top, 4)
                 
                 // Subtle scanning indicator below address bar
                 if viewModel.loading {
                     ScanningIndicator()
-                        .padding(.horizontal, 12)
+                        .padding(.horizontal, 8)
                 }
                 
                 if let url = viewModel.currentURL, !viewModel.showGate, !viewModel.showBlocked {
@@ -65,14 +107,11 @@ private struct KomalSafetyScannerContentView: View {
                         get: { viewModel.loading },
                         set: { viewModel.updateLoading($0) }
                     ))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
-                    }
-                
-                Spacer(minLength: 0)
-    }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 80) // Space for floating nav bar
+                }
+            }
         }
         .sheet(isPresented: $viewModel.showGate) {
             GateView(category: viewModel.category)
