@@ -2,27 +2,6 @@
 import SwiftUI
 import WebKit
 
-final class BrowserState: ObservableObject {
-    @Published var urlString = "https://www.khanacademy.org"
-    @Published var currentURL: URL?
-    @Published var category: ContentCategory = .unknown
-    @Published var blockReason: String = ""
-    @Published var showGate = false
-    @Published var showBlocked = false
-    @Published var loading = false
-    @Published var tabHistory: [URL] = []
-    @Published var showPastTabs = false
-    
-    func addToHistory(_ url: URL) {
-        if !tabHistory.contains(url) {
-            tabHistory.insert(url, at: 0)
-            if tabHistory.count > 20 {
-                tabHistory.removeLast()
-            }
-        }
-    }
-}
-
 struct BrowserView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var browserState = BrowserState()

@@ -12,7 +12,7 @@ enum AgeGroup: String, CaseIterable, Identifiable, Codable {
 
 enum AccountMode: String, CaseIterable, Identifiable, Codable {
     case child = "Child Account"
-    case guest = "Guest Mode"
+    case guest = "Parent Mode"
 
     var id: String { rawValue }
 }

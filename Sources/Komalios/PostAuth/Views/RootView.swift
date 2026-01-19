@@ -2,6 +2,7 @@
 import SwiftUI
 
 struct RootView: View {
+    @EnvironmentObject private var authViewModel: AuthViewModel
     @State private var selectedTab: NavigationTab = .browser
     @StateObject private var browserState = BrowserState()
     
@@ -11,11 +12,13 @@ struct RootView: View {
             Group {
                 switch selectedTab {
                 case .browser:
-                    BrowserViewWithState(browserState: browserState)
+//                    BrowserViewWithState(browserState: browserState)
+                    KomalSafetyScannerView()
                 case .riki:
                     RikiCheckInView()
                 case .settings:
                     SettingsView()
+                        .environmentObject(authViewModel)
                 }
             }
             
@@ -44,6 +47,8 @@ struct BrowserViewWithState: View {
             VStack(spacing: 8) {
                 AddressBar(urlString: $browserState.urlString) {
                     browserState.currentURL = normalizedURL(from: browserState.urlString)
+//                    browserState.handleScanUrl(inputText: browserState.urlString)
+
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 8)

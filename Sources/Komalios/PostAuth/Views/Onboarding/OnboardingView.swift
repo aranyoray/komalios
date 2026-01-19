@@ -452,32 +452,16 @@ struct CategoryItemRow: View {
 
             Spacer()
 
-            // Action selector
-            HStack(spacing: 4) {
-                actionButton(.block, icon: "xmark", color: KomalColors.bubblegumPink)
-                actionButton(.gate, icon: "exclamationmark", color: Color.orange)
-                actionButton(.allow, icon: "checkmark", color: KomalColors.pearlAqua)
-            }
+            // Action selector - Three-position slider
+            FilterActionSlider(
+                currentAction: currentAction,
+                onActionChanged: { newAction in
+                    preferences[keyPath: item.keyPath] = newAction
+                }
+            )
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
-    }
-
-    private func actionButton(_ action: FilterAction, icon: String, color: Color) -> some View {
-        Button(action: {
-            preferences[keyPath: item.keyPath] = action
-        }) {
-            ZStack {
-                Circle()
-                    .fill(currentAction == action ? color : color.opacity(0.2))
-                    .frame(width: 32, height: 32)
-
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(currentAction == action ? .white : color)
-            }
-        }
-        .buttonStyle(.plain)
     }
 }
 
