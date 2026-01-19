@@ -5,12 +5,14 @@ enum NavigationTab: String, CaseIterable {
     case browser = "Browser"
     case riki = "Talk"
     case settings = "Settings"
+    case insights = "Insights"
     
     var icon: String {
         switch self {
         case .browser: return "safari.fill"
         case .riki: return "pawprint.fill"
         case .settings: return "gearshape.fill"
+        case .insights: return "chart.bar.fill"
         }
     }
 }
@@ -19,6 +21,7 @@ struct FloatingMenuView: View {
     @Binding var selectedTab: NavigationTab
     var onNewTab: (() -> Void)? = nil
     var onPastTabs: (() -> Void)? = nil
+    var onInsights: (() -> Void)? = nil
     @State private var isExpanded = false
     @State private var showBrowserMenu = false
     
@@ -114,6 +117,29 @@ struct FloatingMenuView: View {
                                     .font(.system(size: 18, weight: .medium))
                                     .foregroundColor(KomalColors.bubblegumPink)
                                 Text("Past Tabs")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.primary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                        }
+                        
+                        Divider()
+                            .padding(.horizontal, 12)
+                        
+                        // Insights option
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3)) {
+                                showBrowserMenu = false
+                                onInsights?()
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "chart.bar.fill")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(KomalColors.pearlAqua)
+                                Text("Insights")
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(.primary)
                                 Spacer()

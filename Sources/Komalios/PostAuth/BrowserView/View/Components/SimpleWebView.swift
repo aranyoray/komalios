@@ -48,6 +48,7 @@ struct SimpleWebView: UIViewRepresentable {
         @Binding var loading: Bool
         var targetURL: URL? // Track the URL we're trying to load
         private var currentNavigation: WKNavigation? // Track current navigation to avoid duplicate callbacks
+        private let historyService = BrowsingHistoryService.shared
         
         init(loading: Binding<Bool>) {
             _loading = loading
@@ -80,6 +81,11 @@ struct SimpleWebView: UIViewRepresentable {
                 self.currentNavigation = nil
                 self.loading = false
                 print("🌐 WebView finished loading - setting loading to false")
+                
+                // Log page load event for history tracking
+                if let url = webView.url {
+                    self.historyService.logPageLoad(url: url, title: webView.title)
+                }
             }
         }
         

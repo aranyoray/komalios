@@ -26,6 +26,12 @@ struct KomalSafetyScannerView: View {
             .onAppear {
                 // Update appState in viewModel
                 viewModel.updateAppState(appState)
+                // Start browsing session for history tracking
+                BrowsingHistoryService.shared.startSession()
+            }
+            .onDisappear {
+                // End browsing session when leaving browser
+                BrowsingHistoryService.shared.endSession()
             }
     }
 }
@@ -48,6 +54,12 @@ private struct KomalSafetyScannerContentView: View {
                     .padding(.horizontal, 12)
                     .padding(.top, 8)
                 
+                // Subtle scanning indicator below address bar
+                if viewModel.loading {
+                    ScanningIndicator()
+                        .padding(.horizontal, 12)
+                }
+                
                 if let url = viewModel.currentURL, !viewModel.showGate, !viewModel.showBlocked {
                     SimpleWebView(url: url, loading: Binding(
                         get: { viewModel.loading },
@@ -61,10 +73,6 @@ private struct KomalSafetyScannerContentView: View {
                 Spacer(minLength: 0)
     }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            
-            if viewModel.loading {
-                PlayfulLoadingView()
-            }
         }
         .sheet(isPresented: $viewModel.showGate) {
             GateView(category: viewModel.category)
@@ -87,5 +95,48 @@ private struct KomalSafetyScannerContentView: View {
             KomalCheckInView()
         }
 }
+}
+
+// MARK: - Subtle Scanning Indicator
+private struct ScanningIndicator: View {
+    @State private var isAnimating = false
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            // Small Komal logo
+            ZStack {
+                if let uiImage = UIImage(named: "komaliconnobg") {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 20, height: 20)
+                        .clipShape(Circle())
+                        .rotationEffect(Angle(degrees: isAnimating ? 10 : -10))
+                } else {
+                    Circle()
+                        .fill(KomalColors.bubblegumPink.opacity(0.3))
+                        .frame(width: 20, height: 20)
+                }
+            }
+            
+            Text("Komal is keeping you safe...")
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .foregroundColor(KomalColors.textSecondary)
+            
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(Color.white.opacity(0.9))
+                .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+        )
+        .onAppear {
+            withAnimation(Animation.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
+                isAnimating = true
+            }
+        }
+    }
 }
 #endif

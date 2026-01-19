@@ -35,11 +35,18 @@ struct BrowserView: View {
             }
         }
         .onAppear {
+            // Start browsing session
+            BrowsingHistoryService.shared.startSession()
+            
             // Auto-load default URL on first appearance
             if !hasLoadedInitial {
                 browserState.currentURL = normalizedURL(from: browserState.urlString)
                 hasLoadedInitial = true
             }
+        }
+        .onDisappear {
+            // End browsing session when leaving browser
+            BrowsingHistoryService.shared.endSession()
         }
         .sheet(isPresented: $browserState.showGate) {
             GateView(category: browserState.category)
@@ -126,6 +133,7 @@ struct WebView: UIViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         private let blocklist = BlocklistService.shared
+        private let historyService = BrowsingHistoryService.shared
         private let browserState: BrowserState
         private let appState: AppState
 
@@ -144,6 +152,8 @@ struct WebView: UIViewRepresentable {
             browserState.showGate = false
             if let url = webView.url {
                 browserState.addToHistory(url)
+                // Log page load event for insights
+                historyService.logPageLoad(url: url, title: webView.title)
             }
         }
 
@@ -171,18 +181,22 @@ struct WebView: UIViewRepresentable {
             }
 
             if let match = blocklist.match(url: url) {
+                // Log blocked event for insights
+                historyService.logBlocked(url: url, category: match.category, reason: match.reason)
                 presentBlock(category: ContentCategory(label: match.category), reason: match.reason)
                 decisionHandler(.cancel)
                 return
             }
 
             if appState.parentSettings.blockedHosts.contains(where: { url.host?.contains($0) == true }) {
+                historyService.logBlocked(url: url, category: "Parent Rules", reason: "Blocked by parent host rule.")
                 presentBlock(category: .platformRisks, reason: "Blocked by parent host rule.")
                 decisionHandler(.cancel)
                 return
             }
 
             if appState.parentSettings.blockedKeywords.contains(where: { url.absoluteString.lowercased().contains($0.lowercased()) }) {
+                historyService.logBlocked(url: url, category: "Parent Rules", reason: "Blocked by parent keyword rule.")
                 presentBlock(category: .platformRisks, reason: "Blocked by parent keyword rule.")
                 decisionHandler(.cancel)
                 return

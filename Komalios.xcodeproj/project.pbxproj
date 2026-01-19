@@ -57,6 +57,10 @@
 		D9516F603C9EAA56EDED7DADC8DA66E8 /* Components/ScanResultCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9516F609FA1E7A0FFB9CDF1 /* Components/ScanResultCards.swift */; };
 		F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6 /* KomalCheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */; };
 		F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7 /* KomalBlockedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */; };
+		INSIGHTS001201D0001 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSIGHTS001101D0001 /* InsightsView.swift */; };
+		BROWSEVT001201D0001 /* BrowsingEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSEVT001101D0001 /* BrowsingEvent.swift */; };
+		BROWSESS001201D0001 /* BrowsingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSESS001101D0001 /* BrowsingSession.swift */; };
+		BROWSHIS001201D0001 /* BrowsingHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSHIS001101D0001 /* BrowsingHistoryService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -108,6 +112,10 @@
 		D9516F609FA1E7A0FFB9CDF1 /* Components/ScanResultCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/ScanResultCards.swift; sourceTree = "<group>"; };
 		F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalCheckInView.swift; sourceTree = "<group>"; };
 		F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalBlockedView.swift; sourceTree = "<group>"; };
+		INSIGHTS001101D0001 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		BROWSEVT001101D0001 /* BrowsingEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingEvent.swift; sourceTree = "<group>"; };
+		BROWSESS001101D0001 /* BrowsingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingSession.swift; sourceTree = "<group>"; };
+		BROWSHIS001101D0001 /* BrowsingHistoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingHistoryService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -183,6 +191,7 @@
 				A1000001101D000F /* FloatingMenuView.swift */,
 				ECAFED31FAD30DC4853EFDEF /* Components */,
 				A1000001401D0009 /* Onboarding */,
+				INSIGHTS401D0001 /* Insights */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -194,6 +203,8 @@
 				A1000001101D000A /* ContentPolicyModels.swift */,
 				A1000001101D000B /* ParentSettings.swift */,
 				A1000001101D0013 /* ContentFilterPreferences.swift */,
+				BROWSEVT001101D0001 /* BrowsingEvent.swift */,
+				BROWSESS001101D0001 /* BrowsingSession.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -204,6 +215,7 @@
 				B24118A22F1D36E6001DC5AF /* Network */,
 				A1000001101D000C /* BlocklistService.swift */,
 				55C8711FDCF5AA5041D0CBFF /* FirestoreService.swift */,
+				BROWSHIS001101D0001 /* BrowsingHistoryService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -428,6 +440,14 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
+		INSIGHTS401D0001 /* Insights */ = {
+			isa = PBXGroup;
+			children = (
+				INSIGHTS001101D0001 /* InsightsView.swift */,
+			);
+			path = Insights;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -545,6 +565,10 @@
 				A1000001201D0013 /* ContentFilterPreferences.swift in Sources */,
 				B24118AF2F1D4A2F001DC5AF /* ScanUrlModel.swift in Sources */,
 				B24118B82F1D5812001DC5AF /* AppleSignInResult.swift in Sources */,
+				INSIGHTS001201D0001 /* InsightsView.swift in Sources */,
+				BROWSEVT001201D0001 /* BrowsingEvent.swift in Sources */,
+				BROWSESS001201D0001 /* BrowsingSession.swift in Sources */,
+				BROWSHIS001201D0001 /* BrowsingHistoryService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -15,8 +15,8 @@ import SwiftUI
 @MainActor
 final class KomalSafetyScannerViewModel: ObservableObject {
     // MARK: - Published Properties
-    @Published var urlInput: String = ""
-    @Published var currentURL: URL?
+    @Published var urlInput: String = "google.com"
+    @Published var currentURL: URL? = URL(string: "https://www.google.com")
     @Published var pendingURL: URL?
     @Published var showGate = false
     @Published var showBlocked = false
@@ -29,7 +29,33 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     
     // MARK: - Dependencies
     private let networkService = ScanNetworkService()
+    private let historyService = BrowsingHistoryService.shared
     var appState: AppState
+    
+    // MARK: - Known Kid-Friendly Sites (skip scanning)
+    private let trustedDomains: Set<String> = [
+        "google.com", "www.google.com",
+        "khanacademy.org", "www.khanacademy.org",
+        "pbskids.org", "www.pbskids.org",
+        "nationalgeographic.com", "www.nationalgeographic.com", "kids.nationalgeographic.com",
+        "brainpop.com", "www.brainpop.com",
+        "coolmathgames.com", "www.coolmathgames.com",
+        "funbrain.com", "www.funbrain.com",
+        "starfall.com", "www.starfall.com",
+        "abcya.com", "www.abcya.com",
+        "seussville.com", "www.seussville.com",
+        "scholastic.com", "www.scholastic.com",
+        "duckduckgo.com", "www.duckduckgo.com",
+        "wikipedia.org", "www.wikipedia.org", "en.wikipedia.org",
+        "nasa.gov", "www.nasa.gov",
+        "weather.com", "www.weather.com",
+        "timeanddate.com", "www.timeanddate.com",
+        "mathway.com", "www.mathway.com",
+        "duolingo.com", "www.duolingo.com",
+        "scratch.mit.edu",
+        "code.org", "www.code.org",
+        "typing.com", "www.typing.com"
+    ]
     
     // MARK: - Search Tracking
     private var searchCount: Int = 0
@@ -77,17 +103,43 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         let normalizedURL = normalizeURL(urlInput)
         print("📡 Scanning URL: \(normalizedURL)")
         
+        // Log typed URL event for history tracking
+        if let url = URL(string: normalizedURL) {
+            historyService.logTypedURL(url: url)
+        }
+        
         // Check for inappropriate keywords first (before API call)
         if containsInappropriateContent(normalizedURL) {
             print("🚫 Inappropriate content detected - showing Komal blocked view")
             category = .explicitContent
             blockReason = "Content not available"
+            // Log blocked event for history tracking
+            if let url = URL(string: normalizedURL) {
+                historyService.logBlocked(url: url, category: "Explicit & Body Content", reason: blockReason)
+            }
             showBlocked = true
             loading = false
             return
         }
         
-        // Scan URL
+        // Check if this is a trusted kid-friendly domain (skip scanning)
+        if let url = URL(string: normalizedURL), isTrustedDomain(url) {
+            print("✅ Trusted domain - skipping scan: \(url.host ?? "")")
+            currentURL = url
+            historyService.logEvent(url: url, type: .allowed, category: "Trusted Site", action: .allow)
+            loading = false
+            
+            // Still show check-in if it's time
+            if shouldCheckIn {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    self.showKomalCheckIn = true
+                    self.updateNextCheckIn()
+                }
+            }
+            return
+        }
+        
+        // Scan URL (for non-trusted sites)
         do {
             scanResult = try await networkService.scanURL(normalizedURL)
             print("✅ Scan completed. Result: Success")
@@ -189,6 +241,25 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 if hostLower.contains(blockedHost.lowercased()) {
                     return true
                 }
+            }
+        }
+        
+        return false
+    }
+    
+    /// Check if URL is from a trusted kid-friendly domain
+    private func isTrustedDomain(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased() else { return false }
+        
+        // Check exact match
+        if trustedDomains.contains(host) {
+            return true
+        }
+        
+        // Check if it's a subdomain of a trusted domain
+        for trustedDomain in trustedDomains {
+            if host.hasSuffix(".\(trustedDomain)") {
+                return true
             }
         }
         
@@ -356,9 +427,16 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     }
     
     private func handleAction(_ action: Action, result: ScanResponse) {
+        // Determine category string for logging
+        let categoryString = result.childSafetyAnalysis.riskCategories.first?.category ?? category.label
+        
         switch action {
         case .block:
             print("🚫 BLOCK action - Setting showBlocked = true")
+            // Log blocked event for history tracking
+            if let url = URL(string: result.url) {
+                historyService.logBlocked(url: url, category: categoryString, reason: blockReason)
+            }
             currentURL = nil
             showGate = false
             showKomalCheckIn = false
@@ -370,6 +448,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             print("🚧 GATE action - Setting showGate = true")
             if let url = URL(string: result.url) {
                 pendingURL = url
+                // Log gated event for history tracking
+                historyService.logGated(url: url, category: categoryString)
             }
             currentURL = nil
             showBlocked = false
@@ -384,6 +464,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             showBlocked = false
             if let url = URL(string: result.url) {
                 currentURL = url
+                // Log allowed event for history tracking
+                historyService.logEvent(url: url, type: .allowed, category: categoryString, action: .allow)
                 loading = true // WebView will set to false when done
                 print("✅ URL set: \(url), loading: \(loading)")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in
