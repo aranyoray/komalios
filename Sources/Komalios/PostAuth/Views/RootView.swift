@@ -15,6 +15,8 @@ struct RootView: View {
                     KomalSafetyScannerView()
                 case .riki:
                     RikiCheckInView()
+                case .reflect:
+                    ReflectionTimeView()
                 case .settings:
                     SettingsView()
                         .environmentObject(authViewModel)

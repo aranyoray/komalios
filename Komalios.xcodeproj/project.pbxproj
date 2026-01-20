@@ -18,6 +18,7 @@
 		A1000001201D0005 /* GateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0005 /* GateView.swift */; };
 		A1000001201D0006 /* MindfulBreakView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0006 /* MindfulBreakView.swift */; };
 		A1000001201D0007 /* RikiCheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0007 /* RikiCheckInView.swift */; };
+		A1000001201D0030 /* ReflectionTimeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0030 /* ReflectionTimeView.swift */; };
 		A1000001201D0008 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0008 /* SettingsView.swift */; };
 		A1000001201D0009 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0009 /* AppState.swift */; };
 		A1000001201D000A /* ContentPolicyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D000A /* ContentPolicyModels.swift */; };
@@ -76,6 +77,7 @@
 		A1000001101D0005 /* GateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GateView.swift; sourceTree = "<group>"; };
 		A1000001101D0006 /* MindfulBreakView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindfulBreakView.swift; sourceTree = "<group>"; };
 		A1000001101D0007 /* RikiCheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RikiCheckInView.swift; sourceTree = "<group>"; };
+		A1000001101D0030 /* ReflectionTimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReflectionTimeView.swift; sourceTree = "<group>"; };
 		A1000001101D0008 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1000001101D0009 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		A1000001101D000A /* ContentPolicyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentPolicyModels.swift; sourceTree = "<group>"; };
@@ -186,6 +188,7 @@
 				A1000001101D0005 /* GateView.swift */,
 				A1000001101D0006 /* MindfulBreakView.swift */,
 				A1000001101D0007 /* RikiCheckInView.swift */,
+				A1000001101D0030 /* ReflectionTimeView.swift */,
 				A1000001101D0008 /* SettingsView.swift */,
 				9A8A403B9FC8EFEACBFC8FBB /* FilterPreferencesView.swift */,
 				A1000001101D000F /* FloatingMenuView.swift */,
@@ -534,6 +537,7 @@
 				B24118A12F1D3631001DC5AF /* Constants.swift in Sources */,
 				B24118832F1D1DCC001DC5AF /* AuthViewModel.swift in Sources */,
 				A1000001201D0007 /* RikiCheckInView.swift in Sources */,
+				A1000001201D0030 /* ReflectionTimeView.swift in Sources */,
 				A1000001201D0008 /* SettingsView.swift in Sources */,
 				B24118812F1D1D7D001DC5AF /* GoogleAuthService.swift in Sources */,
 				A1000001201D0009 /* AppState.swift in Sources */,

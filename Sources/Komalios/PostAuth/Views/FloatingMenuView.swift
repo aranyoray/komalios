@@ -4,12 +4,14 @@ import SwiftUI
 enum NavigationTab: String, CaseIterable {
     case browser = "Browse"
     case riki = "Talk"
+    case reflect = "Reflect"
     case settings = "Settings"
     
     var icon: String {
         switch self {
         case .browser: return "safari.fill"
         case .riki: return "pawprint.fill"
+        case .reflect: return "leaf.fill"
         case .settings: return "gearshape.fill"
         }
     }

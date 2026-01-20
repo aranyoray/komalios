@@ -40,6 +40,7 @@ private struct KomalSafetyScannerContentView: View {
     @ObservedObject var viewModel: KomalSafetyScannerViewModel
     let appState: AppState
     @State private var showBrowserMenu = false
+    @State private var showReflectionTime = false
     
     var body: some View {
         ZStack {
@@ -68,6 +69,14 @@ private struct KomalSafetyScannerContentView: View {
                                 }
                             }) {
                                 Label("Refresh", systemImage: "arrow.clockwise")
+                            }
+                            
+                            Divider()
+                            
+                            Button(action: {
+                                showReflectionTime = true
+                            }) {
+                                Label("Reflection Time", systemImage: "leaf.fill")
                             }
                             
                             Divider()
@@ -132,6 +141,10 @@ private struct KomalSafetyScannerContentView: View {
         }
         .fullScreenCover(isPresented: $viewModel.showKomalCheckIn) {
             KomalCheckInView()
+        }
+        .fullScreenCover(isPresented: $showReflectionTime) {
+            ReflectionTimeView()
+                .environmentObject(appState)
         }
 }
 }

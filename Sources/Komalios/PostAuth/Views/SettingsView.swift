@@ -425,6 +425,7 @@ struct SettingsView: View {
                                         ChipView(text: keyword, color: KomalColors.bubblegumPink) {
                                             if let index = appState.parentSettings.blockedKeywords.firstIndex(of: keyword) {
                                                 appState.parentSettings.blockedKeywords.remove(at: index)
+                                                appState.savePreferences()
                                             }
                                         }
                                     }
@@ -487,6 +488,7 @@ struct SettingsView: View {
                                         ChipView(text: host, color: KomalColors.pearlAqua) {
                                             if let index = appState.parentSettings.blockedHosts.firstIndex(of: host) {
                                                 appState.parentSettings.blockedHosts.remove(at: index)
+                                                appState.savePreferences()
                                             }
                                         }
                                     }
@@ -610,6 +612,7 @@ struct SettingsView: View {
             withAnimation {
                 appState.parentSettings.blockedKeywords.append(trimmed)
             }
+            appState.savePreferences() // Persist to UserDefaults
         }
         newBlockedKeyword = ""
     }
@@ -627,6 +630,7 @@ struct SettingsView: View {
             withAnimation {
                 appState.parentSettings.blockedHosts.append(normalizedHost)
             }
+            appState.savePreferences() // Persist to UserDefaults
         }
         newBlockedHost = ""
     }

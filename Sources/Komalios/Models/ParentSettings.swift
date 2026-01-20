@@ -1,6 +1,6 @@
 import Foundation
 
-struct ParentSettings {
+struct ParentSettings: Codable {
     var blockedKeywords: [String]
     var blockedHosts: [String]
     var blockedInterests: [String]
@@ -9,9 +9,9 @@ struct ParentSettings {
     var safeSearchEnabled: Bool
 
     static let sample = ParentSettings(
-        blockedKeywords: ["loot box", "vape", "apology video"],
-        blockedHosts: ["example.com"],
-        blockedInterests: ["Roblox"],
+        blockedKeywords: [],
+        blockedHosts: [],
+        blockedInterests: [],
         parentPin: "1234",
         notifyOnBlock: true,
         safeSearchEnabled: true
