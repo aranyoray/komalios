@@ -49,6 +49,11 @@ enum ContentCategory: String, CaseIterable, Hashable {
         case .unknown: return "Uncategorized"
         }
     }
+    
+    /// Alias for label for API consistency
+    var displayName: String {
+        return label
+    }
 
     init(label: String) {
         switch label {

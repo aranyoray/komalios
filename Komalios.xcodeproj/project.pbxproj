@@ -58,10 +58,20 @@
 		D9516F603C9EAA56EDED7DADC8DA66E8 /* Components/ScanResultCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9516F609FA1E7A0FFB9CDF1 /* Components/ScanResultCards.swift */; };
 		F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6 /* KomalCheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */; };
 		F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7 /* KomalBlockedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */; };
+		KOMLINTR001201D0001 /* KomalInterventionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = KOMLINTR001101D0001 /* KomalInterventionView.swift */; };
 		INSIGHTS001201D0001 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSIGHTS001101D0001 /* InsightsView.swift */; };
 		BROWSEVT001201D0001 /* BrowsingEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSEVT001101D0001 /* BrowsingEvent.swift */; };
 		BROWSESS001201D0001 /* BrowsingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSESS001101D0001 /* BrowsingSession.swift */; };
 		BROWSHIS001201D0001 /* BrowsingHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSHIS001101D0001 /* BrowsingHistoryService.swift */; };
+		IMGFILT001201D0001 /* ImageFilterEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = IMGFILT001101D0001 /* ImageFilterEvent.swift */; };
+		PAGEENG001201D0001 /* PageEngagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAGEENG001101D0001 /* PageEngagement.swift */; };
+		VIEWCNT001201D0001 /* ViewportContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = VIEWCNT001101D0001 /* ViewportContent.swift */; };
+		IMGFSVC001201D0001 /* ImageFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = IMGFSVC001101D0001 /* ImageFilterService.swift */; };
+		ENGTRCK001201D0001 /* EngagementTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = ENGTRCK001101D0001 /* EngagementTracker.swift */; };
+		CNTANLZ001201D0001 /* ContentAnalyzerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CNTANLZ001101D0001 /* ContentAnalyzerService.swift */; };
+		ENGTRJS001201D0001 /* engagement_tracker.js in Resources */ = {isa = PBXBuildFile; fileRef = ENGTRJS001101D0001 /* engagement_tracker.js */; };
+		IMGSCJS001201D0001 /* image_scanner.js in Resources */ = {isa = PBXBuildFile; fileRef = IMGSCJS001101D0001 /* image_scanner.js */; };
+		VPTRKJS001201D0001 /* viewport_tracker.js in Resources */ = {isa = PBXBuildFile; fileRef = VPTRKJS001101D0001 /* viewport_tracker.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -114,10 +124,20 @@
 		D9516F609FA1E7A0FFB9CDF1 /* Components/ScanResultCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/ScanResultCards.swift; sourceTree = "<group>"; };
 		F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalCheckInView.swift; sourceTree = "<group>"; };
 		F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalBlockedView.swift; sourceTree = "<group>"; };
+		KOMLINTR001101D0001 /* KomalInterventionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalInterventionView.swift; sourceTree = "<group>"; };
 		INSIGHTS001101D0001 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 		BROWSEVT001101D0001 /* BrowsingEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingEvent.swift; sourceTree = "<group>"; };
 		BROWSESS001101D0001 /* BrowsingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingSession.swift; sourceTree = "<group>"; };
 		BROWSHIS001101D0001 /* BrowsingHistoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingHistoryService.swift; sourceTree = "<group>"; };
+		IMGFILT001101D0001 /* ImageFilterEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFilterEvent.swift; sourceTree = "<group>"; };
+		PAGEENG001101D0001 /* PageEngagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageEngagement.swift; sourceTree = "<group>"; };
+		VIEWCNT001101D0001 /* ViewportContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportContent.swift; sourceTree = "<group>"; };
+		IMGFSVC001101D0001 /* ImageFilterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFilterService.swift; sourceTree = "<group>"; };
+		ENGTRCK001101D0001 /* EngagementTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngagementTracker.swift; sourceTree = "<group>"; };
+		CNTANLZ001101D0001 /* ContentAnalyzerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentAnalyzerService.swift; sourceTree = "<group>"; };
+		ENGTRJS001101D0001 /* engagement_tracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = engagement_tracker.js; sourceTree = "<group>"; };
+		IMGSCJS001101D0001 /* image_scanner.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = image_scanner.js; sourceTree = "<group>"; };
+		VPTRKJS001101D0001 /* viewport_tracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = viewport_tracker.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -208,6 +228,9 @@
 				A1000001101D0013 /* ContentFilterPreferences.swift */,
 				BROWSEVT001101D0001 /* BrowsingEvent.swift */,
 				BROWSESS001101D0001 /* BrowsingSession.swift */,
+				IMGFILT001101D0001 /* ImageFilterEvent.swift */,
+				PAGEENG001101D0001 /* PageEngagement.swift */,
+				VIEWCNT001101D0001 /* ViewportContent.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -219,6 +242,9 @@
 				A1000001101D000C /* BlocklistService.swift */,
 				55C8711FDCF5AA5041D0CBFF /* FirestoreService.swift */,
 				BROWSHIS001101D0001 /* BrowsingHistoryService.swift */,
+				IMGFSVC001101D0001 /* ImageFilterService.swift */,
+				ENGTRCK001101D0001 /* EngagementTracker.swift */,
+				CNTANLZ001101D0001 /* ContentAnalyzerService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -229,6 +255,9 @@
 				A1000001101D000D /* Blocklists.json */,
 				A1000001101D0010 /* komaliconnobg.png */,
 				B24118752F1D1B4A001DC5AF /* GoogleService-Info.plist */,
+				ENGTRJS001101D0001 /* engagement_tracker.js */,
+				IMGSCJS001101D0001 /* image_scanner.js */,
+				VPTRKJS001101D0001 /* viewport_tracker.js */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -439,6 +468,7 @@
 				C8E3A128E66AC9CACE0AFC09 /* FilterActionSlider.swift */,
 				F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */,
 				F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */,
+				KOMLINTR001101D0001 /* KomalInterventionView.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -518,6 +548,9 @@
 				B24118762F1D1B4A001DC5AF /* GoogleService-Info.plist in Resources */,
 				A1000001201D0011 /* Assets.xcassets in Resources */,
 				A1000001201D0014 /* PrivacyInfo.xcprivacy in Resources */,
+				ENGTRJS001201D0001 /* engagement_tracker.js in Resources */,
+				IMGSCJS001201D0001 /* image_scanner.js in Resources */,
+				VPTRKJS001201D0001 /* viewport_tracker.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -560,6 +593,7 @@
 				C8E3A128D4DFC7C0AC136E7CCC17EF42 /* FilterActionSlider.swift in Sources */,
 				F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6 /* KomalCheckInView.swift in Sources */,
 				F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7 /* KomalBlockedView.swift in Sources */,
+				KOMLINTR001201D0001 /* KomalInterventionView.swift in Sources */,
 				55C8711FCD2EBDED9ABE21CDB448AFCF /* FirestoreService.swift in Sources */,
 				A1000001201D0012 /* OnboardingView.swift in Sources */,
 				B24118742F1D1ABC001DC5AF /* AppDelegate.swift in Sources */,
@@ -573,6 +607,12 @@
 				BROWSEVT001201D0001 /* BrowsingEvent.swift in Sources */,
 				BROWSESS001201D0001 /* BrowsingSession.swift in Sources */,
 				BROWSHIS001201D0001 /* BrowsingHistoryService.swift in Sources */,
+				IMGFILT001201D0001 /* ImageFilterEvent.swift in Sources */,
+				PAGEENG001201D0001 /* PageEngagement.swift in Sources */,
+				VIEWCNT001201D0001 /* ViewportContent.swift in Sources */,
+				IMGFSVC001201D0001 /* ImageFilterService.swift in Sources */,
+				ENGTRCK001201D0001 /* EngagementTracker.swift in Sources */,
+				CNTANLZ001201D0001 /* ContentAnalyzerService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
