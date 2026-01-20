@@ -13,6 +13,7 @@ struct BrowserView: View {
 
             VStack(spacing: 8) {
                 AddressBar(urlString: $browserState.urlString) {
+                    // Just navigate - content filtering happens in WKNavigationDelegate
                     browserState.currentURL = normalizedURL(from: browserState.urlString)
                 }
                 .padding(.horizontal, 12)
@@ -82,10 +83,24 @@ struct BrowserView: View {
     }
 
     private func normalizedURL(from input: String) -> URL? {
-        if let url = URL(string: input), url.scheme != nil {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // If it looks like a URL (has scheme), use it
+        if let url = URL(string: trimmed), url.scheme != nil {
             return url
         }
-        return URL(string: "https://\(input)")
+        
+        // If it looks like a domain (contains .), treat as URL
+        if trimmed.contains(".") && !trimmed.contains(" ") {
+            return URL(string: "https://\(trimmed)")
+        }
+        
+        // Otherwise it's a search - create Google search URL
+        if let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            return URL(string: "https://www.google.com/search?q=\(encoded)&safe=active")
+        }
+        
+        return URL(string: "https://\(trimmed)")
     }
 }
 

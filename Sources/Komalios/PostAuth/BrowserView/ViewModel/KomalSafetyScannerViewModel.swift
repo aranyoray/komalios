@@ -87,13 +87,18 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         print("🔍 Starting URL scan for: \(urlInput)")
         
         // DIGITAL GUARDIAN: Check raw input FIRST before ANY processing
-        // This catches searches like "marijuana", "tits", etc. immediately
-        if let flaggedKeyword = BrowserState.checkForInappropriateContent(urlInput) {
+        // Only check as search query if it doesn't look like a URL
+        let trimmedInput = urlInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let looksLikeURL = trimmedInput.contains(".") && !trimmedInput.contains(" ")
+        
+        // For search-like input, check with full keyword list
+        // For URL-like input, only check strict keywords (avoid false positives)
+        if let flaggedKeyword = BrowserState.checkForInappropriateContent(trimmedInput, isSearchQuery: !looksLikeURL) {
             print("🛡️ RAW INPUT FLAGGED: \(flaggedKeyword)")
             
             // Don't reset states or set loading - just show intervention immediately
             self.currentURL = nil  // Ensure no URL loads
-            self.interventionTrigger = .searchQuery(flaggedKeyword)
+            self.interventionTrigger = looksLikeURL ? .urlKeyword(flaggedKeyword) : .searchQuery(flaggedKeyword)
             self.showKomalIntervention = true
             self.loading = false
             

@@ -56,42 +56,35 @@ final class BrowserState: ObservableObject {
     @Published var pendingURL: URL?  // URL that triggered intervention
     
     // MARK: - Comprehensive Inappropriate Keywords
-    static let inappropriateKeywords: Set<String> = [
-        // Sexual/Adult content
-        "porn", "pornhub", "xvideos", "xxx", "sex", "nude", "naked", "boobs", "tits", "ass",
-        "pussy", "dick", "penis", "vagina", "breast", "nsfw", "onlyfans", "hentai", "erotic",
-        "milf", "lesbian", "gay porn", "anal", "blowjob", "handjob", "orgasm", "masturbat",
-        "stripper", "prostitut", "escort", "hooker", "sexy", "horny", "slut", "whore",
-        "bikini model", "lingerie", "playboy", "penthouse", "brazzers", "xnxx", "redtube",
+    // These are strict keywords - block even as part of domains/URLs
+    static let strictKeywords: Set<String> = [
+        // Explicit adult sites
+        "pornhub", "xvideos", "xnxx", "redtube", "brazzers", "onlyfans", "hentai",
+        "xhamster", "youporn", "tube8", "spankbang", "chaturbate",
         
-        // Violence/Gore
-        "gore", "murder", "kill", "death", "suicide", "self harm", "cutting", "blood",
-        "torture", "brutal", "violent", "massacre", "shooting", "stab", "decapitat",
-        "execution", "beheading", "dismember", "mutilat",
+        // Explicit terms (unlikely in legitimate URLs)
+        "xxx", "nsfw", "milf", "blowjob", "handjob", "orgasm",
+        "stripper", "prostitut", "hooker", "slut", "whore",
         
-        // Drugs/Substances
-        "weed", "marijuana", "cannabis", "cocaine", "heroin", "meth", "drug", "lsd",
-        "ecstasy", "mdma", "crack", "opioid", "fentanyl", "ketamine", "shrooms",
-        "mushrooms", "acid", "molly", "xanax", "adderall", "vape", "juul", "smoking",
-        "alcohol", "beer", "vodka", "whiskey", "drunk", "hangover",
+        // Violence extremes
+        "beheading", "dismember", "decapitat", "gore",
         
-        // Weapons
-        "gun", "rifle", "pistol", "weapon", "bomb", "explosive", "grenade", "knife attack",
-        "assault rifle", "ammunition", "firearm", "ak47", "ar15", "shooting range",
+        // Hate groups
+        "nazi", "kkk", "white supremac"
+    ]
+    
+    // These keywords only trigger on search queries (not URLs)
+    // because they can appear in legitimate URLs
+    static let searchOnlyKeywords: Set<String> = [
+        // Sexual - common words that might be in legitimate URLs
+        "porn", "nude", "naked", "boobs", "tits", "pussy", "dick",
+        "penis", "vagina", "erotic", "sexy", "horny",
         
-        // Gambling
-        "gambling", "casino", "poker", "slots", "betting", "bet365", "draftkings",
-        "fanduel", "sportsbet", "blackjack", "roulette",
+        // Violence terms that might be in news/education
+        "murder", "suicide", "self harm", "torture",
         
-        // Hate/Extremism  
-        "nazi", "kkk", "white supremac", "racist", "terrorism", "isis", "al qaeda",
-        "extremist", "hate speech", "antisemit",
-        
-        // Eating disorders/Self-harm
-        "anorexia", "bulimia", "pro ana", "thinspo", "cutting", "self injury",
-        
-        // Cyberbullying/Harmful
-        "cyberbully", "doxxing", "swatting", "harassment"
+        // Drug terms that might be in pharmacy/news
+        "weed", "marijuana", "cannabis", "cocaine", "heroin", "meth"
     ]
     
     // MARK: - Search Query Extraction
@@ -129,37 +122,63 @@ final class BrowserState: ObservableObject {
         return nil
     }
     
-    // MARK: - Content Checking
-    static func checkForInappropriateContent(_ text: String) -> String? {
+    // MARK: - Content Checking with Word Boundaries
+    
+    /// Check if text contains inappropriate content as a whole word
+    /// Uses word boundary matching to avoid false positives (e.g., "class" matching "ass")
+    static func checkForInappropriateContent(_ text: String, isSearchQuery: Bool = true) -> String? {
         let lowercased = text.lowercased()
         
-        for keyword in inappropriateKeywords {
-            if lowercased.contains(keyword) {
+        // Always check strict keywords (site names, explicit terms)
+        for keyword in strictKeywords {
+            if matchesAsWord(keyword, in: lowercased) {
                 return keyword
             }
         }
+        
+        // Only check search-only keywords if this is a search query
+        if isSearchQuery {
+            for keyword in searchOnlyKeywords {
+                if matchesAsWord(keyword, in: lowercased) {
+                    return keyword
+                }
+            }
+        }
+        
         return nil
     }
     
-    static func checkURL(_ url: URL, parentSettings: ParentSettings) -> (shouldIntervene: Bool, trigger: KomalInterventionTrigger?) {
-        let urlString = url.absoluteString.lowercased()
+    /// Check if keyword appears as a word (not part of another word)
+    private static func matchesAsWord(_ keyword: String, in text: String) -> Bool {
+        // Use regex with word boundaries
+        let pattern = "\\b\(NSRegularExpression.escapedPattern(for: keyword))\\b"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            // Fallback to simple contains if regex fails
+            return text.contains(keyword)
+        }
         
-        // Check search queries first
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.firstMatch(in: text, options: [], range: range) != nil
+    }
+    
+    static func checkURL(_ url: URL, parentSettings: ParentSettings) -> (shouldIntervene: Bool, trigger: KomalInterventionTrigger?) {
+        // Check search queries first (use full keyword list)
         if let searchQuery = extractSearchQuery(from: url) {
-            if let flaggedKeyword = checkForInappropriateContent(searchQuery) {
+            if let flaggedKeyword = checkForInappropriateContent(searchQuery, isSearchQuery: true) {
                 return (true, .searchQuery(flaggedKeyword))
             }
             
             // Check parent's custom blocked keywords in search
             for keyword in parentSettings.blockedKeywords {
-                if searchQuery.lowercased().contains(keyword.lowercased()) {
+                if matchesAsWord(keyword.lowercased(), in: searchQuery.lowercased()) {
                     return (true, .searchQuery(keyword))
                 }
             }
         }
         
-        // Check URL itself
-        if let flaggedKeyword = checkForInappropriateContent(urlString) {
+        // Check URL itself (only strict keywords to avoid false positives)
+        let urlString = url.absoluteString.lowercased()
+        if let flaggedKeyword = checkForInappropriateContent(urlString, isSearchQuery: false) {
             return (true, .urlKeyword(flaggedKeyword))
         }
         
@@ -172,9 +191,9 @@ final class BrowserState: ObservableObject {
             }
         }
         
-        // Check parent's blocked keywords in URL
+        // Check parent's blocked keywords in URL (word boundary)
         for keyword in parentSettings.blockedKeywords {
-            if urlString.contains(keyword.lowercased()) {
+            if matchesAsWord(keyword.lowercased(), in: urlString) {
                 return (true, .urlKeyword(keyword))
             }
         }
