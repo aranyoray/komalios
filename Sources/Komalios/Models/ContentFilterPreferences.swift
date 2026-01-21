@@ -16,7 +16,7 @@ enum FilterAction: String, Codable, CaseIterable {
 }
 
 /// Content filtering preferences stored per profile
-struct ContentFilterPreferences: Codable {
+struct ContentFilterPreferences: Codable, Equatable {
 
     // MARK: - Violence & Disturbing Content
     var graphicViolence: FilterAction = .block

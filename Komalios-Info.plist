@@ -13,5 +13,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Komalios uses speech recognition to analyze audio content for child safety. This helps identify inappropriate language or content in videos and audio files.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Komalios may need microphone access to analyze audio content for child safety purposes.</string>
 </dict>
 </plist>

@@ -106,6 +106,10 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showFilterPreferences) {
             FilterPreferencesView(preferences: $appState.contentFilterPreferences)
+                .onChange(of: appState.contentFilterPreferences) { _, _ in
+                    // Auto-save when preferences change
+                    appState.savePreferences()
+                }
                 .environmentObject(appState)
         }
         .sheet(isPresented: $showInsights) {
@@ -270,7 +274,15 @@ struct SettingsView: View {
                             Menu {
                                 ForEach(AgeGroup.allCases) { group in
                                     Button {
+                                        // Update age group
                                         appState.activeProfile.ageGroup = group
+                                        
+                                        // Update filter preferences to match new age group defaults
+                                        // This ensures settings stay in sync with age
+                                        appState.contentFilterPreferences = ContentFilterPreferences.defaults(for: group)
+                                        
+                                        // Save immediately when age changes
+                                        appState.savePreferences()
                                     } label: {
                                         HStack {
                                             Text(group.rawValue)

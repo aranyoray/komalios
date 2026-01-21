@@ -30,7 +30,11 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     // MARK: - Dependencies
     private let networkService = ScanNetworkService()
     private let historyService = BrowsingHistoryService.shared
+    private let contentAnalysisService = ContentAnalysisService.shared
     var appState: AppState
+    
+    // MARK: - Unified Decision (new system)
+    @Published var unifiedDecision: UnifiedDecisionResponse?
     
     // MARK: - Known Kid-Friendly Sites (skip scanning)
     private let trustedDomains: Set<String> = [
@@ -139,13 +143,25 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             return
         }
         
-        // Scan URL (for non-trusted sites)
+        // Analyze content using unified system (on-device first, cloud fallback)
         do {
-            scanResult = try await networkService.scanURL(normalizedURL)
-            print("✅ Scan completed. Result: Success")
+            let ageBand = appState.activeProfile.ageGroup.toAgeBand()
+            let input = buildContentAnalysisInput(url: normalizedURL)
             
-            // Process scan result
-            await processScanResult(normalizedURL: normalizedURL)
+            let decision = try await contentAnalysisService.analyzeContent(
+                url: normalizedURL,
+                input: input,
+                ageBand: ageBand,
+                customBlockedKeywords: appState.parentSettings.blockedKeywords,
+                customBlockedHosts: appState.parentSettings.blockedHosts,
+                filterPreferences: appState.contentFilterPreferences
+            )
+            
+            print("✅ Content analysis completed")
+            unifiedDecision = decision
+            
+            // Process unified decision
+            await processUnifiedDecision(normalizedURL: normalizedURL, decision: decision)
             
             // Show check-in after successful search (if it's time)
             if shouldCheckIn && !showBlocked && !showGate {
@@ -157,20 +173,34 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 }
             }
         } catch {
-            print("❌ Scan Error: \(error.localizedDescription)")
-            self.error = error
-            loading = false
-            
-            // If scan failed, try to load URL anyway
-            if let url = URL(string: normalizedURL) {
-                currentURL = url
+            print("❌ Analysis Error: \(error.localizedDescription)")
+            // Fallback: try existing API
+            do {
+                scanResult = try await networkService.scanURL(normalizedURL)
+                print("✅ Fallback scan completed")
+                await processScanResult(normalizedURL: normalizedURL)
                 
-                // Still show check-in if it's time
-                if shouldCheckIn {
+                // Show check-in if it's time
+                if shouldCheckIn && !showBlocked && !showGate {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         self.showKomalCheckIn = true
-                        // Schedule next check-in
                         self.updateNextCheckIn()
+                    }
+                }
+            } catch {
+                self.error = error
+                loading = false
+                
+                // If both fail, try to load URL anyway
+                if let url = URL(string: normalizedURL) {
+                    currentURL = url
+                    
+                    // Still show check-in if it's time
+                    if shouldCheckIn {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            self.showKomalCheckIn = true
+                            self.updateNextCheckIn()
+                        }
                     }
                 }
             }
@@ -277,6 +307,144 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         }
         
         return normalized
+    }
+    
+    // MARK: - Content Analysis Helpers
+    
+    /// Build ContentAnalysisInput from URL (basic version - can be enhanced later with WebView extraction)
+    private func buildContentAnalysisInput(url: String) -> ContentAnalysisInput {
+        return ContentAnalysisInput(
+            url: url,
+            htmlText: nil, // Will be extracted from WebView later
+            media: nil,    // Will be extracted from WebView later
+            structuralMetadata: StructuralMetadata(
+                pageType: detectPageType(from: url),
+                platform: detectPlatform(from: url)
+            ),
+            extraMetadata: ExtraMetadata(
+                creator: nil,
+                sponsors: [],
+                links: []
+            )
+        )
+    }
+    
+    /// Detect page type from URL patterns
+    private func detectPageType(from urlString: String) -> PageType {
+        let lowercased = urlString.lowercased()
+        
+        if lowercased.contains("/watch") || lowercased.contains("/v/") {
+            return .videoPlayer
+        } else if lowercased.contains("/shorts/") || lowercased.contains("tiktok.com") {
+            return .shortFormVideo
+        } else if lowercased.contains("/live") || lowercased.contains("stream") {
+            return .liveStream
+        } else if lowercased.contains("/product/") || lowercased.contains("/shop/") {
+            return .productPage
+        } else if lowercased.contains("/search") {
+            return .searchResults
+        } else if lowercased.contains("/article/") || lowercased.contains("/post/") {
+            return .article
+        }
+        
+        return .generic
+    }
+    
+    /// Detect platform from URL
+    private func detectPlatform(from urlString: String) -> String? {
+        let lowercased = urlString.lowercased()
+        
+        if lowercased.contains("youtube.com") || lowercased.contains("youtu.be") {
+            return "YouTube"
+        } else if lowercased.contains("tiktok.com") {
+            return "TikTok"
+        } else if lowercased.contains("instagram.com") {
+            return "Instagram"
+        } else if lowercased.contains("discord.com") {
+            return "Discord"
+        } else if lowercased.contains("twitter.com") || lowercased.contains("x.com") {
+            return "Twitter"
+        } else if lowercased.contains("facebook.com") {
+            return "Facebook"
+        } else if lowercased.contains("reddit.com") {
+            return "Reddit"
+        }
+        
+        return nil
+    }
+    
+    /// Process unified decision response
+    private func processUnifiedDecision(normalizedURL: String, decision: UnifiedDecisionResponse) async {
+        let ageBand = appState.activeProfile.ageGroup.toAgeBand()
+        guard let ageAction = decision.ageActions[ageBand.rawValue] else {
+            // Fallback: allow
+            print("⚠️ No action found for age band, allowing by default")
+            loading = false
+            if let url = URL(string: normalizedURL) {
+                currentURL = url
+            }
+            return
+        }
+        
+        print("🎯 Action determined: \(ageAction.action.rawValue) (score: \(ageAction.score))")
+        
+        // Determine category from major categories
+        if let firstMajor = decision.majorCategories.first {
+            category = ContentCategory(label: firstMajor.name)
+            print("📋 Category: \(firstMajor.name) (probability: \(firstMajor.probability))")
+        }
+        
+        blockReason = ageAction.reason ?? "Content filtered for safety"
+        
+        // Log to history with categorization
+        if let url = URL(string: normalizedURL) {
+            historyService.logUnifiedDecision(
+                url: url,
+                decision: decision,
+                ageBand: ageBand
+            )
+        }
+        
+        // Handle action
+        handleUnifiedAction(ageAction.action, decision: decision)
+    }
+    
+    /// Handle action from unified decision
+    private func handleUnifiedAction(_ action: Action, decision: UnifiedDecisionResponse) {
+        switch action {
+        case .block:
+            print("🚫 BLOCK action - Setting showBlocked = true")
+            currentURL = nil
+            showGate = false
+            showKomalCheckIn = false
+            loading = false
+            showBlocked = true
+            print("🚫 State updated - showBlocked: \(showBlocked)")
+            
+        case .gate:
+            print("🚧 GATE action - Setting showGate = true")
+            if let url = URL(string: decision.url) {
+                pendingURL = url
+            }
+            currentURL = nil
+            showBlocked = false
+            showKomalCheckIn = false
+            loading = false
+            showGate = true
+            print("🚧 State updated - showGate: \(showGate)")
+            
+        case .allow:
+            print("✅ ALLOW action - Loading website")
+            showGate = false
+            showBlocked = false
+            if let url = URL(string: decision.url) {
+                currentURL = url
+                loading = true // WebView will set to false when done
+                print("✅ URL set: \(url), loading: \(loading)")
+            } else {
+                loading = false
+            }
+        }
     }
     
     private func processScanResult(normalizedURL: String) async {

@@ -99,14 +99,16 @@ final class BrowsingHistoryService: ObservableObject {
         print("📊 Logged event: \(type.displayName) - \(url.host ?? url.absoluteString) \(category.map { "[\($0)]" } ?? "")")
     }
     
-    /// Log a blocked URL event
-    func logBlocked(url: URL, category: String, reason: String) {
-        logEvent(url: url, type: .blocked, category: category, action: .block)
+    /// Log a blocked URL event with optional subcategory
+    func logBlocked(url: URL, category: String, reason: String, subcategory: String? = nil) {
+        let fullCategory = subcategory != nil ? "\(category):\(subcategory!)" : category
+        logEvent(url: url, type: .blocked, category: fullCategory, action: .block, pageTitle: reason)
     }
     
-    /// Log a gated URL event
-    func logGated(url: URL, category: String) {
-        logEvent(url: url, type: .gated, category: category, action: .gate)
+    /// Log a gated URL event with optional subcategory
+    func logGated(url: URL, category: String, subcategory: String? = nil) {
+        let fullCategory = subcategory != nil ? "\(category):\(subcategory!)" : category
+        logEvent(url: url, type: .gated, category: fullCategory, action: .gate)
     }
     
     /// Log a page load event
@@ -119,6 +121,36 @@ final class BrowsingHistoryService: ObservableObject {
         logEvent(url: url, type: .typed)
     }
     
+    /// Log from unified decision response (for categorization and history tracking)
+    func logUnifiedDecision(url: URL, decision: UnifiedDecisionResponse, ageBand: AgeBand) {
+        let category = decision.historyCategory ?? "Unknown"
+        let subcategory = decision.historySubcategory
+        
+        // Get action for the specific age band
+        let ageAction = decision.ageActions[ageBand.rawValue]
+        let action = ageAction?.action.toFilterAction() ?? .allow
+        
+        switch action {
+        case .block:
+            logBlocked(url: url, category: category, reason: ageAction?.reason ?? "Blocked", subcategory: subcategory)
+        case .gate:
+            logGated(url: url, category: category, subcategory: subcategory)
+        case .allow:
+            logAllowed(url: url, category: category, subcategory: subcategory)
+        }
+    }
+    
+    /// Log allowed URL with optional category/subcategory
+    func logAllowed(url: URL, category: String? = nil, subcategory: String? = nil) {
+        let fullCategory: String?
+        if let cat = category {
+            fullCategory = subcategory != nil ? "\(cat):\(subcategory!)" : cat
+        } else {
+            fullCategory = nil
+        }
+        logEvent(url: url, type: .allowed, category: fullCategory, action: .allow)
+    }
+    
     // MARK: - Data Access
     
     /// Get insights for all sessions
@@ -128,51 +160,42 @@ final class BrowsingHistoryService: ObservableObject {
     
     /// Get category chart data
     func getCategoryChartData() -> [CategoryChartData] {
-        let counts = insights.categoryCounts
-        
-        return counts.map { category, count in
+        let categoryCounts = insights.categoryCounts
+        return categoryCounts.map { category, count in
             CategoryChartData(
                 category: category,
                 count: count,
                 color: CategoryChartData.categoryColors[category] ?? "gray"
             )
-        }
-        .sorted { $0.count > $1.count }
+        }.sorted { $0.count > $1.count }
     }
     
-    /// Get timeline chart data for last 24 hours
+    /// Get timeline chart data
     func getTimelineData() -> [TimelineChartData] {
-        let now = Date()
-        let calendar = Calendar.current
-        
-        // Get events from last 24 hours (including current session)
-        let dayAgo = calendar.date(byAdding: .hour, value: -24, to: now)!
-        var allEvents = allSessions.flatMap { $0.events }
-        if let current = currentSession {
-            allEvents.append(contentsOf: current.events)
-        }
-        let recentEvents = allEvents.filter { $0.timestamp >= dayAgo }
-        
-        // Group by hour
+        // Group events by hour
         var hourlyData: [Date: (blocked: Int, gated: Int, allowed: Int)] = [:]
         
-        for event in recentEvents {
-            let hour = calendar.dateInterval(of: .hour, for: event.timestamp)?.start ?? event.timestamp
-            var counts = hourlyData[hour] ?? (0, 0, 0)
-            
-            switch event.eventType {
-            case .blocked:
-                counts.blocked += 1
-            case .gated:
-                counts.gated += 1
-            default:
-                counts.allowed += 1
+        for session in allSessions {
+            for event in session.events {
+                let hour = Calendar.current.date(bySettingHour: Calendar.current.component(.hour, from: event.timestamp), minute: 0, second: 0, of: event.timestamp) ?? event.timestamp
+                
+                if hourlyData[hour] == nil {
+                    hourlyData[hour] = (0, 0, 0)
+                }
+                
+                switch event.eventType {
+                case .blocked:
+                    hourlyData[hour]?.blocked += 1
+                case .gated:
+                    hourlyData[hour]?.gated += 1
+                case .allowed, .pageLoad:
+                    hourlyData[hour]?.allowed += 1
+                default:
+                    break
+                }
             }
-            
-            hourlyData[hour] = counts
         }
         
-        // Create chart data
         return hourlyData.map { hour, counts in
             TimelineChartData(
                 hour: hour,
@@ -180,8 +203,76 @@ final class BrowsingHistoryService: ObservableObject {
                 gatedCount: counts.gated,
                 allowedCount: counts.allowed
             )
+        }.sorted { $0.hour < $1.hour }
+    }
+    
+    /// Get history grouped by category (for parent viewing)
+    func getHistoryGroupedByCategory() -> [String: [BrowsingEvent]] {
+        var grouped: [String: [BrowsingEvent]] = [:]
+        
+        // Process all sessions
+        for session in allSessions {
+            for event in session.events {
+                // Extract base category (before ":")
+                let baseCategory = event.category?.split(separator: ":").first.map { String($0) } ?? "Uncategorized"
+                if grouped[baseCategory] == nil {
+                    grouped[baseCategory] = []
+                }
+                grouped[baseCategory]?.append(event)
+            }
         }
-        .sorted { $0.hour < $1.hour }
+        
+        // Include current session
+        if let current = currentSession {
+            for event in current.events {
+                let baseCategory = event.category?.split(separator: ":").first.map { String($0) } ?? "Uncategorized"
+                if grouped[baseCategory] == nil {
+                    grouped[baseCategory] = []
+                }
+                grouped[baseCategory]?.append(event)
+            }
+        }
+        
+        return grouped
+    }
+    
+    /// Get history grouped by subcategory (for similar URLs grouping)
+    func getHistoryGroupedBySubcategory() -> [String: [BrowsingEvent]] {
+        var grouped: [String: [BrowsingEvent]] = [:]
+        
+        for session in allSessions {
+            for event in session.events {
+                // Extract subcategory from "category:subcategory" format
+                if let category = event.category, category.contains(":") {
+                    let parts = category.split(separator: ":")
+                    if parts.count > 1 {
+                        let subcat = String(parts[1])
+                        if grouped[subcat] == nil {
+                            grouped[subcat] = []
+                        }
+                        grouped[subcat]?.append(event)
+                    }
+                }
+            }
+        }
+        
+        // Include current session
+        if let current = currentSession {
+            for event in current.events {
+                if let category = event.category, category.contains(":") {
+                    let parts = category.split(separator: ":")
+                    if parts.count > 1 {
+                        let subcat = String(parts[1])
+                        if grouped[subcat] == nil {
+                            grouped[subcat] = []
+                        }
+                        grouped[subcat]?.append(event)
+                    }
+                }
+            }
+        }
+        
+        return grouped
     }
     
     /// Clear all session history
