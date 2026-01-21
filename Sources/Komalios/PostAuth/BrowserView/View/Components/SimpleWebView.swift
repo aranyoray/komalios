@@ -101,13 +101,18 @@ struct SimpleWebView: UIViewRepresentable {
                   messageType == "snapshot",
                   let snapshotData = data["data"] as? [String: Any] else { return }
             
+            // Get page URL first to check if it's a trusted domain
+            let pageUrlString = snapshotData["pageUrl"] as? String ?? ""
+            guard let pageURL = URL(string: pageUrlString) else { return }
+            
+            // Skip viewport monitoring for trusted domains
+            if isTrustedDomain(pageURL) {
+                return
+            }
+            
             // Check for flagged keywords found by JS
             if let flaggedKeywords = snapshotData["flaggedKeywords"] as? [String], !flaggedKeywords.isEmpty {
                 print("🛡️ VIEWPORT FLAGGED CONTENT: \(flaggedKeywords)")
-                
-                // Get page URL for logging
-                let pageUrlString = snapshotData["pageUrl"] as? String ?? ""
-                let pageURL = URL(string: pageUrlString) ?? URL(string: "about:blank")!
                 
                 // Trigger intervention for first flagged keyword
                 if let firstKeyword = flaggedKeywords.first {
@@ -128,9 +133,6 @@ struct SimpleWebView: UIViewRepresentable {
                         if let flaggedKeyword = BrowserState.checkForInappropriateContent(text) {
                             print("🛡️ VIEWPORT TEXT FLAGGED: \(flaggedKeyword)")
                             
-                            let pageUrlString = snapshotData["pageUrl"] as? String ?? ""
-                            let pageURL = URL(string: pageUrlString) ?? URL(string: "about:blank")!
-                            
                             historyService.logBlocked(url: pageURL, category: "Content Filter", reason: "Page content: \(flaggedKeyword)")
                             
                             DispatchQueue.main.async { [weak self] in
@@ -146,9 +148,6 @@ struct SimpleWebView: UIViewRepresentable {
             if let primaryContent = snapshotData["primaryContent"] as? String, !primaryContent.isEmpty {
                 if let flaggedKeyword = BrowserState.checkForInappropriateContent(primaryContent) {
                     print("🛡️ PRIMARY CONTENT FLAGGED: \(flaggedKeyword)")
-                    
-                    let pageUrlString = snapshotData["pageUrl"] as? String ?? ""
-                    let pageURL = URL(string: pageUrlString) ?? URL(string: "about:blank")!
                     
                     historyService.logBlocked(url: pageURL, category: "Content Filter", reason: "Primary content: \(flaggedKeyword)")
                     
@@ -211,8 +210,45 @@ struct SimpleWebView: UIViewRepresentable {
         
         // MARK: - WKNavigationDelegate
         
+        // Trusted kid-friendly domains (skip content checks)
+        private let trustedDomains: Set<String> = [
+            "google.com", "www.google.com",
+            "khanacademy.org", "www.khanacademy.org",
+            "pbskids.org", "www.pbskids.org",
+            "nationalgeographic.com", "www.nationalgeographic.com", "kids.nationalgeographic.com",
+            "brainpop.com", "www.brainpop.com",
+            "coolmathgames.com", "www.coolmathgames.com",
+            "funbrain.com", "www.funbrain.com",
+            "starfall.com", "www.starfall.com",
+            "abcya.com", "www.abcya.com",
+            "seussville.com", "www.seussville.com",
+            "scholastic.com", "www.scholastic.com",
+            "duckduckgo.com", "www.duckduckgo.com",
+            "wikipedia.org", "www.wikipedia.org", "en.wikipedia.org",
+            "nasa.gov", "www.nasa.gov",
+            "weather.com", "www.weather.com",
+            "timeanddate.com", "www.timeanddate.com",
+            "mathway.com", "www.mathway.com",
+            "duolingo.com", "www.duolingo.com",
+            "scratch.mit.edu",
+            "code.org", "www.code.org",
+            "typing.com", "www.typing.com"
+        ]
+        
+        private func isTrustedDomain(_ url: URL) -> Bool {
+            guard let host = url.host?.lowercased() else { return false }
+            return trustedDomains.contains(host)
+        }
+        
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             guard let url = navigationAction.request.url else {
+                decisionHandler(.allow)
+                return
+            }
+            
+            // Skip content checks for trusted kid-friendly domains
+            if isTrustedDomain(url) {
+                print("✅ SimpleWebView: Trusted domain - skipping content check: \(url.host ?? "")")
                 decisionHandler(.allow)
                 return
             }

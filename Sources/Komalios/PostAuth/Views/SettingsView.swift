@@ -106,7 +106,7 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showFilterPreferences) {
             FilterPreferencesView(preferences: $appState.contentFilterPreferences)
-                .onChange(of: appState.contentFilterPreferences) { _, _ in
+                .onChange(of: appState.contentFilterPreferences) { _, d_ in
                     // Auto-save when preferences change
                     appState.savePreferences()
                 }

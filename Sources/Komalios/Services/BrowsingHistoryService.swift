@@ -204,6 +204,7 @@ final class BrowsingHistoryService: ObservableObject {
             fullCategory = nil
         }
         logEvent(url: url, type: .allowed, category: fullCategory, action: .allow)
+    }
     // MARK: - Digital Guardian Enhancement: Engagement Updates
     
     /// Update the current event's engagement metrics
