@@ -48,7 +48,7 @@ struct FloatingMenuView: View {
                     .fill(.ultraThinMaterial)
                     .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
             )
-            .padding(.bottom, 20)
+            .padding(.bottom, 8)
         }
     }
 }

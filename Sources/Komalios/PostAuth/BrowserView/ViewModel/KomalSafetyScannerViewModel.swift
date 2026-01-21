@@ -21,6 +21,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     @Published var showGate = false
     @Published var showBlocked = false
     @Published var showKomalCheckIn = false
+    @Published var showKomalIntervention = false  // NEW: Caring intervention
+    @Published var interventionTrigger: KomalInterventionTrigger?  // NEW: What triggered it
     @Published var category: ContentCategory = .unknown
     @Published var blockReason: String = ""
     @Published var loading = false
@@ -86,9 +88,34 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     func handleUrlSubmit() async {
         guard !urlInput.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         
-        print("🔍 Starting URL scan...")
+        print("🔍 Starting URL scan for: \(urlInput)")
         
-        // Reset states
+        // DIGITAL GUARDIAN: Check raw input FIRST before ANY processing
+        // Only check as search query if it doesn't look like a URL
+        let trimmedInput = urlInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let looksLikeURL = trimmedInput.contains(".") && !trimmedInput.contains(" ")
+        
+        // For search-like input, check with full keyword list
+        // For URL-like input, only check strict keywords (avoid false positives)
+        if let flaggedKeyword = BrowserState.checkForInappropriateContent(trimmedInput, isSearchQuery: !looksLikeURL) {
+            print("🛡️ RAW INPUT FLAGGED: \(flaggedKeyword)")
+            
+            // Don't reset states or set loading - just show intervention immediately
+            self.currentURL = nil  // Ensure no URL loads
+            self.interventionTrigger = looksLikeURL ? .urlKeyword(flaggedKeyword) : .searchQuery(flaggedKeyword)
+            self.showKomalIntervention = true
+            self.loading = false
+            
+            // Log for history
+            historyService.logBlocked(
+                url: URL(string: "blocked://\(urlInput)") ?? URL(string: "about:blank")!,
+                category: "Content Filter",
+                reason: "Searched for: \(flaggedKeyword)"
+            )
+            return
+        }
+        
+        // Reset states only after passing initial content check
         resetStates()
         loading = true
         
@@ -105,25 +132,25 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         
         // Normalize URL
         let normalizedURL = normalizeURL(urlInput)
-        print("📡 Scanning URL: \(normalizedURL)")
+        print("📡 Normalized URL: \(normalizedURL)")
         
-        // Log typed URL event for history tracking
+        // Secondary check on the normalized URL
         if let url = URL(string: normalizedURL) {
-            historyService.logTypedURL(url: url)
-        }
-        
-        // Check for inappropriate keywords first (before API call)
-        if containsInappropriateContent(normalizedURL) {
-            print("🚫 Inappropriate content detected - showing Komal blocked view")
-            category = .explicitContent
-            blockReason = "Content not available"
-            // Log blocked event for history tracking
-            if let url = URL(string: normalizedURL) {
-                historyService.logBlocked(url: url, category: "Explicit & Body Content", reason: blockReason)
+            // Check URL for inappropriate content
+            let contentCheck = BrowserState.checkURL(url, parentSettings: appState.parentSettings)
+            if contentCheck.shouldIntervene, let trigger = contentCheck.trigger {
+                print("🛡️ URL content check triggered: \(trigger.searchTerm)")
+                historyService.logBlocked(url: url, category: "Content Filter", reason: "Intervention: \(trigger.searchTerm)")
+                
+                self.currentURL = nil
+                self.interventionTrigger = trigger
+                self.showKomalIntervention = true
+                self.loading = false
+                return
             }
-            showBlocked = true
-            loading = false
-            return
+            
+            // Log typed URL event for history tracking
+            historyService.logTypedURL(url: url)
         }
         
         // Check if this is a trusted kid-friendly domain (skip scanning)
@@ -164,7 +191,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             await processUnifiedDecision(normalizedURL: normalizedURL, decision: decision)
             
             // Show check-in after successful search (if it's time)
-            if shouldCheckIn && !showBlocked && !showGate {
+            if shouldCheckIn && !showBlocked && !showGate && !showKomalIntervention {
                 // Delay check-in slightly so user sees the page loaded
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     self.showKomalCheckIn = true
@@ -174,28 +201,40 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             }
         } catch {
             print("❌ Analysis Error: \(error.localizedDescription)")
-            // Fallback: try existing API
+            
+            // Fallback: try existing API (networkService)
             do {
                 scanResult = try await networkService.scanURL(normalizedURL)
                 print("✅ Fallback scan completed")
                 await processScanResult(normalizedURL: normalizedURL)
                 
                 // Show check-in if it's time
-                if shouldCheckIn && !showBlocked && !showGate {
+                if shouldCheckIn && !showBlocked && !showGate && !showKomalIntervention {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         self.showKomalCheckIn = true
                         self.updateNextCheckIn()
                     }
                 }
             } catch {
+                // Both unified system and fallback API failed
+                print("❌ Both analysis systems failed: \(error.localizedDescription)")
                 self.error = error
                 loading = false
                 
-                // If both fail, try to load URL anyway
+                // Final safety check: ensure we don't load inappropriate content even if all systems fail
                 if let url = URL(string: normalizedURL) {
+                    let finalCheck = BrowserState.checkURL(url, parentSettings: appState.parentSettings)
+                    if finalCheck.shouldIntervene, let trigger = finalCheck.trigger {
+                        self.interventionTrigger = trigger
+                        self.showKomalIntervention = true
+                        self.currentURL = nil
+                        return
+                    }
+                    
+                    // If all checks pass, allow the URL (fail-open for availability)
                     currentURL = url
                     
-                    // Still show check-in if it's time
+                    // Show check-in if it's time
                     if shouldCheckIn {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                             self.showKomalCheckIn = true
@@ -233,9 +272,28 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         showGate = false
         showBlocked = false
         showKomalCheckIn = false
+        showKomalIntervention = false
+        interventionTrigger = nil
         currentURL = nil
         pendingURL = nil
         error = nil
+    }
+    
+    /// Handle intervention dismissal - redirect to safe page
+    func handleInterventionDismissed(allowContinue: Bool = false) {
+        showKomalIntervention = false
+        interventionTrigger = nil
+        
+        if allowContinue, let url = pendingURL {
+            // Allow continuing (for less severe content after reflection)
+            currentURL = url
+            pendingURL = nil
+        } else {
+            // Redirect to safe page
+            urlInput = "khanacademy.org"
+            currentURL = URL(string: "https://www.khanacademy.org")
+            pendingURL = nil
+        }
     }
     
     /// Check if URL contains inappropriate keywords
@@ -298,15 +356,30 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     
     private func normalizeURL(_ input: String) -> String {
         var normalized = input.trimmingCharacters(in: .whitespaces)
-        let looksLikeUrl = normalized.contains(".") ||
-                          normalized.hasPrefix("http://") ||
-                          normalized.hasPrefix("https://")
         
-        if looksLikeUrl && !normalized.hasPrefix("http://") && !normalized.hasPrefix("https://") {
-            normalized = "https://" + normalized
+        // Check if it looks like a URL (has domain-like structure)
+        let looksLikeUrl = normalized.contains(".") &&
+                          !normalized.contains(" ") &&
+                          (normalized.hasPrefix("http://") ||
+                           normalized.hasPrefix("https://") ||
+                           normalized.contains(".com") ||
+                           normalized.contains(".org") ||
+                           normalized.contains(".net") ||
+                           normalized.contains(".edu") ||
+                           normalized.contains(".io") ||
+                           normalized.contains(".co"))
+        
+        if looksLikeUrl {
+            if !normalized.hasPrefix("http://") && !normalized.hasPrefix("https://") {
+                normalized = "https://" + normalized
+            }
+            return normalized
         }
         
-        return normalized
+        // Not a URL - convert to Google Safe Search
+        // This ensures searches go through Google with safe mode enabled
+        let encodedQuery = normalized.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? normalized
+        return "https://www.google.com/search?q=\(encodedQuery)&safe=active"
     }
     
     // MARK: - Content Analysis Helpers

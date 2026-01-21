@@ -111,11 +111,20 @@ private struct KomalSafetyScannerContentView: View {
                         .padding(.horizontal, 8)
                 }
                 
-                if let url = viewModel.currentURL, !viewModel.showGate, !viewModel.showBlocked {
-                    SimpleWebView(url: url, loading: Binding(
-                        get: { viewModel.loading },
-                        set: { viewModel.updateLoading($0) }
-                    ))
+                if let url = viewModel.currentURL, !viewModel.showGate, !viewModel.showBlocked, !viewModel.showKomalIntervention {
+                    SimpleWebView(
+                        url: url,
+                        loading: Binding(
+                            get: { viewModel.loading },
+                            set: { viewModel.updateLoading($0) }
+                        ),
+                        onInappropriateContent: { trigger, blockedURL in
+                            // Handle in-page navigation to inappropriate content
+                            viewModel.interventionTrigger = trigger
+                            viewModel.pendingURL = blockedURL
+                            viewModel.showKomalIntervention = true
+                        }
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .padding(.horizontal, 8)
                     .padding(.bottom, 80) // Space for floating nav bar
@@ -141,6 +150,22 @@ private struct KomalSafetyScannerContentView: View {
         }
         .fullScreenCover(isPresented: $viewModel.showKomalCheckIn) {
             KomalCheckInView()
+        }
+        .fullScreenCover(isPresented: $viewModel.showKomalIntervention) {
+            if let trigger = viewModel.interventionTrigger {
+                KomalInterventionView(
+                    trigger: trigger,
+                    onReflectionTime: {
+                        print("🌸 Child completed reflection - redirecting to safe content")
+                        viewModel.handleInterventionDismissed(allowContinue: false)
+                    },
+                    onGoBack: {
+                        print("🌸 Child chose to go back")
+                        viewModel.handleInterventionDismissed(allowContinue: false)
+                    },
+                    onContinueAnyway: nil  // No continue option for safety
+                )
+            }
         }
         .fullScreenCover(isPresented: $showReflectionTime) {
             ReflectionTimeView()

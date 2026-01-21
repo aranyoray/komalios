@@ -13,6 +13,7 @@ struct BrowserView: View {
 
             VStack(spacing: 8) {
                 AddressBar(urlString: $browserState.urlString) {
+                    // Just navigate - content filtering happens in WKNavigationDelegate
                     browserState.currentURL = normalizedURL(from: browserState.urlString)
                 }
                 .padding(.horizontal, 12)
@@ -58,13 +59,48 @@ struct BrowserView: View {
         .sheet(isPresented: $browserState.showPastTabs) {
             PastTabsView(browserState: browserState)
         }
+        .fullScreenCover(isPresented: $browserState.showKomalIntervention) {
+            if let trigger = browserState.interventionTrigger {
+                KomalInterventionView(
+                    trigger: trigger,
+                    onReflectionTime: {
+                        // Log the reflection and allow continuing with safe search
+                        print("🌸 Child completed reflection time")
+                        browserState.clearIntervention()
+                        // Redirect to a safe search or home
+                        browserState.currentURL = URL(string: "https://www.khanacademy.org")
+                    },
+                    onGoBack: {
+                        print("🌸 Child chose to go back")
+                        browserState.clearIntervention()
+                        // Go back to safe page
+                        browserState.currentURL = URL(string: "https://www.khanacademy.org")
+                    },
+                    onContinueAnyway: nil  // Don't allow continue for now
+                )
+            }
+        }
     }
 
     private func normalizedURL(from input: String) -> URL? {
-        if let url = URL(string: input), url.scheme != nil {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // If it looks like a URL (has scheme), use it
+        if let url = URL(string: trimmed), url.scheme != nil {
             return url
         }
-        return URL(string: "https://\(input)")
+        
+        // If it looks like a domain (contains .), treat as URL
+        if trimmed.contains(".") && !trimmed.contains(" ") {
+            return URL(string: "https://\(trimmed)")
+        }
+        
+        // Otherwise it's a search - create Google search URL
+        if let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            return URL(string: "https://www.google.com/search?q=\(encoded)&safe=active")
+        }
+        
+        return URL(string: "https://\(trimmed)")
     }
 }
 
@@ -110,10 +146,19 @@ struct WebView: UIViewRepresentable {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.defaultWebpagePreferences.preferredContentMode = .mobile
+        
+        // Digital Guardian Enhancement: Configure content controller with scripts
+        let contentController = config.userContentController
+        EngagementTracker.shared.configureMessageHandlers(for: contentController, handler: context.coordinator)
+        
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsLinkPreview = false
+        
+        // Store webView reference in coordinator for JavaScript calls
+        context.coordinator.webView = webView
+        
         if let url {
             webView.load(URLRequest(url: url))
         }
@@ -123,6 +168,11 @@ struct WebView: UIViewRepresentable {
     func updateUIView(_ uiView: WKWebView, context: Context) {
         guard let url else { return }
         if uiView.url != url {
+            // Track navigation type
+            let isBack = uiView.canGoBack && uiView.backForwardList.backItem?.url == url
+            let isForward = uiView.canGoForward && uiView.backForwardList.forwardItem?.url == url
+            context.coordinator.pendingNavigationType = (isBack: isBack, isForward: isForward)
+            
             uiView.load(URLRequest(url: url))
         }
     }
@@ -131,35 +181,269 @@ struct WebView: UIViewRepresentable {
         Coordinator(browserState: browserState, appState: appState)
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         private let blocklist = BlocklistService.shared
         private let historyService = BrowsingHistoryService.shared
+        private let engagementTracker = EngagementTracker.shared
+        private let imageFilterService = ImageFilterService.shared
+        private let contentAnalyzer = ContentAnalyzerService.shared
         private let browserState: BrowserState
         private let appState: AppState
+        
+        // Digital Guardian Enhancement: Track navigation context
+        weak var webView: WKWebView?
+        var pendingNavigationType: (isBack: Bool, isForward: Bool) = (false, false)
+        private var currentPageURL: URL?
+        private var navigationDepth = 0
 
         init(browserState: BrowserState, appState: AppState) {
             self.browserState = browserState
             self.appState = appState
         }
+        
+        // MARK: - WKScriptMessageHandler
+        
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            switch message.name {
+            case "komalEngagement":
+                handleEngagementMessage(message.body)
+            case "komalImageScanner":
+                handleImageScannerMessage(message.body)
+            case "komalViewport":
+                handleViewportMessage(message.body)
+            default:
+                break
+            }
+        }
+        
+        private func handleEngagementMessage(_ body: Any) {
+            guard let data = body as? [String: Any] else { return }
+            
+            let scrollDepth = data["scrollDepthPercent"] as? Int ?? 0
+            let scrollEvents = data["scrollEvents"] as? Int ?? 0
+            let dwellTimeMs = data["dwellTimeMs"] as? Int
+            
+            // Update engagement tracker
+            engagementTracker.updateEngagement(
+                scrollDepth: scrollDepth,
+                scrollEvents: scrollEvents,
+                dwellTimeMs: dwellTimeMs
+            )
+            
+            // Update history service
+            historyService.updateCurrentEventEngagement(
+                scrollDepth: scrollDepth,
+                scrollEvents: scrollEvents,
+                dwellTimeSeconds: dwellTimeMs.map { TimeInterval($0) / 1000.0 }
+            )
+            
+            print("🛡️ Engagement: \(scrollDepth)% scroll, \(scrollEvents) events")
+        }
+        
+        private func handleImageScannerMessage(_ body: Any) {
+            guard let data = body as? [String: Any],
+                  let messageType = data["type"] as? String else { return }
+            
+            switch messageType {
+            case "scan":
+                handleImageScanRequest(data)
+            case "stats":
+                handleImageStats(data)
+            default:
+                break
+            }
+        }
+        
+        private func handleImageScanRequest(_ data: [String: Any]) {
+            guard let images = data["images"] as? [[String: Any]],
+                  let pageUrlString = data["pageUrl"] as? String,
+                  let pageURL = URL(string: pageUrlString) else { return }
+            
+            let preferences = appState.contentFilterPreferences
+            
+            // Process images asynchronously
+            Task {
+                for imageData in images {
+                    guard let imageId = imageData["id"] as? String,
+                          let imageSrc = imageData["src"] as? String,
+                          let imageURL = URL(string: imageSrc) else { continue }
+                    
+                    // Skip data URLs
+                    if imageURL.scheme == "data" { continue }
+                    
+                    // Analyze image
+                    let result = await imageFilterService.analyzeImage(url: imageURL, preferences: preferences)
+                    
+                    // Update engagement tracker
+                    engagementTracker.recordScannedImages(count: 1)
+                    
+                    if result.shouldFilter {
+                        // Tell JavaScript to replace the image
+                        await MainActor.run {
+                            self.replaceImageInWebView(imageId: imageId, category: result.category.rawValue)
+                        }
+                        
+                        // Log filter event
+                        let filterEvent = result.toFilterEvent(pageURL: pageURL)
+                        historyService.logImageFiltered(event: filterEvent)
+                        engagementTracker.recordFilteredImage(category: result.category.rawValue)
+                        
+                        print("🛡️ Filtered image: \(imageId) - \(result.category.displayName) (\(result.confidencePercentage))")
+                    } else {
+                        // Mark as safe
+                        await MainActor.run {
+                            self.markImageSafe(imageId: imageId)
+                        }
+                    }
+                }
+            }
+        }
+        
+        private func handleImageStats(_ data: [String: Any]) {
+            guard let stats = data["stats"] as? [String: Any] else { return }
+            let scanned = stats["scanned"] as? Int ?? 0
+            let filtered = stats["filtered"] as? Int ?? 0
+            print("🛡️ Image stats - Scanned: \(scanned), Filtered: \(filtered)")
+        }
+        
+        private func handleViewportMessage(_ body: Any) {
+            guard let data = body as? [String: Any],
+                  let messageType = data["type"] as? String else { return }
+            
+            switch messageType {
+            case "snapshot":
+                handleViewportSnapshot(data)
+            default:
+                break
+            }
+        }
+        
+        private func handleViewportSnapshot(_ data: [String: Any]) {
+            guard let snapshotData = data["data"] as? [String: Any],
+                  let pageUrlString = snapshotData["pageUrl"] as? String,
+                  let pageURL = URL(string: pageUrlString) else { return }
+            
+            // Process viewport snapshot
+            contentAnalyzer.processViewportSnapshot(snapshotData, pageURL: pageURL)
+            
+            // Log if there are flagged keywords
+            if let flaggedKeywords = snapshotData["flaggedKeywords"] as? [String], !flaggedKeywords.isEmpty {
+                print("🔍 Viewport flagged content: \(flaggedKeywords.joined(separator: ", "))")
+            }
+            
+            // Log visible content summary
+            if let visibleContent = snapshotData["visibleContent"] as? [[String: Any]] {
+                let headings = visibleContent.filter { ($0["contentType"] as? String) == "heading" }.count
+                let paragraphs = visibleContent.filter { ($0["contentType"] as? String) == "paragraph" }.count
+                let images = snapshotData["visibleImageCount"] as? Int ?? 0
+                let videos = snapshotData["visibleVideoCount"] as? Int ?? 0
+                
+                if headings > 0 || paragraphs > 0 || images > 0 || videos > 0 {
+                    print("🔍 Viewport: \(headings) headings, \(paragraphs) paragraphs, \(images) images, \(videos) videos")
+                }
+            }
+        }
+        
+        private func replaceImageInWebView(imageId: String, category: String) {
+            let script = "window.komalImageScanner && window.komalImageScanner.replaceImage('\(imageId)', '\(category)');"
+            webView?.evaluateJavaScript(script) { _, error in
+                if let error = error {
+                    print("🛡️ Failed to replace image: \(error)")
+                }
+            }
+        }
+        
+        private func markImageSafe(imageId: String) {
+            let script = "window.komalImageScanner && window.komalImageScanner.markSafe('\(imageId)');"
+            webView?.evaluateJavaScript(script, completionHandler: nil)
+        }
+        
+        // MARK: - WKNavigationDelegate
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
             browserState.loading = true
+            
+            // End engagement for previous page
+            if currentPageURL != nil {
+                engagementTracker.endCurrentEngagement(exitURL: webView.url)
+                // Finalize content tracking for previous page
+                contentAnalyzer.finalizeCurrentPage()
+            }
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             browserState.loading = false
             browserState.currentURL = webView.url
             browserState.showGate = false
+            
             if let url = webView.url {
                 browserState.addToHistory(url)
-                // Log page load event for insights
-                historyService.logPageLoad(url: url, title: webView.title)
+                
+                // Digital Guardian Enhancement: Start engagement tracking
+                let isBack = pendingNavigationType.isBack
+                let isForward = pendingNavigationType.isForward
+                
+                engagementTracker.startEngagement(
+                    url: url,
+                    pageTitle: webView.title,
+                    wasBackNavigation: isBack,
+                    wasForwardNavigation: isForward
+                )
+                
+                // Start content tracking for viewport monitoring
+                contentAnalyzer.startPageTracking(url: url, title: webView.title)
+                
+                // Update navigation depth
+                if isBack {
+                    navigationDepth = max(0, navigationDepth - 1)
+                } else if !isForward {
+                    navigationDepth += 1
+                }
+                
+                // Log page load event with navigation context
+                historyService.logPageLoad(
+                    url: url,
+                    title: webView.title,
+                    referrerURL: currentPageURL,
+                    wasBackNavigation: isBack,
+                    wasForwardNavigation: isForward,
+                    navigationDepth: navigationDepth
+                )
+                
+                currentPageURL = url
+                pendingNavigationType = (false, false)
             }
         }
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             guard let url = navigationAction.request.url else {
                 decisionHandler(.allow)
+                return
+            }
+            
+            // Track navigation type from navigation action
+            if navigationAction.navigationType == .backForward {
+                if let backItem = webView.backForwardList.backItem, backItem.url == url {
+                    pendingNavigationType = (isBack: true, isForward: false)
+                } else if let forwardItem = webView.backForwardList.forwardItem, forwardItem.url == url {
+                    pendingNavigationType = (isBack: false, isForward: true)
+                }
+            }
+
+            // DIGITAL GUARDIAN: Check for inappropriate content FIRST
+            let contentCheck = BrowserState.checkURL(url, parentSettings: appState.parentSettings)
+            if contentCheck.shouldIntervene, let trigger = contentCheck.trigger {
+                print("🛡️ Content check triggered intervention: \(trigger.searchTerm)")
+                
+                // Log the attempt
+                historyService.logBlocked(url: url, category: "Content Filter", reason: "Inappropriate content detected: \(trigger.searchTerm)")
+                
+                // Show Komal intervention instead of just blocking
+                DispatchQueue.main.async {
+                    self.browserState.triggerIntervention(for: trigger, pendingURL: url)
+                }
+                
+                decisionHandler(.cancel)
                 return
             }
 
@@ -176,6 +460,16 @@ struct WebView: UIViewRepresentable {
             }
 
             if url.host?.contains("youtube.com") == true || url.host?.contains("youtu.be") == true {
+                // Still check YouTube search queries
+                if let searchQuery = BrowserState.extractSearchQuery(from: url),
+                   let flagged = BrowserState.checkForInappropriateContent(searchQuery) {
+                    print("🛡️ YouTube search flagged: \(flagged)")
+                    DispatchQueue.main.async {
+                        self.browserState.triggerIntervention(for: .searchQuery(flagged), pendingURL: url)
+                    }
+                    decisionHandler(.cancel)
+                    return
+                }
                 decisionHandler(.allow)
                 return
             }
@@ -183,21 +477,10 @@ struct WebView: UIViewRepresentable {
             if let match = blocklist.match(url: url) {
                 // Log blocked event for insights
                 historyService.logBlocked(url: url, category: match.category, reason: match.reason)
-                presentBlock(category: ContentCategory(label: match.category), reason: match.reason)
-                decisionHandler(.cancel)
-                return
-            }
-
-            if appState.parentSettings.blockedHosts.contains(where: { url.host?.contains($0) == true }) {
-                historyService.logBlocked(url: url, category: "Parent Rules", reason: "Blocked by parent host rule.")
-                presentBlock(category: .platformRisks, reason: "Blocked by parent host rule.")
-                decisionHandler(.cancel)
-                return
-            }
-
-            if appState.parentSettings.blockedKeywords.contains(where: { url.absoluteString.lowercased().contains($0.lowercased()) }) {
-                historyService.logBlocked(url: url, category: "Parent Rules", reason: "Blocked by parent keyword rule.")
-                presentBlock(category: .platformRisks, reason: "Blocked by parent keyword rule.")
+                // Use intervention for blocklist matches too
+                DispatchQueue.main.async {
+                    self.browserState.triggerIntervention(for: .urlKeyword(match.category), pendingURL: url)
+                }
                 decisionHandler(.cancel)
                 return
             }

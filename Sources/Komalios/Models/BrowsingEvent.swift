@@ -53,6 +53,23 @@ struct BrowsingEvent: Codable, Identifiable, Hashable {
     let pageTitle: String?       // Page title if available
     let domain: String           // Extracted domain for quick access
     
+    // MARK: - Engagement Metrics (Digital Guardian Enhancement)
+    var dwellTimeSeconds: TimeInterval?      // Time spent on page
+    var scrollDepthPercent: Int?             // 0-100% scroll depth reached
+    var scrollEvents: Int?                   // Number of scroll actions
+    let referrerURL: URL?                    // Where user came from
+    var exitURL: URL?                        // Where user went next (set on navigation)
+    
+    // MARK: - Image Filtering Stats
+    var imagesScanned: Int?                  // Total images analyzed on page
+    var imagesFiltered: Int?                 // Images replaced with Komal logo
+    var filteredCategories: [String]?        // Categories of filtered images
+    
+    // MARK: - Navigation Context
+    let wasBackNavigation: Bool              // User pressed back button
+    let wasForwardNavigation: Bool           // User pressed forward button
+    let navigationDepth: Int                 // How deep in session journey (1 = first page)
+    
     init(
         id: UUID = UUID(),
         timestamp: Date = Date(),
@@ -60,7 +77,18 @@ struct BrowsingEvent: Codable, Identifiable, Hashable {
         eventType: BrowsingEventType,
         category: String? = nil,
         action: FilterAction? = nil,
-        pageTitle: String? = nil
+        pageTitle: String? = nil,
+        dwellTimeSeconds: TimeInterval? = nil,
+        scrollDepthPercent: Int? = nil,
+        scrollEvents: Int? = nil,
+        referrerURL: URL? = nil,
+        exitURL: URL? = nil,
+        imagesScanned: Int? = nil,
+        imagesFiltered: Int? = nil,
+        filteredCategories: [String]? = nil,
+        wasBackNavigation: Bool = false,
+        wasForwardNavigation: Bool = false,
+        navigationDepth: Int = 1
     ) {
         self.id = id
         self.timestamp = timestamp
@@ -70,6 +98,52 @@ struct BrowsingEvent: Codable, Identifiable, Hashable {
         self.action = action
         self.pageTitle = pageTitle
         self.domain = url.host ?? "unknown"
+        self.dwellTimeSeconds = dwellTimeSeconds
+        self.scrollDepthPercent = scrollDepthPercent
+        self.scrollEvents = scrollEvents
+        self.referrerURL = referrerURL
+        self.exitURL = exitURL
+        self.imagesScanned = imagesScanned
+        self.imagesFiltered = imagesFiltered
+        self.filteredCategories = filteredCategories
+        self.wasBackNavigation = wasBackNavigation
+        self.wasForwardNavigation = wasForwardNavigation
+        self.navigationDepth = navigationDepth
+    }
+    
+    // MARK: - Mutable update helper for engagement data
+    mutating func updateEngagement(
+        dwellTime: TimeInterval? = nil,
+        scrollDepth: Int? = nil,
+        scrollCount: Int? = nil,
+        imagesScanned: Int? = nil,
+        imagesFiltered: Int? = nil,
+        filteredCategories: [String]? = nil,
+        exitURL: URL? = nil
+    ) {
+        if let dwellTime = dwellTime {
+            self.dwellTimeSeconds = dwellTime
+        }
+        if let scrollDepth = scrollDepth {
+            self.scrollDepthPercent = max(self.scrollDepthPercent ?? 0, scrollDepth)
+        }
+        if let scrollCount = scrollCount {
+            self.scrollEvents = scrollCount
+        }
+        if let scanned = imagesScanned {
+            self.imagesScanned = (self.imagesScanned ?? 0) + scanned
+        }
+        if let filtered = imagesFiltered {
+            self.imagesFiltered = (self.imagesFiltered ?? 0) + filtered
+        }
+        if let categories = filteredCategories {
+            var existing = self.filteredCategories ?? []
+            existing.append(contentsOf: categories)
+            self.filteredCategories = existing
+        }
+        if let exit = exitURL {
+            self.exitURL = exit
+        }
     }
     
     // Hashable conformance

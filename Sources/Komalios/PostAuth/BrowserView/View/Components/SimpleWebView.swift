@@ -13,16 +13,23 @@ import WebKit
 struct SimpleWebView: UIViewRepresentable {
     let url: URL
     @Binding var loading: Bool
+    var onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?  // Callback for intervention
     
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.defaultWebpagePreferences.preferredContentMode = .mobile
+        
+        // DIGITAL GUARDIAN: Add content controller for JavaScript injection
+        let contentController = config.userContentController
+        EngagementTracker.shared.configureMessageHandlers(for: contentController, handler: context.coordinator)
+        
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsLinkPreview = false
         context.coordinator.targetURL = url
+        context.coordinator.webView = webView
         webView.load(URLRequest(url: url))
         return webView
     }
@@ -41,17 +48,244 @@ struct SimpleWebView: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(loading: $loading)
+        Coordinator(loading: $loading, onInappropriateContent: onInappropriateContent)
     }
     
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         @Binding var loading: Bool
         var targetURL: URL? // Track the URL we're trying to load
+        weak var webView: WKWebView?
         private var currentNavigation: WKNavigation? // Track current navigation to avoid duplicate callbacks
         private let historyService = BrowsingHistoryService.shared
+        private let engagementTracker = EngagementTracker.shared
+        private let imageFilterService = ImageFilterService.shared
+        var onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?
         
-        init(loading: Binding<Bool>) {
+        // Get parent settings from shared app state
+        private var parentSettings: ParentSettings {
+            // Use sample settings as fallback
+            return ParentSettings.sample
+        }
+        
+        init(loading: Binding<Bool>, onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?) {
             _loading = loading
+            self.onInappropriateContent = onInappropriateContent
+        }
+        
+        // MARK: - WKScriptMessageHandler
+        
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            switch message.name {
+            case "komalEngagement":
+                // Handle engagement tracking
+                if let data = message.body as? [String: Any] {
+                    let scrollDepth = data["scrollDepthPercent"] as? Int ?? 0
+                    let scrollEvents = data["scrollEvents"] as? Int ?? 0
+                    engagementTracker.updateEngagement(scrollDepth: scrollDepth, scrollEvents: scrollEvents)
+                }
+            case "komalImageScanner":
+                handleImageScannerMessage(message.body)
+            case "komalViewport":
+                // DIGITAL GUARDIAN: Check viewport content on every scroll
+                handleViewportMessage(message.body)
+            default:
+                break
+            }
+        }
+        
+        // MARK: - Viewport Content Monitoring (Scroll Detection)
+        
+        private func handleViewportMessage(_ body: Any) {
+            guard let data = body as? [String: Any],
+                  let messageType = data["type"] as? String,
+                  messageType == "snapshot",
+                  let snapshotData = data["data"] as? [String: Any] else { return }
+            
+            // Check for flagged keywords found by JS
+            if let flaggedKeywords = snapshotData["flaggedKeywords"] as? [String], !flaggedKeywords.isEmpty {
+                print("🛡️ VIEWPORT FLAGGED CONTENT: \(flaggedKeywords)")
+                
+                // Get page URL for logging
+                let pageUrlString = snapshotData["pageUrl"] as? String ?? ""
+                let pageURL = URL(string: pageUrlString) ?? URL(string: "about:blank")!
+                
+                // Trigger intervention for first flagged keyword
+                if let firstKeyword = flaggedKeywords.first {
+                    historyService.logBlocked(url: pageURL, category: "Content Filter", reason: "Viewport content: \(firstKeyword)")
+                    
+                    DispatchQueue.main.async { [weak self] in
+                        self?.onInappropriateContent?(.pageContent(firstKeyword), pageURL)
+                    }
+                }
+                return
+            }
+            
+            // Also scan visible text content for bad keywords
+            if let visibleContent = snapshotData["visibleContent"] as? [[String: Any]] {
+                for content in visibleContent {
+                    if let text = content["text"] as? String, !text.isEmpty {
+                        // Check text against our keyword list
+                        if let flaggedKeyword = BrowserState.checkForInappropriateContent(text) {
+                            print("🛡️ VIEWPORT TEXT FLAGGED: \(flaggedKeyword)")
+                            
+                            let pageUrlString = snapshotData["pageUrl"] as? String ?? ""
+                            let pageURL = URL(string: pageUrlString) ?? URL(string: "about:blank")!
+                            
+                            historyService.logBlocked(url: pageURL, category: "Content Filter", reason: "Page content: \(flaggedKeyword)")
+                            
+                            DispatchQueue.main.async { [weak self] in
+                                self?.onInappropriateContent?(.pageContent(flaggedKeyword), pageURL)
+                            }
+                            return
+                        }
+                    }
+                }
+            }
+            
+            // Check primary content too
+            if let primaryContent = snapshotData["primaryContent"] as? String, !primaryContent.isEmpty {
+                if let flaggedKeyword = BrowserState.checkForInappropriateContent(primaryContent) {
+                    print("🛡️ PRIMARY CONTENT FLAGGED: \(flaggedKeyword)")
+                    
+                    let pageUrlString = snapshotData["pageUrl"] as? String ?? ""
+                    let pageURL = URL(string: pageUrlString) ?? URL(string: "about:blank")!
+                    
+                    historyService.logBlocked(url: pageURL, category: "Content Filter", reason: "Primary content: \(flaggedKeyword)")
+                    
+                    DispatchQueue.main.async { [weak self] in
+                        self?.onInappropriateContent?(.pageContent(flaggedKeyword), pageURL)
+                    }
+                }
+            }
+        }
+        
+        private func handleImageScannerMessage(_ body: Any) {
+            guard let data = body as? [String: Any],
+                  let messageType = data["type"] as? String else { return }
+            
+            if messageType == "scan" {
+                handleImageScanRequest(data)
+            }
+        }
+        
+        private func handleImageScanRequest(_ data: [String: Any]) {
+            guard let images = data["images"] as? [[String: Any]],
+                  let pageUrlString = data["pageUrl"] as? String,
+                  URL(string: pageUrlString) != nil else { return }
+            
+            let preferences = ContentFilterPreferences()  // Use default or get from app state
+            
+            Task {
+                for imageData in images {
+                    guard let imageId = imageData["id"] as? String,
+                          let imageSrc = imageData["src"] as? String,
+                          let imageURL = URL(string: imageSrc) else { continue }
+                    
+                    if imageURL.scheme == "data" { continue }
+                    
+                    let result = await imageFilterService.analyzeImage(url: imageURL, preferences: preferences)
+                    
+                    if result.shouldFilter {
+                        await MainActor.run {
+                            self.replaceImageInWebView(imageId: imageId, category: result.category.rawValue)
+                        }
+                        print("🛡️ Filtered image: \(imageId) - \(result.category.displayName)")
+                    } else {
+                        await MainActor.run {
+                            self.markImageSafe(imageId: imageId)
+                        }
+                    }
+                }
+            }
+        }
+        
+        private func replaceImageInWebView(imageId: String, category: String) {
+            let script = "window.komalImageScanner && window.komalImageScanner.replaceImage('\(imageId)', '\(category)');"
+            webView?.evaluateJavaScript(script, completionHandler: nil)
+        }
+        
+        private func markImageSafe(imageId: String) {
+            let script = "window.komalImageScanner && window.komalImageScanner.markSafe('\(imageId)');"
+            webView?.evaluateJavaScript(script, completionHandler: nil)
+        }
+        
+        // MARK: - WKNavigationDelegate
+        
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            guard let url = navigationAction.request.url else {
+                decisionHandler(.allow)
+                return
+            }
+            
+            // DIGITAL GUARDIAN: Check ALL navigations for inappropriate content
+            let contentCheck = BrowserState.checkURL(url, parentSettings: parentSettings)
+            if contentCheck.shouldIntervene, let trigger = contentCheck.trigger {
+                print("🛡️ SimpleWebView blocked navigation: \(trigger.searchTerm)")
+                
+                // Log the block
+                historyService.logBlocked(url: url, category: "Content Filter", reason: "Inappropriate: \(trigger.searchTerm)")
+                
+                // Notify parent view to show intervention
+                DispatchQueue.main.async { [weak self] in
+                    self?.onInappropriateContent?(trigger, url)
+                }
+                
+                decisionHandler(.cancel)
+                return
+            }
+            
+            // Enable safe search on supported engines
+            if let rewritten = rewriteForSafeSearch(url: url), rewritten != url {
+                webView.load(URLRequest(url: rewritten))
+                decisionHandler(.cancel)
+                return
+            }
+            
+            // Handle new window requests
+            if navigationAction.targetFrame == nil {
+                webView.load(URLRequest(url: url))
+                decisionHandler(.cancel)
+                return
+            }
+            
+            decisionHandler(.allow)
+        }
+        
+        private func rewriteForSafeSearch(url: URL) -> URL? {
+            guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+            let host = components.host?.lowercased() ?? ""
+            
+            if host.contains("google.") {
+                components.queryItems = upsertQueryItem(name: "safe", value: "active", items: components.queryItems)
+                return components.url
+            }
+            
+            if host.contains("bing.com") {
+                components.queryItems = upsertQueryItem(name: "adlt", value: "strict", items: components.queryItems)
+                return components.url
+            }
+            
+            if host.contains("youtube.com") {
+                components.queryItems = upsertQueryItem(name: "safe", value: "active", items: components.queryItems)
+                return components.url
+            }
+            
+            if host.contains("duckduckgo.com") {
+                components.queryItems = upsertQueryItem(name: "kp", value: "1", items: components.queryItems)
+                return components.url
+            }
+            
+            return nil
+        }
+        
+        private func upsertQueryItem(name: String, value: String, items: [URLQueryItem]?) -> [URLQueryItem] {
+            var updated = items ?? []
+            if let index = updated.firstIndex(where: { $0.name == name }) {
+                updated[index].value = value
+            } else {
+                updated.append(URLQueryItem(name: name, value: value))
+            }
+            return updated
         }
         
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
@@ -85,6 +319,9 @@ struct SimpleWebView: UIViewRepresentable {
                 // Log page load event for history tracking
                 if let url = webView.url {
                     self.historyService.logPageLoad(url: url, title: webView.title)
+                    
+                    // Start engagement tracking
+                    self.engagementTracker.startEngagement(url: url, pageTitle: webView.title)
                 }
             }
         }
