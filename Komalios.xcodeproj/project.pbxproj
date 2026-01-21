@@ -70,22 +70,22 @@
 		BROWSEVT001201D0001 /* BrowsingEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSEVT001101D0001 /* BrowsingEvent.swift */; };
 		BROWSHIS001201D0001 /* BrowsingHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSHIS001101D0001 /* BrowsingHistoryService.swift */; };
 		C8E3A128D4DFC7C0AC136E7CCC17EF42 /* FilterActionSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8E3A128E66AC9CACE0AFC09 /* FilterActionSlider.swift */; };
+		CNTANLZ001201D0001 /* ContentAnalyzerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CNTANLZ001101D0001 /* ContentAnalyzerService.swift */; };
 		CONTENT001201D0001 /* ContentAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CONTENT001101D0001 /* ContentAnalysisService.swift */; };
 		D9516F603C9EAA56EDED7DADC8DA66E8 /* Components/ScanResultCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9516F609FA1E7A0FFB9CDF1 /* Components/ScanResultCards.swift */; };
+		ENGTRCK001201D0001 /* EngagementTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = ENGTRCK001101D0001 /* EngagementTracker.swift */; };
+		ENGTRJS001201D0001 /* engagement_tracker.js in Resources */ = {isa = PBXBuildFile; fileRef = ENGTRJS001101D0001 /* engagement_tracker.js */; };
 		EXTENS001201D0001 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EXTENS001101D0001 /* Extensions.swift */; };
 		F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6 /* KomalCheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */; };
 		F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7 /* KomalBlockedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */; };
-		KOMLINTR001201D0001 /* KomalInterventionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = KOMLINTR001101D0001 /* KomalInterventionView.swift */; };
-		INSIGHTS001201D0001 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSIGHTS001101D0001 /* InsightsView.swift */; };
-		UNIFIED001201D0001 /* UnifiedDecisionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = UNIFIED001101D0001 /* UnifiedDecisionModels.swift */; };
 		IMGFILT001201D0001 /* ImageFilterEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = IMGFILT001101D0001 /* ImageFilterEvent.swift */; };
-		PAGEENG001201D0001 /* PageEngagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAGEENG001101D0001 /* PageEngagement.swift */; };
-		VIEWCNT001201D0001 /* ViewportContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = VIEWCNT001101D0001 /* ViewportContent.swift */; };
 		IMGFSVC001201D0001 /* ImageFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = IMGFSVC001101D0001 /* ImageFilterService.swift */; };
-		ENGTRCK001201D0001 /* EngagementTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = ENGTRCK001101D0001 /* EngagementTracker.swift */; };
-		CNTANLZ001201D0001 /* ContentAnalyzerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CNTANLZ001101D0001 /* ContentAnalyzerService.swift */; };
-		ENGTRJS001201D0001 /* engagement_tracker.js in Resources */ = {isa = PBXBuildFile; fileRef = ENGTRJS001101D0001 /* engagement_tracker.js */; };
 		IMGSCJS001201D0001 /* image_scanner.js in Resources */ = {isa = PBXBuildFile; fileRef = IMGSCJS001101D0001 /* image_scanner.js */; };
+		INSIGHTS001201D0001 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSIGHTS001101D0001 /* InsightsView.swift */; };
+		KOMLINTR001201D0001 /* KomalInterventionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = KOMLINTR001101D0001 /* KomalInterventionView.swift */; };
+		PAGEENG001201D0001 /* PageEngagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAGEENG001101D0001 /* PageEngagement.swift */; };
+		UNIFIED001201D0001 /* UnifiedDecisionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = UNIFIED001101D0001 /* UnifiedDecisionModels.swift */; };
+		VIEWCNT001201D0001 /* ViewportContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = VIEWCNT001101D0001 /* ViewportContent.swift */; };
 		VPTRKJS001201D0001 /* viewport_tracker.js in Resources */ = {isa = PBXBuildFile; fileRef = VPTRKJS001101D0001 /* viewport_tracker.js */; };
 /* End PBXBuildFile section */
 
@@ -151,22 +151,22 @@
 		BROWSEVT001101D0001 /* BrowsingEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingEvent.swift; sourceTree = "<group>"; };
 		BROWSHIS001101D0001 /* BrowsingHistoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingHistoryService.swift; sourceTree = "<group>"; };
 		C8E3A128E66AC9CACE0AFC09 /* FilterActionSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterActionSlider.swift; sourceTree = "<group>"; };
+		CNTANLZ001101D0001 /* ContentAnalyzerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentAnalyzerService.swift; sourceTree = "<group>"; };
 		CONTENT001101D0001 /* ContentAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentAnalysisService.swift; sourceTree = "<group>"; };
 		D9516F609FA1E7A0FFB9CDF1 /* Components/ScanResultCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/ScanResultCards.swift; sourceTree = "<group>"; };
+		ENGTRCK001101D0001 /* EngagementTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngagementTracker.swift; sourceTree = "<group>"; };
+		ENGTRJS001101D0001 /* engagement_tracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = engagement_tracker.js; sourceTree = "<group>"; };
 		EXTENS001101D0001 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalCheckInView.swift; sourceTree = "<group>"; };
 		F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalBlockedView.swift; sourceTree = "<group>"; };
-		KOMLINTR001101D0001 /* KomalInterventionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalInterventionView.swift; sourceTree = "<group>"; };
-		INSIGHTS001101D0001 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
-		UNIFIED001101D0001 /* UnifiedDecisionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedDecisionModels.swift; sourceTree = "<group>"; };
 		IMGFILT001101D0001 /* ImageFilterEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFilterEvent.swift; sourceTree = "<group>"; };
-		PAGEENG001101D0001 /* PageEngagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageEngagement.swift; sourceTree = "<group>"; };
-		VIEWCNT001101D0001 /* ViewportContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportContent.swift; sourceTree = "<group>"; };
 		IMGFSVC001101D0001 /* ImageFilterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFilterService.swift; sourceTree = "<group>"; };
-		ENGTRCK001101D0001 /* EngagementTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngagementTracker.swift; sourceTree = "<group>"; };
-		CNTANLZ001101D0001 /* ContentAnalyzerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentAnalyzerService.swift; sourceTree = "<group>"; };
-		ENGTRJS001101D0001 /* engagement_tracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = engagement_tracker.js; sourceTree = "<group>"; };
 		IMGSCJS001101D0001 /* image_scanner.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = image_scanner.js; sourceTree = "<group>"; };
+		INSIGHTS001101D0001 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		KOMLINTR001101D0001 /* KomalInterventionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalInterventionView.swift; sourceTree = "<group>"; };
+		PAGEENG001101D0001 /* PageEngagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageEngagement.swift; sourceTree = "<group>"; };
+		UNIFIED001101D0001 /* UnifiedDecisionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedDecisionModels.swift; sourceTree = "<group>"; };
+		VIEWCNT001101D0001 /* ViewportContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportContent.swift; sourceTree = "<group>"; };
 		VPTRKJS001101D0001 /* viewport_tracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = viewport_tracker.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -829,7 +829,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Komalios.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1.2;
+				CURRENT_PROJECT_VERSION = 1.3;
 				DEVELOPMENT_TEAM = NXS4B9HC6S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -861,7 +861,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Komalios.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1.2;
+				CURRENT_PROJECT_VERSION = 1.3;
 				DEVELOPMENT_TEAM = NXS4B9HC6S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

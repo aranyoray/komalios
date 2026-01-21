@@ -1,6 +1,7 @@
 #if canImport(SwiftUI)
 import SwiftUI
 import FirebaseAuth
+import FirebaseFirestore
 #if canImport(GoogleSignIn)
 import GoogleSignIn
 #endif
@@ -15,10 +16,12 @@ struct SettingsView: View {
     @State private var isWebsitesExpanded = false
     @State private var showLoginView = false
     @State private var showLogoutAlert = false
+    @State private var showDeleteAccountAlert = false
     @State private var showInsights = false
     @State private var showPinEntry = false
     @State private var enteredPin = ""
     @State private var pinError = false
+    @State private var isDeletingAccount = false
     
     private let correctPin = "1234" // Parent PIN
     
@@ -153,6 +156,16 @@ struct SettingsView: View {
             }
         } message: {
             Text("Do you want to logout?")
+        }
+        .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
+            Button("Cancel", role: .cancel) {
+                // User cancelled, do nothing
+            }
+            Button("Delete", role: .destructive) {
+                handleDeleteAccount()
+            }
+        } message: {
+            Text("Are You Sure to delete account? This action cannot be undone.")
         }
     }
     
@@ -522,6 +535,38 @@ struct SettingsView: View {
                     CardHeader(icon: "person.circle.fill", title: "Account", color: KomalColors.lavenderPurple)
                     
                     if isLoggedIn {
+                        // Delete Account Button
+                        Button(action: {
+                            showDeleteAccountAlert = true
+                        }) {
+                            HStack {
+                                Image(systemName: "trash.fill")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.red)
+                                
+                                Text("Delete Account")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.red)
+                                
+                                Spacer()
+                                
+                                if isDeletingAccount {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.red.opacity(0.6))
+                                }
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isDeletingAccount)
+                        
+                        Divider().padding(.vertical, 4)
+                        
+                        // Logout Button
                         Button(action: {
                             showLogoutAlert = true
                         }) {
@@ -614,6 +659,67 @@ struct SettingsView: View {
             // Post notification as additional backup
             NotificationCenter.default.post(name: NSNotification.Name("UserDidSignOut"), object: nil)
             print("✅ Notification posted")
+        }
+    }
+    
+    private func handleDeleteAccount() {
+        guard let user = Auth.auth().currentUser else {
+            print("❌ No user to delete")
+            return
+        }
+        
+        isDeletingAccount = true
+        print("🗑️ Starting account deletion process...")
+        
+        Task {
+            do {
+                // 1. Delete user data from Firestore
+                let db = Firestore.firestore()
+                let userRef = db.collection("users").document(user.uid)
+                try await userRef.delete()
+                print("✅ User data deleted from Firestore")
+                
+                // 2. Delete Firebase Auth account
+                try await user.delete()
+                print("✅ Firebase Auth account deleted")
+                
+                // 3. Sign out from Google Sign-In if it was used
+                await MainActor.run {
+                    GIDSignIn.sharedInstance.signOut()
+                    print("✅ Google Sign-In signed out")
+                    
+                    // 4. Clear local app state
+                    appState.hasCompletedOnboarding = false
+                    
+                    // Clear UserDefaults
+                    UserDefaults.standard.removeObject(forKey: "komal.hasCompletedOnboarding")
+                    UserDefaults.standard.removeObject(forKey: "komal.contentFilterPreferences")
+                    UserDefaults.standard.removeObject(forKey: "komal.activeProfile")
+                    UserDefaults.standard.removeObject(forKey: "komal.accountMode")
+                    UserDefaults.standard.removeObject(forKey: "komal.parentSettings")
+                    
+                    print("✅ Local data cleared")
+                    
+                    // 5. Update authViewModel state
+                    authViewModel.user = nil
+                    authViewModel.loginState = .notRunning
+                    
+                    print("✅ Account deletion completed")
+                    
+                    // Post notification
+                    NotificationCenter.default.post(name: NSNotification.Name("UserDidSignOut"), object: nil)
+                    
+                    isDeletingAccount = false
+                }
+            } catch {
+                await MainActor.run {
+                    print("❌ Error deleting account: \(error.localizedDescription)")
+                    isDeletingAccount = false
+                    
+                    // Show error alert
+                    // You might want to add an error alert here
+                }
+            }
         }
     }
     

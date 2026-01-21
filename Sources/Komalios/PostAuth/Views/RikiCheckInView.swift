@@ -1,5 +1,7 @@
 #if canImport(SwiftUI)
 import SwiftUI
+import AVFoundation
+import Speech
 
 // MARK: - Character Model
 
@@ -399,23 +401,64 @@ struct CharacterChatView: View {
     }
     
     private func toggleListening() {
-        withAnimation(KomalAnimations.spring) {
-            isListening.toggle()
-        }
-        
-        // Demo: Auto-stop listening after 3 seconds and send a demo message
         if isListening {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                if isListening {
-                    withAnimation {
-                        isListening = false
+            // Stop listening
+            withAnimation(KomalAnimations.spring) {
+                isListening = false
+            }
+        } else {
+            // Start listening - check permissions first
+            Task {
+                let hasPermission = await requestMicrophonePermission()
+                if hasPermission {
+                    await MainActor.run {
+                        withAnimation(KomalAnimations.spring) {
+                            isListening = true
+                        }
                     }
-                    // Simulate voice input
-                    inputText = "Hello! I'm using my voice!"
-                    sendMessage()
+                    
+                    // Demo: Auto-stop listening after 3 seconds and send a demo message
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        if isListening {
+                            withAnimation {
+                                isListening = false
+                            }
+                            // Simulate voice input
+                            inputText = "Hello! I'm using my voice!"
+                            sendMessage()
+                        }
+                    }
+                } else {
+                    print("⚠️ Microphone permission denied")
                 }
             }
         }
+    }
+    
+    private func requestMicrophonePermission() async -> Bool {
+        // Check microphone permission (using iOS 17+ API)
+        let micStatus = AVAudioApplication.shared.recordPermission
+        if micStatus == .undetermined {
+            let granted = await AVAudioApplication.requestRecordPermission()
+            if !granted {
+                return false
+            }
+        } else if micStatus == .denied {
+            return false
+        }
+        
+        // Check speech recognition permission
+        let speechStatus = SFSpeechRecognizer.authorizationStatus()
+        if speechStatus == .notDetermined {
+            await withCheckedContinuation { continuation in
+                SFSpeechRecognizer.requestAuthorization { status in
+                    continuation.resume()
+                }
+            }
+            return SFSpeechRecognizer.authorizationStatus() == .authorized
+        }
+        
+        return speechStatus == .authorized && micStatus == .granted
     }
 }
 
