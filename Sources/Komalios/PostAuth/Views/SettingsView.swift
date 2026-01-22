@@ -9,12 +9,14 @@ import GoogleSignIn
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var authViewModel: AuthViewModel
+    @EnvironmentObject var pathManager: PathManager
+
+    var selectedTab: Binding<NavigationTab>?
     @State private var newBlockedKeyword = ""
     @State private var newBlockedHost = ""
     @State private var showFilterPreferences = false
     @State private var isKeywordsExpanded = false
     @State private var isWebsitesExpanded = false
-    @State private var showLoginView = false
     @State private var showLogoutAlert = false
     @State private var showDeleteAccountAlert = false
     @State private var showInsights = false
@@ -22,6 +24,10 @@ struct SettingsView: View {
     @State private var enteredPin = ""
     @State private var pinError = false
     @State private var isDeletingAccount = false
+    
+    init(selectedTab: Binding<NavigationTab>? = nil) {
+        self.selectedTab = selectedTab
+    }
     
     private let correctPin = "1234" // Parent PIN
     
@@ -143,10 +149,6 @@ struct SettingsView: View {
             )
             .presentationDetents([.height(280)])
         }
-        .fullScreenCover(isPresented: $showLoginView) {
-            LoginView(viewModel: authViewModel)
-                .environmentObject(appState)
-        }
         .alert("Logout", isPresented: $showLogoutAlert) {
             Button("Cancel", role: .cancel) {
                 // User cancelled, do nothing
@@ -209,7 +211,14 @@ struct SettingsView: View {
                         .font(.system(size: 14, weight: .regular, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                     
-                    NavigationLink(destination: RikiCheckInView()) {
+                    Button(action: {
+                        // Switch to Talk tab (riki)
+                        if let binding = selectedTab {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                binding.wrappedValue = .riki
+                            }
+                        }
+                    }) {
                         HStack {
                             Image(systemName: "pawprint.fill")
                                 .font(.system(size: 18, weight: .semibold))
@@ -229,6 +238,7 @@ struct SettingsView: View {
                                 .stroke(KomalColors.lavenderPurple.opacity(0.4), lineWidth: 1.5)
                         )
                     }
+                    .buttonStyle(.plain)
                 }
             }
             
@@ -597,8 +607,9 @@ struct SettingsView: View {
                         }
                     } else {
                         Button(action: {
-                            appState.hasCompletedOnboarding = false
-                            showLoginView = true
+                            // Clear navigation stack and navigate to LoginView
+                            pathManager.popToRoot()
+                            pathManager.push(Routes.loginView)
                         }) {
                             HStack {
                                 Image(systemName: "person.badge.plus.fill")
@@ -656,6 +667,10 @@ struct SettingsView: View {
             print("✅ authViewModel.user is now: \(authViewModel.user?.uid ?? "nil")")
             print("✅ authViewModel.loginState is now: \(authViewModel.loginState)")
             
+            // Clear navigation stack and navigate to LoginView
+            pathManager.popToRoot()
+            pathManager.push(Routes.loginView)
+            
             // Post notification as additional backup
             NotificationCenter.default.post(name: NSNotification.Name("UserDidSignOut"), object: nil)
             print("✅ Notification posted")
@@ -705,6 +720,10 @@ struct SettingsView: View {
                     authViewModel.loginState = .notRunning
                     
                     print("✅ Account deletion completed")
+                    
+                    // Clear navigation stack and navigate to LoginView
+                    pathManager.popToRoot()
+                    pathManager.push(Routes.loginView)
                     
                     // Post notification
                     NotificationCenter.default.post(name: NSNotification.Name("UserDidSignOut"), object: nil)

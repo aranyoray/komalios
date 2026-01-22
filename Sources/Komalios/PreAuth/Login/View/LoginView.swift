@@ -11,17 +11,13 @@ struct LoginView: View {
     
     @ObservedObject var viewModel: AuthViewModel
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var pathManager: PathManager
     @State private var showOnboarding = false
     
     var body: some View {
-        // If user is authenticated, go to RootView
-        //        if viewModel.user != nil {
-        if appState.hasCompletedOnboarding {
-            RootView()
-                .environmentObject(appState)
-        }
-        else {
-            switch viewModel.loginState {
+        // Navigation is handled by ContentView based on auth state
+        // This view just shows the login UI
+        switch viewModel.loginState {
             case .notRunning:
                 ZStack {
                     GradientBackground()
@@ -77,16 +73,28 @@ struct LoginView: View {
                     }
                 }
             case .loading:
-                ProgressView()
+                ZStack {
+                    GradientBackground()
+                    ProgressView()
+                        .scaleEffect(1.5)
+                }
             case .success:
-                if appState.hasCompletedOnboarding {
-                    RootView()
-                        .environmentObject(appState)
-                } else {
-                    OnboardingView {
-                        appState.savePreferences()
+                // Navigation will be handled by ContentView's onChange handlers
+                // Show a loading state while navigation happens
+                ZStack {
+                    GradientBackground()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                        Text("Signing you in...")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(KomalColors.textSecondary)
                     }
-                    .environmentObject(appState)
+                }
+                .onAppear {
+                    // Navigation will be triggered by ContentView's onChange(of: authViewModel.user)
+                    // If onboarding is needed, ContentView will navigate to onboardingView
+                    // Otherwise, it will navigate to rootView
                 }
                 
             case .failure(let string):
@@ -111,7 +119,7 @@ struct LoginView: View {
             }
         }
     }
-}
+
 
 #Preview {
     LoginView(viewModel: AuthViewModel())

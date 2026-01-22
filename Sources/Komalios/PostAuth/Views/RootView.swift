@@ -18,7 +18,7 @@ struct RootView: View {
                 case .reflect:
                     ReflectionTimeView()
                 case .settings:
-                    SettingsView()
+                    SettingsView(selectedTab: $selectedTab)
                         .environmentObject(authViewModel)
                 }
             }

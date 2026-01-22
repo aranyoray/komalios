@@ -13,6 +13,8 @@ import WebKit
 struct SimpleWebView: UIViewRepresentable {
     let url: URL
     @Binding var loading: Bool
+    var contentFilterPreferences: ContentFilterPreferences
+    var parentSettings: ParentSettings
     var onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?  // Callback for intervention
     
     func makeUIView(context: Context) -> WKWebView {
@@ -48,7 +50,12 @@ struct SimpleWebView: UIViewRepresentable {
     }
     
     func makeCoordinator() -> Coordinator {
-        Coordinator(loading: $loading, onInappropriateContent: onInappropriateContent)
+        Coordinator(
+            loading: $loading,
+            contentFilterPreferences: contentFilterPreferences,
+            parentSettings: parentSettings,
+            onInappropriateContent: onInappropriateContent
+        )
     }
     
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
@@ -61,14 +68,19 @@ struct SimpleWebView: UIViewRepresentable {
         private let imageFilterService = ImageFilterService.shared
         var onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?
         
-        // Get parent settings from shared app state
-        private var parentSettings: ParentSettings {
-            // Use sample settings as fallback
-            return ParentSettings.sample
-        }
+        // Store preferences and settings
+        private var contentFilterPreferences: ContentFilterPreferences
+        private var parentSettings: ParentSettings
         
-        init(loading: Binding<Bool>, onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?) {
+        init(
+            loading: Binding<Bool>,
+            contentFilterPreferences: ContentFilterPreferences,
+            parentSettings: ParentSettings,
+            onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?
+        ) {
             _loading = loading
+            self.contentFilterPreferences = contentFilterPreferences
+            self.parentSettings = parentSettings
             self.onInappropriateContent = onInappropriateContent
         }
         
@@ -172,7 +184,8 @@ struct SimpleWebView: UIViewRepresentable {
                   let pageUrlString = data["pageUrl"] as? String,
                   URL(string: pageUrlString) != nil else { return }
             
-            let preferences = ContentFilterPreferences()  // Use default or get from app state
+            // Use actual content filter preferences from app state
+            let preferences = contentFilterPreferences
             
             Task {
                 for imageData in images {

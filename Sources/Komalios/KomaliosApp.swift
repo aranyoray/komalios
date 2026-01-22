@@ -6,6 +6,7 @@ import FirebaseAuth
 struct KomaliosApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var pathManager = PathManager()
     @UIApplicationDelegateAdaptor(AppDelegate.self)
     var appDelegate
     
@@ -14,6 +15,7 @@ struct KomaliosApp: App {
             ContentView()
                 .environmentObject(appState)
                 .environmentObject(authViewModel)
+                .environmentObject(pathManager)
                 .preferredColorScheme(.light)
         }
     }
@@ -22,32 +24,76 @@ struct KomaliosApp: App {
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var pathManager: PathManager
     
     var body: some View {
-        Group {
-            if authViewModel.user != nil && appState.hasCompletedOnboarding {
-                RootView()
-                    .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserDidSignOut"))) { _ in
-                        // Backup: Force update authViewModel state if notification is received
-                        print("📢 Received UserDidSignOut notification")
-                        Task { @MainActor in
-                            authViewModel.user = nil
-                            authViewModel.loginState = .notRunning
-                            print("✅ Updated authViewModel from notification")
-                        }
-                    }
-            } else {
-                LoginView(viewModel: authViewModel)
-            }
+        NavigationStack(path: $pathManager.path) {
+            // Start with SplashScreen - it will navigate after 3 seconds
+            SplashScreenView()
+                .navigationDestination(for: Routes.self) { route in
+                    destinationView(for: route)
+                }
         }
         .onChange(of: authViewModel.user) { oldUser, newUser in
-            // This will trigger when user becomes nil
+            // Handle user state changes
             if newUser == nil {
-                print("✅ User logged out, should navigate to LoginView")
+                print("✅ User logged out, navigating to LoginView")
+                pathManager.popToRoot()
+                pathManager.push(Routes.loginView)
+            } else if newUser != nil && appState.hasCompletedOnboarding {
+                // User logged in and completed onboarding
+                pathManager.popToRoot()
+                pathManager.push(Routes.rootView)
+            } else if newUser != nil && !appState.hasCompletedOnboarding {
+                // User logged in but needs onboarding
+                pathManager.popToRoot()
+                pathManager.push(Routes.onboardingView)
+            }
+        }
+        .onChange(of: appState.hasCompletedOnboarding) { oldValue, newValue in
+            // Handle onboarding completion
+            if newValue && authViewModel.user != nil {
+                pathManager.popToRoot()
+                pathManager.push(Routes.rootView)
             }
         }
         .onAppear {
             print("📱 ContentView appeared - user: \(authViewModel.user?.uid ?? "nil"), hasCompletedOnboarding: \(appState.hasCompletedOnboarding)")
+            // Navigation is handled by SplashScreenView after 3 seconds
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserDidSignOut"))) { _ in
+            // Backup: Force update authViewModel state if notification is received
+            print("📢 Received UserDidSignOut notification")
+            Task { @MainActor in
+                authViewModel.user = nil
+                authViewModel.loginState = .notRunning
+                pathManager.popToRoot()
+                pathManager.push(Routes.loginView)
+                print("✅ Updated authViewModel from notification")
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func destinationView(for route: Routes) -> some View {
+        switch route {
+        case .loginView:
+            LoginView(viewModel: authViewModel)
+                .navigationBarBackButtonHidden(true)
+        case .rootView:
+            RootView()
+                .navigationBarBackButtonHidden(true)
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserDidSignOut"))) { _ in
+                    pathManager.popToRoot()
+                    pathManager.push(Routes.loginView)
+                }
+        case .onboardingView:
+            OnboardingView {
+                appState.savePreferences()
+            }
+            .navigationBarBackButtonHidden(true)
+        case .settingView:
+            SettingsView(selectedTab: nil)
         }
     }
 }

@@ -26,6 +26,7 @@ enum ScreenTimeGoal: String, CaseIterable {
 
 struct OnboardingView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var pathManager: PathManager
     @State private var currentPage = 0
     @State private var surveyData = ChildSurveyData()
     @State private var preferences: ContentFilterPreferences = ContentFilterPreferences()
@@ -211,7 +212,8 @@ struct OnboardingView: View {
                 canGoBack: true,
                 canGoNext: !surveyData.name.trimmingCharacters(in: .whitespaces).isEmpty,
                 onBack: { withAnimation { currentPage = 0 } },
-                onNext: { 
+                onNext: {
+                    UIApplication.shared.hideKeyboard()
                     preferences = ContentFilterPreferences.defaults(for: surveyData.ageGroup)
                     withAnimation { currentPage = 2 } 
                 }
@@ -660,7 +662,15 @@ struct OnboardingView: View {
                     // Apply concerns to filter settings
                     applyParentConcernsToFilters()
                     
+                    // Save preferences
+                    appState.savePreferences()
+                    
+                    // Call the completion handler
                     onComplete()
+                    
+                    // Navigate to RootView using PathManager
+                    pathManager.popToRoot()
+                    pathManager.push(Routes.rootView)
                 }) {
                     Text("Start Using Komal")
                         .font(.system(size: 17, weight: .semibold, design: .rounded))

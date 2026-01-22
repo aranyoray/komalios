@@ -50,27 +50,47 @@ final class ImageFilterService: ObservableObject {
             guard let self = self else { return }
             
             // Try to load the NSFW detection model
-            // Model should be named "NSFWDetector" and added to the Xcode project
-            if let modelURL = Bundle.main.url(forResource: "NSFWDetector", withExtension: "mlmodelc") {
-                do {
-                    let config = MLModelConfiguration()
-                    config.computeUnits = .cpuAndNeuralEngine
-                    
-                    let mlModel = try MLModel(contentsOf: modelURL, configuration: config)
-                    self.visionModel = try VNCoreMLModel(for: mlModel)
-                    
-                    DispatchQueue.main.async {
-                        self.isModelLoaded = true
-                        print("🛡️ ImageFilterService: CoreML model loaded successfully")
-                    }
-                } catch {
-                    print("🛡️ ImageFilterService: Failed to load CoreML model: \(error)")
-                    DispatchQueue.main.async {
-                        self.isModelLoaded = false
-                    }
+            // First try compiled model (.mlmodelc), then try source model (.mlmodel)
+            var modelURL: URL?
+            
+            // Try compiled model first (faster) - check root bundle
+            if let compiledURL = Bundle.main.url(forResource: "NSFW", withExtension: "mlmodelc") {
+                modelURL = compiledURL
+            }
+            // Try compiled model in MLModels subdirectory
+            else if let compiledURL = Bundle.main.url(forResource: "NSFW", withExtension: "mlmodelc", subdirectory: "MLModels") {
+                modelURL = compiledURL
+            }
+            // Fallback to source model in root (will be compiled on first use)
+            else if let sourceURL = Bundle.main.url(forResource: "NSFW", withExtension: "mlmodel") {
+                modelURL = sourceURL
+            }
+            // Fallback to source model in MLModels subdirectory
+            else if let sourceURL = Bundle.main.url(forResource: "NSFW", withExtension: "mlmodel", subdirectory: "MLModels") {
+                modelURL = sourceURL
+            }
+            
+            guard let url = modelURL else {
+                print("🛡️ ImageFilterService: NSFW.mlmodel not found in bundle, using heuristic filtering")
+                DispatchQueue.main.async {
+                    self.isModelLoaded = false
                 }
-            } else {
-                print("🛡️ ImageFilterService: CoreML model not found, using heuristic filtering")
+                return
+            }
+            
+            do {
+                let config = MLModelConfiguration()
+                config.computeUnits = .cpuAndNeuralEngine
+                
+                let mlModel = try MLModel(contentsOf: url, configuration: config)
+                self.visionModel = try VNCoreMLModel(for: mlModel)
+                
+                DispatchQueue.main.async {
+                    self.isModelLoaded = true
+                    print("🛡️ ImageFilterService: NSFW CoreML model loaded successfully from \(url.lastPathComponent)")
+                }
+            } catch {
+                print("🛡️ ImageFilterService: Failed to load NSFW CoreML model: \(error)")
                 DispatchQueue.main.async {
                     self.isModelLoaded = false
                 }
@@ -184,41 +204,49 @@ final class ImageFilterService: ObservableObject {
                     return
                 }
                 
-                guard let results = request.results as? [VNClassificationObservation],
-                      let topResult = results.first else {
+                // NSFW models typically output classification observations
+                // Try to get classification results first
+                if let classificationResults = request.results as? [VNClassificationObservation],
+                   let topResult = classificationResults.first {
+                    // Handle classification-based output
+                    let nsfwScore = self.extractNSFWScore(from: topResult)
+                    let category = self.determineCategory(from: nsfwScore)
+                    let confidence = Float(nsfwScore)
+                    let shouldFilter = self.shouldFilter(category: category, preferences: preferences) && confidence >= self.filterConfidenceThreshold
+                    
+                    let action: ImageFilterAction = shouldFilter ? .replaced : .allowed
+                    
+                    if shouldFilter {
+                        DispatchQueue.main.async {
+                            self.totalImagesFiltered += 1
+                        }
+                        print("🛡️ NSFW detected: \(category.displayName) (confidence: \(Int(confidence * 100))%)")
+                    }
+                    
                     continuation.resume(returning: ImageAnalysisResult(
                         imageURL: url,
-                        category: .safe,
-                        confidence: 1.0,
-                        shouldFilter: false,
-                        action: .allowed
+                        category: category,
+                        confidence: confidence,
+                        shouldFilter: shouldFilter,
+                        action: action
                     ))
                     return
                 }
                 
-                // Map model output to our categories
-                let category = self.mapModelOutput(topResult.identifier)
-                let confidence = topResult.confidence
-                let shouldFilter = self.shouldFilter(category: category, preferences: preferences) && confidence >= self.filterConfidenceThreshold
-                
-                let action: ImageFilterAction = shouldFilter ? .replaced : .allowed
-                
-                if shouldFilter {
-                    DispatchQueue.main.async {
-                        self.totalImagesFiltered += 1
-                    }
-                }
-                
+                // Fallback: If no classification results, assume safe
+                // This handles models that might output different observation types
+                print("🛡️ NSFW model returned unexpected results, defaulting to safe")
                 continuation.resume(returning: ImageAnalysisResult(
                     imageURL: url,
-                    category: category,
-                    confidence: confidence,
-                    shouldFilter: shouldFilter,
-                    action: action
+                    category: .safe,
+                    confidence: 0.0,
+                    shouldFilter: false,
+                    action: .allowed
                 ))
             }
             
-            request.imageCropAndScaleOption = .centerCrop
+            // Configure request for optimal NSFW detection
+            request.imageCropAndScaleOption = .scaleFill  // Better for NSFW detection
             
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
             
@@ -236,6 +264,62 @@ final class ImageFilterService: ObservableObject {
                     ))
                 }
             }
+        }
+    }
+    
+    /// Extract NSFW probability score from classification observation
+    private func extractNSFWScore(from observation: VNClassificationObservation) -> Double {
+        let identifier = observation.identifier.lowercased()
+        let confidence = Double(observation.confidence)
+        
+        // Check if the identifier indicates NSFW/explicit content
+        if identifier.contains("nsfw") || identifier.contains("explicit") || 
+           identifier.contains("porn") || identifier.contains("adult") ||
+           identifier.contains("nude") || identifier.contains("naked") {
+            // This is an NSFW classification, return the confidence as the score
+            return confidence
+        }
+        
+        // Check if the identifier indicates safe content
+        if identifier.contains("safe") || identifier.contains("sfw") || 
+           identifier.contains("neutral") || identifier.contains("normal") {
+            // This is a safe classification, return inverse confidence
+            return 1.0 - confidence
+        }
+        
+        // If identifier is a probability-like value (e.g., "0.85" or "85%")
+        if let numericValue = Double(identifier) {
+            // If it's between 0 and 1, use it directly
+            if numericValue >= 0.0 && numericValue <= 1.0 {
+                return numericValue
+            }
+            // If it's a percentage (0-100), convert to 0-1
+            if numericValue >= 0.0 && numericValue <= 100.0 {
+                return numericValue / 100.0
+            }
+        }
+        
+        // Default: use confidence as NSFW score
+        // Higher confidence in any classification might indicate NSFW
+        return confidence
+    }
+    
+    /// Determine category based on NSFW score
+    private func determineCategory(from nsfwScore: Double) -> ImageContentCategory {
+        // NSFW score ranges:
+        // 0.0 - 0.3: Safe
+        // 0.3 - 0.6: Suggestive
+        // 0.6 - 0.8: Explicit (moderate)
+        // 0.8 - 1.0: Explicit (high)
+        
+        if nsfwScore >= 0.8 {
+            return .explicit
+        } else if nsfwScore >= 0.6 {
+            return .explicit  // Still explicit, just lower confidence
+        } else if nsfwScore >= 0.3 {
+            return .suggestive
+        } else {
+            return .safe
         }
     }
     
@@ -337,6 +421,8 @@ final class ImageFilterService: ObservableObject {
         }
     }
     
+    /// Legacy method - kept for backward compatibility
+    /// Now uses extractNSFWScore and determineCategory instead
     private func mapModelOutput(_ identifier: String) -> ImageContentCategory {
         // Map common NSFW model output labels to our categories
         let lowercased = identifier.lowercased()

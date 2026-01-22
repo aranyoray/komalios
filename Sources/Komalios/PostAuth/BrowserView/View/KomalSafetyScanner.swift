@@ -118,6 +118,8 @@ private struct KomalSafetyScannerContentView: View {
                             get: { viewModel.loading },
                             set: { viewModel.updateLoading($0) }
                         ),
+                        contentFilterPreferences: appState.contentFilterPreferences,
+                        parentSettings: appState.parentSettings,
                         onInappropriateContent: { trigger, blockedURL in
                             // Handle in-page navigation to inappropriate content
                             viewModel.interventionTrigger = trigger

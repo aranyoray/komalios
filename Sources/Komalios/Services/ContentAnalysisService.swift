@@ -77,7 +77,7 @@ final class ContentAnalysisService {
         let nlpResult = await analyzeNLP(input: input)
         
         // Step 4: On-device Vision stage
-        let visionResult = await analyzeVision(input: input)
+        let visionResult = await analyzeVision(input: input, filterPreferences: filterPreferences)
         
         // Step 5: On-device Audio stage
         let audioResult = await analyzeAudio(input: input)
@@ -601,7 +601,7 @@ final class ContentAnalysisService {
     
     // MARK: - Step 4: Vision Analysis
     
-    private func analyzeVision(input: ContentAnalysisInput) async -> VisionResult {
+    private func analyzeVision(input: ContentAnalysisInput, filterPreferences: ContentFilterPreferences) async -> VisionResult {
         guard let media = input.media, !media.images.isEmpty else {
             return VisionResult(subcategories: [], confidence: 0.0, used: false)
         }
@@ -609,46 +609,70 @@ final class ContentAnalysisService {
         var detectedSubcategories: [Subcategory] = []
         var maxConfidence: Double = 0.0
         
-        // Analyze each image
+        // Use ImageFilterService for NSFW detection
+        let imageFilterService = ImageFilterService.shared
+        
+        // Analyze each image using NSFW detection
         for imageInfo in media.images {
             if let urlString = imageInfo.url,
                let imageURL = URL(string: urlString) {
                 
-                // For now, analyze based on URL patterns and metadata
-                // In a full implementation, you would download the image and analyze it
-                let lowercased = urlString.lowercased()
-                
-                // Check URL for explicit indicators
-                if lowercased.contains("nsfw") || lowercased.contains("adult") || lowercased.contains("explicit") {
-                    detectedSubcategories.append(Subcategory(
-                        name: "Potentially explicit image",
-                        source: .vision,
-                        probability: 0.7,
-                        majorCategory: MajorCategoryType.explicitBodyContent.rawValue
-                    ))
-                    maxConfidence = max(maxConfidence, 0.7)
+                // Skip data URLs and very small images (likely icons)
+                if urlString.hasPrefix("data:") {
+                    continue
                 }
                 
-                // Check image type for risk indicators
+                // Skip ads and sponsor logos (lower priority for NSFW detection)
                 if imageInfo.type == "ad" || imageInfo.type == "sponsor_logo" {
-                    // Ads and sponsor logos are generally lower risk, but we note them
+                    continue
                 }
                 
-                // In a production implementation, you would:
-                // 1. Download the image from the URL
-                // 2. Convert to UIImage
-                // 3. Use Vision framework to analyze
-                // Example:
-                /*
-                if let imageData = try? Data(contentsOf: imageURL),
-                   let uiImage = UIImage(data: imageData) {
-                    let analysisResult = await analyzeImageWithVision(image: uiImage)
-                    if !analysisResult.subcategories.isEmpty {
-                        detectedSubcategories.append(contentsOf: analysisResult.subcategories)
-                        maxConfidence = max(maxConfidence, analysisResult.confidence)
+                // Use ImageFilterService to analyze the image with NSFW model
+                let analysisResult = await imageFilterService.analyzeImage(
+                    url: imageURL,
+                    preferences: filterPreferences
+                )
+                
+                // Map ImageContentCategory to Subcategory
+                if analysisResult.shouldFilter || analysisResult.confidence > 0.3 {
+                    let subcategoryName: String
+                    let majorCategory: String
+                    
+                    switch analysisResult.category {
+                    case .explicit:
+                        subcategoryName = "Explicit image content detected"
+                        majorCategory = MajorCategoryType.explicitBodyContent.rawValue
+                    case .suggestive:
+                        subcategoryName = "Suggestive image content detected"
+                        majorCategory = MajorCategoryType.explicitBodyContent.rawValue
+                    case .violence:
+                        subcategoryName = "Violent image content detected"
+                        majorCategory = MajorCategoryType.violence.rawValue
+                    case .gore:
+                        subcategoryName = "Graphic/gore image content detected"
+                        majorCategory = MajorCategoryType.violence.rawValue
+                    case .drugs:
+                        subcategoryName = "Drug-related image content detected"
+                        majorCategory = MajorCategoryType.substances.rawValue
+                    case .weapons:
+                        subcategoryName = "Weapon-related image content detected"
+                        majorCategory = MajorCategoryType.violence.rawValue
+                    default:
+                        // Skip safe/neutral images
+                        continue
                     }
+                    
+                    let probability = Double(analysisResult.confidence)
+                    detectedSubcategories.append(Subcategory(
+                        name: subcategoryName,
+                        source: .vision,
+                        probability: probability,
+                        majorCategory: majorCategory
+                    ))
+                    maxConfidence = max(maxConfidence, probability)
+                    
+                    print("🛡️ Vision analysis: \(subcategoryName) (confidence: \(Int(probability * 100))%)")
                 }
-                */
             }
         }
         
