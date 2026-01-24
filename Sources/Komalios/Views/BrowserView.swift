@@ -2,6 +2,17 @@
 import SwiftUI
 import WebKit
 
+struct BrowserTab: Identifiable, Equatable {
+    let id = UUID()
+    var url: URL?
+    var title: String = "New Tab"
+}
+
+protocol BrowserNavigationControlling: AnyObject {
+    func goBack()
+    func goForward()
+}
+
 final class BrowserState: ObservableObject {
     @Published var urlString = "https://www.khanacademy.org"
     @Published var currentURL: URL?
@@ -12,7 +23,17 @@ final class BrowserState: ObservableObject {
     @Published var loading = false
     @Published var tabHistory: [URL] = []
     @Published var showPastTabs = false
-    
+    @Published var tabs: [BrowserTab] = [BrowserTab(url: nil, title: "Komalios")]
+    @Published var selectedTabID: BrowserTab.ID?
+    @Published var canGoBack = false
+    @Published var canGoForward = false
+    weak var navigationController: BrowserNavigationControlling?
+
+    var selectedTabIndex: Int? {
+        guard let selectedTabID else { return nil }
+        return tabs.firstIndex(where: { $0.id == selectedTabID })
+    }
+
     func addToHistory(_ url: URL) {
         if !tabHistory.contains(url) {
             tabHistory.insert(url, at: 0)
@@ -20,6 +41,63 @@ final class BrowserState: ObservableObject {
                 tabHistory.removeLast()
             }
         }
+    }
+
+    func ensureSelectedTab() {
+        if selectedTabID == nil {
+            selectedTabID = tabs.first?.id
+        }
+    }
+
+    func updateSelectedTabURL(_ url: URL?) {
+        guard let index = selectedTabIndex else { return }
+        tabs[index].url = url
+    }
+
+    func updateSelectedTabTitle(_ title: String?) {
+        guard let index = selectedTabIndex else { return }
+        tabs[index].title = title?.isEmpty == false ? title! : hostDisplay(for: tabs[index].url)
+    }
+
+    func openNewTab(with url: URL?) {
+        let tab = BrowserTab(url: url, title: hostDisplay(for: url))
+        tabs.append(tab)
+        selectedTabID = tab.id
+        currentURL = url
+        if let url {
+            urlString = url.absoluteString
+        }
+    }
+
+    func closeSelectedTab() {
+        guard tabs.count > 1, let index = selectedTabIndex else { return }
+        tabs.remove(at: index)
+        let newIndex = min(index, tabs.count - 1)
+        let newTab = tabs[newIndex]
+        selectedTabID = newTab.id
+        currentURL = newTab.url
+        urlString = newTab.url?.absoluteString ?? urlString
+    }
+
+    func selectTab(id: BrowserTab.ID) {
+        guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
+        selectedTabID = id
+        currentURL = tabs[index].url
+        if let url = tabs[index].url {
+            urlString = url.absoluteString
+        }
+    }
+
+    func goBack() {
+        navigationController?.goBack()
+    }
+
+    func goForward() {
+        navigationController?.goForward()
+    }
+
+    private func hostDisplay(for url: URL?) -> String {
+        url?.host ?? "New Tab"
     }
 }
 
@@ -33,11 +111,21 @@ struct BrowserView: View {
             GradientBackground()
 
             VStack(spacing: 8) {
-                AddressBar(urlString: $browserState.urlString) {
-                    browserState.currentURL = normalizedURL(from: browserState.urlString)
+                BrowserTabStrip(browserState: browserState) {
+                    browserState.openNewTab(with: normalizedURL(from: browserState.urlString))
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
+
+                BrowserNavigationBar(browserState: browserState)
+                    .padding(.horizontal, 12)
+
+                AddressBar(urlString: $browserState.urlString) {
+                    let url = normalizedURL(from: browserState.urlString)
+                    browserState.currentURL = url
+                    browserState.updateSelectedTabURL(url)
+                }
+                .padding(.horizontal, 12)
 
                 ZStack {
                     WebView(
@@ -58,7 +146,9 @@ struct BrowserView: View {
         .onAppear {
             // Auto-load default URL on first appearance
             if !hasLoadedInitial {
+                browserState.ensureSelectedTab()
                 browserState.currentURL = normalizedURL(from: browserState.urlString)
+                browserState.updateSelectedTabURL(browserState.currentURL)
                 hasLoadedInitial = true
             }
         }
@@ -92,12 +182,7 @@ struct AddressBar: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(KomalColors.pearlAqua)
 
-            TextField("Search or enter address", text: $urlString)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .textInputAutocapitalization(.never)
-                .keyboardType(.URL)
-                .foregroundColor(KomalColors.textPrimary)
-                .onSubmit(onSubmit)
+            AddressTextField(text: $urlString, onSubmit: onSubmit)
 
             Button(action: onSubmit) {
                 Image(systemName: "arrow.right.circle.fill")
@@ -115,6 +200,146 @@ struct AddressBar: View {
     }
 }
 
+struct AddressTextField: UIViewRepresentable {
+    @Binding var text: String
+    var onSubmit: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text, onSubmit: onSubmit)
+    }
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField(frame: .zero)
+        textField.delegate = context.coordinator
+        textField.returnKeyType = .go
+        textField.autocapitalizationType = .none
+        textField.keyboardType = .URL
+        textField.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        textField.textColor = UIColor(KomalColors.textPrimary)
+        textField.placeholder = "Search or enter address"
+        textField.addTarget(context.coordinator, action: #selector(Coordinator.didBeginEditing(_:)), for: .editingDidBegin)
+        return textField
+    }
+
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        @Binding private var text: String
+        private let onSubmit: () -> Void
+        private var didSelectOnFocus = false
+
+        init(text: Binding<String>, onSubmit: @escaping () -> Void) {
+            self._text = text
+            self.onSubmit = onSubmit
+        }
+
+        @objc func didBeginEditing(_ textField: UITextField) {
+            guard !didSelectOnFocus else { return }
+            didSelectOnFocus = true
+            DispatchQueue.main.async {
+                textField.selectAll(nil)
+                self.didSelectOnFocus = false
+            }
+        }
+
+        func textFieldDidChangeSelection(_ textField: UITextField) {
+            text = textField.text ?? ""
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            textField.resignFirstResponder()
+            onSubmit()
+            return true
+        }
+    }
+}
+
+struct BrowserNavigationBar: View {
+    @ObservedObject var browserState: BrowserState
+
+    var body: some View {
+        HStack(spacing: 16) {
+            navButton(systemName: "chevron.left", enabled: browserState.canGoBack) {
+                browserState.goBack()
+            }
+
+            navButton(systemName: "chevron.right", enabled: browserState.canGoForward) {
+                browserState.goForward()
+            }
+
+            navButton(systemName: "xmark", enabled: browserState.tabs.count > 1) {
+                browserState.closeSelectedTab()
+            }
+
+            Spacer()
+
+            Text("\(browserState.tabs.count) Tabs")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundColor(KomalColors.textSecondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(KomalColors.white.opacity(0.8)))
+        }
+    }
+
+    private func navButton(systemName: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(enabled ? KomalColors.bubblegumPink : KomalColors.textSecondary.opacity(0.5))
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(KomalColors.white.opacity(enabled ? 0.95 : 0.6)))
+        }
+        .disabled(!enabled)
+        .shadow(color: .black.opacity(enabled ? 0.08 : 0), radius: 6, x: 0, y: 2)
+    }
+}
+
+struct BrowserTabStrip: View {
+    @ObservedObject var browserState: BrowserState
+    var onAddTab: () -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(browserState.tabs) { tab in
+                    Button {
+                        browserState.selectTab(id: tab.id)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "globe")
+                                .font(.system(size: 12, weight: .bold))
+                            Text(tab.title)
+                                .lineLimit(1)
+                        }
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .foregroundColor(browserState.selectedTabID == tab.id ? KomalColors.bubblegumPink : KomalColors.textSecondary)
+                        .background(
+                            Capsule()
+                                .fill(browserState.selectedTabID == tab.id ? KomalColors.white : KomalColors.white.opacity(0.7))
+                        )
+                    }
+                }
+
+                Button(action: onAddTab) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(KomalColors.pearlAqua)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(KomalColors.white.opacity(0.85)))
+                }
+            }
+        }
+    }
+}
+
 struct WebView: UIViewRepresentable {
     let url: URL?
     let browserState: BrowserState
@@ -128,6 +353,7 @@ struct WebView: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsLinkPreview = false
+        context.coordinator.attach(webView: webView)
         if let url {
             webView.load(URLRequest(url: url))
         }
@@ -145,38 +371,46 @@ struct WebView: UIViewRepresentable {
         Coordinator(browserState: browserState, appState: appState)
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, BrowserNavigationControlling {
         private let blocklist = BlocklistService.shared
         private let browserState: BrowserState
         private let appState: AppState
+        private weak var webView: WKWebView?
 
         init(browserState: BrowserState, appState: AppState) {
             self.browserState = browserState
             self.appState = appState
         }
 
+        func attach(webView: WKWebView) {
+            self.webView = webView
+            browserState.navigationController = self
+            updateNavigationAvailability(for: webView)
+        }
+
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
             browserState.loading = true
+            updateNavigationAvailability(for: webView)
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             browserState.loading = false
             browserState.currentURL = webView.url
+            browserState.updateSelectedTabURL(webView.url)
+            browserState.updateSelectedTabTitle(webView.title)
+            if let url = webView.url {
+                browserState.urlString = url.absoluteString
+            }
             browserState.showGate = false
             if let url = webView.url {
                 browserState.addToHistory(url)
             }
+            updateNavigationAvailability(for: webView)
         }
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             guard let url = navigationAction.request.url else {
                 decisionHandler(.allow)
-                return
-            }
-
-            if let rewritten = rewriteForSafeSearch(url: url), rewritten != url {
-                webView.load(URLRequest(url: rewritten))
-                decisionHandler(.cancel)
                 return
             }
 
@@ -186,8 +420,9 @@ struct WebView: UIViewRepresentable {
                 return
             }
 
-            if url.host?.contains("youtube.com") == true || url.host?.contains("youtu.be") == true {
-                decisionHandler(.allow)
+            if let rewritten = rewriteForSafeSearch(url: url), rewritten != url {
+                webView.load(URLRequest(url: rewritten))
+                decisionHandler(.cancel)
                 return
             }
 
@@ -197,7 +432,7 @@ struct WebView: UIViewRepresentable {
                 return
             }
 
-            if appState.parentSettings.blockedHosts.contains(where: { url.host?.contains($0) == true }) {
+            if appState.parentSettings.isHostBlocked(url.host) {
                 presentBlock(category: .platformRisks, reason: "Blocked by parent host rule.")
                 decisionHandler(.cancel)
                 return
@@ -210,6 +445,25 @@ struct WebView: UIViewRepresentable {
             }
 
             decisionHandler(.allow)
+        }
+
+        private func updateNavigationAvailability(for webView: WKWebView) {
+            browserState.canGoBack = webView.canGoBack
+            browserState.canGoForward = webView.canGoForward
+        }
+
+        func goBack() {
+            webView?.goBack()
+            if let webView {
+                updateNavigationAvailability(for: webView)
+            }
+        }
+
+        func goForward() {
+            webView?.goForward()
+            if let webView {
+                updateNavigationAvailability(for: webView)
+            }
         }
 
         private func presentBlock(category: ContentCategory, reason: String) {
@@ -235,7 +489,7 @@ struct WebView: UIViewRepresentable {
             }
 
             if host.contains("youtube.com") {
-                components.queryItems = upsertQueryItem(name: "safe", value: "active", items: components.queryItems)
+                components.queryItems = upsertQueryItem(name: "safeSearch", value: "strict", items: components.queryItems)
                 return components.url
             }
 

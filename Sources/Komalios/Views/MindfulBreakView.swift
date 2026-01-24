@@ -1,9 +1,16 @@
 #if canImport(SwiftUI)
 import SwiftUI
+#if canImport(Speech) && canImport(AVFoundation)
+import AVFoundation
+import Speech
+#endif
 
 struct MindfulBreakView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var timer = 10
+#if canImport(Speech) && canImport(AVFoundation)
+    @StateObject private var speechService = SpeechService.shared
+#endif
 
     var body: some View {
         ZStack {
@@ -49,6 +56,11 @@ struct MindfulBreakView: View {
             }
         }
         .onAppear(perform: startTimer)
+        .onAppear {
+#if canImport(Speech) && canImport(AVFoundation)
+            speechService.speak("Take a gentle pause. Notice your breath and the room around you.")
+#endif
+        }
     }
 
     private func startTimer() {

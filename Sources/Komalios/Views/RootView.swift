@@ -21,9 +21,9 @@ struct RootView: View {
             
             // Floating menu overlay
             FloatingMenuView(selectedTab: $selectedTab, onNewTab: {
-                // New tab action - open Google
-                browserState.urlString = "https://www.google.com"
-                browserState.currentURL = URL(string: "https://www.google.com")
+                let googleURL = URL(string: "https://www.google.com")
+                browserState.urlString = googleURL?.absoluteString ?? browserState.urlString
+                browserState.openNewTab(with: googleURL)
             }, onPastTabs: {
                 // Show past tabs
                 browserState.showPastTabs = true
@@ -36,17 +36,28 @@ struct RootView: View {
 struct BrowserViewWithState: View {
     @ObservedObject var browserState: BrowserState
     @EnvironmentObject private var appState: AppState
+    @State private var hasLoadedInitial = false
     
     var body: some View {
         ZStack {
             GradientBackground()
             
             VStack(spacing: 8) {
-                AddressBar(urlString: $browserState.urlString) {
-                    browserState.currentURL = normalizedURL(from: browserState.urlString)
+                BrowserTabStrip(browserState: browserState) {
+                    browserState.openNewTab(with: normalizedURL(from: browserState.urlString))
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
+
+                BrowserNavigationBar(browserState: browserState)
+                    .padding(.horizontal, 12)
+
+                AddressBar(urlString: $browserState.urlString) {
+                    let url = normalizedURL(from: browserState.urlString)
+                    browserState.currentURL = url
+                    browserState.updateSelectedTabURL(url)
+                }
+                .padding(.horizontal, 12)
                 
                 ZStack {
                     WebView(
@@ -74,6 +85,14 @@ struct BrowserViewWithState: View {
         .sheet(isPresented: $browserState.showPastTabs) {
             PastTabsView(browserState: browserState)
         }
+        .onAppear {
+            if !hasLoadedInitial {
+                browserState.ensureSelectedTab()
+                browserState.currentURL = normalizedURL(from: browserState.urlString)
+                browserState.updateSelectedTabURL(browserState.currentURL)
+                hasLoadedInitial = true
+            }
+        }
     }
     
     private func normalizedURL(from input: String) -> URL? {
@@ -84,5 +103,3 @@ struct BrowserViewWithState: View {
     }
 }
 #endif
-
-

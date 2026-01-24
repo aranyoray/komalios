@@ -1,9 +1,16 @@
 #if canImport(SwiftUI)
 import SwiftUI
+#if canImport(Speech) && canImport(AVFoundation)
+import AVFoundation
+import Speech
+#endif
 
 struct BlockedView: View {
     let category: ContentCategory
     let reason: String
+#if canImport(Speech) && canImport(AVFoundation)
+    @StateObject private var speechService = SpeechService.shared
+#endif
 
     var body: some View {
         ZStack {
@@ -53,6 +60,11 @@ struct BlockedView: View {
 
                 Spacer()
             }
+        }
+        .onAppear {
+#if canImport(Speech) && canImport(AVFoundation)
+            speechService.speak("This content is blocked because it includes \(category.label) content. \(reason)")
+#endif
         }
     }
 }

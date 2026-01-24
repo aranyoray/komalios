@@ -1,5 +1,9 @@
 #if canImport(SwiftUI)
 import SwiftUI
+#if canImport(Speech) && canImport(AVFoundation)
+import AVFoundation
+import Speech
+#endif
 
 struct GateView: View {
     @EnvironmentObject private var appState: AppState
@@ -7,6 +11,9 @@ struct GateView: View {
     let category: ContentCategory
     @State private var pin = ""
     @State private var showMindfulBreak = false
+#if canImport(Speech) && canImport(AVFoundation)
+    @StateObject private var speechService = SpeechService.shared
+#endif
 
     var body: some View {
         NavigationStack {
@@ -38,8 +45,31 @@ struct GateView: View {
                                     Spacer()
                                 }
 
-                                SecureField("Enter parent PIN", text: $pin)
-                                    .roundedTextFieldStyle()
+                                HStack(spacing: 8) {
+                                    SecureField("Enter parent PIN", text: $pin)
+                                        .roundedTextFieldStyle()
+
+#if canImport(Speech) && canImport(AVFoundation)
+                                    Button {
+                                        speechService.toggleListening()
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                                            if speechService.isListening {
+                                                speechService.stopListening()
+                                            }
+                                            let digits = speechService.transcript.filter(\.isNumber)
+                                            if !digits.isEmpty {
+                                                pin = digits
+                                            }
+                                        }
+                                    } label: {
+                                        Image(systemName: speechService.isListening ? "waveform" : "mic.fill")
+                                            .font(.system(size: 18, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .frame(width: 44, height: 44)
+                                            .background(Circle().fill(KomalColors.lavenderPurple))
+                                    }
+#endif
+                                }
 
                                 Button {
                                     if pin == appState.parentSettings.parentPin {
@@ -70,6 +100,11 @@ struct GateView: View {
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showMindfulBreak) {
                 MindfulBreakView()
+            }
+            .onAppear {
+#if canImport(Speech) && canImport(AVFoundation)
+                speechService.speak("This page touches on \(category.label). Let's pause and check in together.")
+#endif
             }
         }
     }

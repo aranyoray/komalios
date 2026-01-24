@@ -1,5 +1,9 @@
 #if canImport(SwiftUI)
 import SwiftUI
+#if canImport(Speech) && canImport(AVFoundation)
+import AVFoundation
+import Speech
+#endif
 
 // MARK: - Character Model
 
@@ -210,7 +214,11 @@ struct CharacterChatView: View {
     @State private var messages: [ChatMessage] = []
     @State private var inputText: String = ""
     @State private var isListening: Bool = false
+    @State private var freeTextMode = false
     @FocusState private var isInputFocused: Bool
+#if canImport(Speech) && canImport(AVFoundation)
+    @StateObject private var speechService = SpeechService.shared
+#endif
     
     var body: some View {
         VStack(spacing: 0) {
@@ -242,11 +250,15 @@ struct CharacterChatView: View {
         }
         .onAppear {
             // Add greeting message
-            messages.append(ChatMessage(
+            let greeting = ChatMessage(
                 id: UUID(),
                 text: character.greeting,
                 isFromUser: false
-            ))
+            )
+            messages.append(greeting)
+#if canImport(Speech) && canImport(AVFoundation)
+            speechService.speak(greeting.text)
+#endif
         }
     }
     
@@ -313,7 +325,7 @@ struct CharacterChatView: View {
             if isListening {
                 HStack(spacing: 8) {
                     BreathingCircle(size: 12, color: KomalColors.bubblegumPink)
-                    Text("Listening...")
+                    Text(freeTextMode ? "Listening for text…" : "Listening…")
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(KomalColors.bubblegumPink)
                 }
@@ -321,29 +333,38 @@ struct CharacterChatView: View {
             }
             
             HStack(spacing: 12) {
-                // Text input
-                HStack {
-                    TextField("Type a message...", text: $inputText)
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .focused($isInputFocused)
-                    
-                    if !inputText.isEmpty {
-                        Button(action: { inputText = "" }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(KomalColors.textSecondary)
+                if freeTextMode {
+                    // Text input (only when explicitly enabled)
+                    HStack {
+                        TextField("Type a message...", text: $inputText)
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .focused($isInputFocused)
+                        
+                        if !inputText.isEmpty {
+                            Button(action: { inputText = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        Capsule()
+                            .fill(Color.white)
+                            .overlay(
+                                Capsule()
+                                    .stroke(KomalColors.lavenderPurple.opacity(0.3), lineWidth: 1.5)
+                            )
+                    )
+                } else {
+                    Label("Hands-free mode", systemImage: "sparkles")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(Capsule().fill(.white.opacity(0.9)))
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(
-                    Capsule()
-                        .fill(Color.white)
-                        .overlay(
-                            Capsule()
-                                .stroke(KomalColors.lavenderPurple.opacity(0.3), lineWidth: 1.5)
-                        )
-                )
                 
                 // Mic button
                 Button(action: toggleListening) {
@@ -358,6 +379,22 @@ struct CharacterChatView: View {
                         .scaleEffect(isListening ? 1.1 : 1.0)
                         .animation(KomalAnimations.spring, value: isListening)
                 }
+
+                Button {
+                    withAnimation(KomalAnimations.spring) {
+                        freeTextMode.toggle()
+                        if !freeTextMode {
+                            isInputFocused = false
+                            inputText = ""
+                        }
+                    }
+                } label: {
+                    Image(systemName: freeTextMode ? "keyboard.chevron.compact.down" : "keyboard")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(KomalColors.textPrimary)
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(.white.opacity(0.9)))
+                }
                 
                 // Send button
                 Button(action: sendMessage) {
@@ -370,7 +407,7 @@ struct CharacterChatView: View {
                                 .fill(inputText.isEmpty ? KomalColors.pearlAqua.opacity(0.5) : KomalColors.bubblegumPink)
                         )
                 }
-                .disabled(inputText.isEmpty)
+                .disabled(!freeTextMode || inputText.isEmpty)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -400,6 +437,9 @@ struct CharacterChatView: View {
             withAnimation {
                 messages.append(responseMessage)
             }
+#if canImport(Speech) && canImport(AVFoundation)
+            speechService.speak(response)
+#endif
         }
     }
     
@@ -407,20 +447,29 @@ struct CharacterChatView: View {
         withAnimation(KomalAnimations.spring) {
             isListening.toggle()
         }
-        
-        // Demo: Auto-stop listening after 3 seconds and send a demo message
-        if isListening {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                if isListening {
-                    withAnimation {
-                        isListening = false
-                    }
-                    // Simulate voice input
-                    inputText = "Hello! I'm using my voice!"
-                    sendMessage()
+#if canImport(Speech) && canImport(AVFoundation)
+        speechService.toggleListening()
+        if !speechService.isListening {
+            commitVoiceTranscript()
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                if speechService.isListening {
+                    speechService.stopListening()
+                    isListening = false
+                    commitVoiceTranscript()
                 }
             }
         }
+#endif
+    }
+
+    private func commitVoiceTranscript() {
+#if canImport(Speech) && canImport(AVFoundation)
+        let transcript = speechService.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !transcript.isEmpty else { return }
+        inputText = transcript
+        sendMessage()
+#endif
     }
 }
 
