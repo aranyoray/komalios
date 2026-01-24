@@ -16,7 +16,7 @@ enum FilterAction: String, Codable, CaseIterable {
 }
 
 /// Content filtering preferences stored per profile
-struct ContentFilterPreferences: Codable {
+struct ContentFilterPreferences: Codable, Equatable {
 
     // MARK: - Violence & Disturbing Content
     var graphicViolence: FilterAction = .block
@@ -162,8 +162,8 @@ struct ContentFilterPreferences: Codable {
             prefs.selfOptimization = .gate
             
             prefs.speculativeFinance = .gate
-            prefs.getRichQuick = .block // Block/Gate -> Safe default Block
-            prefs.onlineFinancialAdvice = .block // Block/Gate -> Safe default Block
+            prefs.getRichQuick = .gate // Block/Gate -> Safe default Block
+            prefs.onlineFinancialAdvice = .gate // Block/Gate -> Safe default Block
             prefs.subscriptionPages = .gate
             
             prefs.shortFormVideos = .gate
@@ -199,9 +199,9 @@ struct ContentFilterPreferences: Codable {
             prefs.parasocialContent = .allow
             prefs.selfOptimization = .gate
             
-            prefs.speculativeFinance = .gate // Block/Gate -> Safe default Gate
+            prefs.speculativeFinance = .block // Block/Gate -> Safe default Gate
             prefs.getRichQuick = .gate // Gate/Allow -> Safe default Gate
-            prefs.onlineFinancialAdvice = .gate // Block/Gate -> Safe default Gate
+            prefs.onlineFinancialAdvice = .allow // Block/Gate -> Safe default Gate
             prefs.subscriptionPages = .allow
             
             prefs.shortFormVideos = .allow

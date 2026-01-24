@@ -12,7 +12,7 @@ enum AgeGroup: String, CaseIterable, Identifiable, Codable {
 
 enum AccountMode: String, CaseIterable, Identifiable, Codable {
     case child = "Child Account"
-    case guest = "Guest Mode"
+    case guest = "Parent Mode"
 
     var id: String { rawValue }
 }
@@ -48,6 +48,11 @@ enum ContentCategory: String, CaseIterable, Hashable {
         case .gaming: return "Gaming & Betting"
         case .unknown: return "Uncategorized"
         }
+    }
+    
+    /// Alias for label for API consistency
+    var displayName: String {
+        return label
     }
 
     init(label: String) {

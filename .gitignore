@@ -1,0 +1,54 @@
+# Xcode
+.DS_Store
+*.xcuserstate
+*.xcuserdata
+xcuserdata/
+*.xccheckout
+*.xcscmblueprint
+*.xcworkspace
+!*.xcworkspace/contents.xcworkspacedata
+DerivedData/
+build/
+.build/
+Build/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+Packages/
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# App-specific
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Misc
+*.moved-aside
+*.hmap
+*.ipa
+*.xcarchive
+
+# Local files
+*.local
+.env
+.env.*

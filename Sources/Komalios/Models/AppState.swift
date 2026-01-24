@@ -41,6 +41,11 @@ final class AppState: ObservableObject {
         if let modeData = try? encoder.encode(accountMode) {
             UserDefaults.standard.set(modeData, forKey: "komal.accountMode")
         }
+        
+        // Save parent settings (custom keywords, blocked sites, etc.)
+        if let parentData = try? encoder.encode(parentSettings) {
+            UserDefaults.standard.set(parentData, forKey: "komal.parentSettings")
+        }
     }
 
     /// Load state from UserDefaults
@@ -63,6 +68,12 @@ final class AppState: ObservableObject {
         if let modeData = UserDefaults.standard.data(forKey: "komal.accountMode"),
            let mode = try? decoder.decode(AccountMode.self, from: modeData) {
             accountMode = mode
+        }
+        
+        // Load parent settings
+        if let parentData = UserDefaults.standard.data(forKey: "komal.parentSettings"),
+           let settings = try? decoder.decode(ParentSettings.self, from: parentData) {
+            parentSettings = settings
         }
     }
 }

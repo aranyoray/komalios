@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		55C8711FCD2EBDED9ABE21CDB448AFCF /* FirestoreService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55C8711FDCF5AA5041D0CBFF /* FirestoreService.swift */; };
+		6B3BDF971CF675F2CED16D0FC97BC896 /* ScanNetworkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B3BDF9724FD82DABA1EADE0 /* ScanNetworkService.swift */; };
+		91CB05C37C0D29ECFEAB0DFFCA8232D3 /* KomalSafetyScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91CB05C3A4807C7785E182F1 /* KomalSafetyScannerViewModel.swift */; };
+		9A8A403BC83F19AEA62D45CCD379077D /* FilterPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A8A403B9FC8EFEACBFC8FBB /* FilterPreferencesView.swift */; };
 		A1000001201D0001 /* KomaliosApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0001 /* KomaliosApp.swift */; };
 		A1000001201D0002 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0002 /* RootView.swift */; };
 		A1000001201D0003 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0003 /* BrowserView.swift */; };
@@ -27,9 +31,72 @@
 		A1000001201D0012 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0012 /* OnboardingView.swift */; };
 		A1000001201D0013 /* ContentFilterPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0013 /* ContentFilterPreferences.swift */; };
 		A1000001201D0014 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A1000001101D0014 /* PrivacyInfo.xcprivacy */; };
+		A1000001201D0030 /* ReflectionTimeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001101D0030 /* ReflectionTimeView.swift */; };
+		AEAFDDDFFBC3AC5A4ED0ED5A124310F1 /* Components/SimpleWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEAFDDDFAEFB51FFB41CABA6 /* Components/SimpleWebView.swift */; };
+		AEBEE7ED6BFDA8CA3CF5C6FAD26ABABC /* ScanResponseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBEE7EDDCE1DD0EAB91CC36 /* ScanResponseModels.swift */; };
+		B241186D2F1D1A74001DC5AF /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = B241186C2F1D1A74001DC5AF /* FirebaseAuth */; };
+		B241186F2F1D1A74001DC5AF /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = B241186E2F1D1A74001DC5AF /* FirebaseCore */; };
+		B24118732F1D1A74001DC5AF /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = B24118722F1D1A74001DC5AF /* FirebaseFirestore */; };
+		B24118742F1D1ABC001DC5AF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118732F1D1AB7001DC5AF /* AppDelegate.swift */; };
+		B24118762F1D1B4A001DC5AF /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B24118752F1D1B4A001DC5AF /* GoogleService-Info.plist */; };
+		B24118792F1D1BC3001DC5AF /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = B24118782F1D1BC3001DC5AF /* GoogleSignIn */; };
+		B241187B2F1D1BC3001DC5AF /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = B241187A2F1D1BC3001DC5AF /* GoogleSignInSwift */; };
+		B24118812F1D1D7D001DC5AF /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118802F1D1D75001DC5AF /* GoogleAuthService.swift */; };
+		B24118832F1D1DCC001DC5AF /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118822F1D1DC3001DC5AF /* AuthViewModel.swift */; };
+		B24118862F1D1E2A001DC5AF /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118852F1D1E21001DC5AF /* LoginView.swift */; };
+		B24118882F1D20F9001DC5AF /* SocialSignInButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118872F1D20F9001DC5AF /* SocialSignInButton.swift */; };
+		B24118A12F1D3631001DC5AF /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118A02F1D362D001DC5AF /* Constants.swift */; };
+		B24118AC2F1D496F001DC5AF /* BrowserViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118AB2F1D4963001DC5AF /* BrowserViewModel.swift */; };
+		B24118AF2F1D4A2F001DC5AF /* ScanUrlModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118AE2F1D4A18001DC5AF /* ScanUrlModel.swift */; };
+		B24118B22F1D5797001DC5AF /* AppleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118B12F1D578F001DC5AF /* AppleSignInService.swift */; };
+		B24118B52F1D57D6001DC5AF /* AppleSignInViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118B42F1D57D6001DC5AF /* AppleSignInViewModel.swift */; };
+		B24118B82F1D5812001DC5AF /* AppleSignInResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118B72F1D580B001DC5AF /* AppleSignInResult.swift */; };
+		B24118BA2F1D5841001DC5AF /* Nonce+SHAHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118B92F1D5834001DC5AF /* Nonce+SHAHelper.swift */; };
+		B24118BD2F1E0E4E001DC5AF /* KomalSafetyScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118BC2F1E0E4E001DC5AF /* KomalSafetyScanner.swift */; };
+		B24118BF2F1E8CA3001DC5AF /* Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118BE2F1E8C9E001DC5AF /* Extension.swift */; };
+		B24118E72F1F99F5001DC5AF /* Models_Masterdoc-2.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = B24118E52F1F99F5001DC5AF /* Models_Masterdoc-2.xlsx */; };
+		B24118E82F1F99F5001DC5AF /* Agent.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = B24118E42F1F99F5001DC5AF /* Agent.xlsx */; };
+		B24118F72F1FB7D5001DC5AF /* mature_dataset.csv in Resources */ = {isa = PBXBuildFile; fileRef = B24118EC2F1FB7D5001DC5AF /* mature_dataset.csv */; };
+		B24118F82F1FB7D5001DC5AF /* cyberbullying_dataset.csv in Resources */ = {isa = PBXBuildFile; fileRef = B24118E92F1FB7D5001DC5AF /* cyberbullying_dataset.csv */; };
+		B24118F92F1FB7D5001DC5AF /* horror_dataset.csv in Resources */ = {isa = PBXBuildFile; fileRef = B24118EB2F1FB7D5001DC5AF /* horror_dataset.csv */; };
+		B24118FB2F1FB7D5001DC5AF /* financial_dataset.csv in Resources */ = {isa = PBXBuildFile; fileRef = B24118EA2F1FB7D5001DC5AF /* financial_dataset.csv */; };
+		B24118FC2F1FB7D5001DC5AF /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = B24118F32F1FB7D5001DC5AF /* README.md */; };
+		B24118FD2F1FB7D5001DC5AF /* train_template.py in Resources */ = {isa = PBXBuildFile; fileRef = B24118F52F1FB7D5001DC5AF /* train_template.py */; };
+		B24118FE2F1FB7D5001DC5AF /* QUICK_START.md in Resources */ = {isa = PBXBuildFile; fileRef = B24118F22F1FB7D5001DC5AF /* QUICK_START.md */; };
+		B24118FF2F1FB7D5001DC5AF /* parasocial_dataset.csv in Resources */ = {isa = PBXBuildFile; fileRef = B24118ED2F1FB7D5001DC5AF /* parasocial_dataset.csv */; };
+		B24119002F1FB7D5001DC5AF /* convert_to_coreml.py in Resources */ = {isa = PBXBuildFile; fileRef = B24118F02F1FB7D5001DC5AF /* convert_to_coreml.py */; };
+		B24119012F1FB7D5001DC5AF /* ContentSafetyTextClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = B24118EF2F1FB7D5001DC5AF /* ContentSafetyTextClassifier.mlmodel */; };
+		B241195D2F2244A4001DC5AF /* NSFW.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = B241195C2F2244A4001DC5AF /* NSFW.mlmodel */; };
+		B24119682F22604F001DC5AF /* PathManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24119672F22604A001DC5AF /* PathManager.swift */; };
+		B241199F2F22604F001DC5AF /* SplashScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B241199E2F22604F001DC5AF /* SplashScreenView.swift */; };
+		BROWSESS001201D0001 /* BrowsingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSESS001101D0001 /* BrowsingSession.swift */; };
+		BROWSEVT001201D0001 /* BrowsingEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSEVT001101D0001 /* BrowsingEvent.swift */; };
+		BROWSHIS001201D0001 /* BrowsingHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BROWSHIS001101D0001 /* BrowsingHistoryService.swift */; };
+		C8E3A128D4DFC7C0AC136E7CCC17EF42 /* FilterActionSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8E3A128E66AC9CACE0AFC09 /* FilterActionSlider.swift */; };
+		CNTANLZ001201D0001 /* ContentAnalyzerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CNTANLZ001101D0001 /* ContentAnalyzerService.swift */; };
+		CONTENT001201D0001 /* ContentAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CONTENT001101D0001 /* ContentAnalysisService.swift */; };
+		D9516F603C9EAA56EDED7DADC8DA66E8 /* Components/ScanResultCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9516F609FA1E7A0FFB9CDF1 /* Components/ScanResultCards.swift */; };
+		ENGTRCK001201D0001 /* EngagementTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = ENGTRCK001101D0001 /* EngagementTracker.swift */; };
+		ENGTRJS001201D0001 /* engagement_tracker.js in Resources */ = {isa = PBXBuildFile; fileRef = ENGTRJS001101D0001 /* engagement_tracker.js */; };
+		EXTENS001201D0001 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = EXTENS001101D0001 /* Extensions.swift */; };
+		F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6 /* KomalCheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */; };
+		F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7 /* KomalBlockedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */; };
+		IMGFILT001201D0001 /* ImageFilterEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = IMGFILT001101D0001 /* ImageFilterEvent.swift */; };
+		IMGFSVC001201D0001 /* ImageFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = IMGFSVC001101D0001 /* ImageFilterService.swift */; };
+		IMGSCJS001201D0001 /* image_scanner.js in Resources */ = {isa = PBXBuildFile; fileRef = IMGSCJS001101D0001 /* image_scanner.js */; };
+		INSIGHTS001201D0001 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSIGHTS001101D0001 /* InsightsView.swift */; };
+		KOMLINTR001201D0001 /* KomalInterventionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = KOMLINTR001101D0001 /* KomalInterventionView.swift */; };
+		PAGEENG001201D0001 /* PageEngagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAGEENG001101D0001 /* PageEngagement.swift */; };
+		UNIFIED001201D0001 /* UnifiedDecisionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = UNIFIED001101D0001 /* UnifiedDecisionModels.swift */; };
+		VIEWCNT001201D0001 /* ViewportContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = VIEWCNT001101D0001 /* ViewportContent.swift */; };
+		VPTRKJS001201D0001 /* viewport_tracker.js in Resources */ = {isa = PBXBuildFile; fileRef = VPTRKJS001101D0001 /* viewport_tracker.js */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		55C8711FDCF5AA5041D0CBFF /* FirestoreService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirestoreService.swift; sourceTree = "<group>"; };
+		6B3BDF9724FD82DABA1EADE0 /* ScanNetworkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanNetworkService.swift; sourceTree = "<group>"; };
+		91CB05C3A4807C7785E182F1 /* KomalSafetyScannerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalSafetyScannerViewModel.swift; sourceTree = "<group>"; };
+		9A8A403B9FC8EFEACBFC8FBB /* FilterPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterPreferencesView.swift; sourceTree = "<group>"; };
 		A1000001001D0001 /* Komalios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Komalios.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1000001101D0001 /* KomaliosApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomaliosApp.swift; sourceTree = "<group>"; };
 		A1000001101D0002 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -51,6 +118,62 @@
 		A1000001101D0012 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A1000001101D0013 /* ContentFilterPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentFilterPreferences.swift; sourceTree = "<group>"; };
 		A1000001101D0014 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = Sources/Komalios/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };
+		A1000001101D0030 /* ReflectionTimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReflectionTimeView.swift; sourceTree = "<group>"; };
+		AEAFDDDFAEFB51FFB41CABA6 /* Components/SimpleWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/SimpleWebView.swift; sourceTree = "<group>"; };
+		AEBEE7EDDCE1DD0EAB91CC36 /* ScanResponseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanResponseModels.swift; sourceTree = "<group>"; };
+		B24118732F1D1AB7001DC5AF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		B24118752F1D1B4A001DC5AF /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		B241187C2F1D1C74001DC5AF /* Komalios-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Komalios-Info.plist"; sourceTree = "<group>"; };
+		B24118802F1D1D75001DC5AF /* GoogleAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthService.swift; sourceTree = "<group>"; };
+		B24118822F1D1DC3001DC5AF /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		B24118852F1D1E21001DC5AF /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		B24118872F1D20F9001DC5AF /* SocialSignInButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialSignInButton.swift; sourceTree = "<group>"; };
+		B24118A02F1D362D001DC5AF /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		B24118AB2F1D4963001DC5AF /* BrowserViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserViewModel.swift; sourceTree = "<group>"; };
+		B24118AE2F1D4A18001DC5AF /* ScanUrlModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanUrlModel.swift; sourceTree = "<group>"; };
+		B24118B12F1D578F001DC5AF /* AppleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInService.swift; sourceTree = "<group>"; };
+		B24118B42F1D57D6001DC5AF /* AppleSignInViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInViewModel.swift; sourceTree = "<group>"; };
+		B24118B72F1D580B001DC5AF /* AppleSignInResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSignInResult.swift; sourceTree = "<group>"; };
+		B24118B92F1D5834001DC5AF /* Nonce+SHAHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Nonce+SHAHelper.swift"; sourceTree = "<group>"; };
+		B24118BB2F1E05DC001DC5AF /* Komalios.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Komalios.entitlements; sourceTree = "<group>"; };
+		B24118BC2F1E0E4E001DC5AF /* KomalSafetyScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalSafetyScanner.swift; sourceTree = "<group>"; };
+		B24118BE2F1E8C9E001DC5AF /* Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extension.swift; sourceTree = "<group>"; };
+		B24118E42F1F99F5001DC5AF /* Agent.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Agent.xlsx; sourceTree = "<group>"; };
+		B24118E52F1F99F5001DC5AF /* Models_Masterdoc-2.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Models_Masterdoc-2.xlsx"; sourceTree = "<group>"; };
+		B24118E92F1FB7D5001DC5AF /* cyberbullying_dataset.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = cyberbullying_dataset.csv; sourceTree = "<group>"; };
+		B24118EA2F1FB7D5001DC5AF /* financial_dataset.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = financial_dataset.csv; sourceTree = "<group>"; };
+		B24118EB2F1FB7D5001DC5AF /* horror_dataset.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = horror_dataset.csv; sourceTree = "<group>"; };
+		B24118EC2F1FB7D5001DC5AF /* mature_dataset.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = mature_dataset.csv; sourceTree = "<group>"; };
+		B24118ED2F1FB7D5001DC5AF /* parasocial_dataset.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = parasocial_dataset.csv; sourceTree = "<group>"; };
+		B24118EF2F1FB7D5001DC5AF /* ContentSafetyTextClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ContentSafetyTextClassifier.mlmodel; sourceTree = "<group>"; };
+		B24118F02F1FB7D5001DC5AF /* convert_to_coreml.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = convert_to_coreml.py; sourceTree = "<group>"; };
+		B24118F22F1FB7D5001DC5AF /* QUICK_START.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUICK_START.md; sourceTree = "<group>"; };
+		B24118F32F1FB7D5001DC5AF /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		B24118F52F1FB7D5001DC5AF /* train_template.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = train_template.py; sourceTree = "<group>"; };
+		B241195C2F2244A4001DC5AF /* NSFW.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = NSFW.mlmodel; sourceTree = "<group>"; };
+		B24119672F22604A001DC5AF /* PathManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathManager.swift; sourceTree = "<group>"; };
+		B241199E2F22604F001DC5AF /* SplashScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashScreenView.swift; sourceTree = "<group>"; };
+		BROWSESS001101D0001 /* BrowsingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingSession.swift; sourceTree = "<group>"; };
+		BROWSEVT001101D0001 /* BrowsingEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingEvent.swift; sourceTree = "<group>"; };
+		BROWSHIS001101D0001 /* BrowsingHistoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowsingHistoryService.swift; sourceTree = "<group>"; };
+		C8E3A128E66AC9CACE0AFC09 /* FilterActionSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterActionSlider.swift; sourceTree = "<group>"; };
+		CNTANLZ001101D0001 /* ContentAnalyzerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentAnalyzerService.swift; sourceTree = "<group>"; };
+		CONTENT001101D0001 /* ContentAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentAnalysisService.swift; sourceTree = "<group>"; };
+		D9516F609FA1E7A0FFB9CDF1 /* Components/ScanResultCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components/ScanResultCards.swift; sourceTree = "<group>"; };
+		ENGTRCK001101D0001 /* EngagementTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngagementTracker.swift; sourceTree = "<group>"; };
+		ENGTRJS001101D0001 /* engagement_tracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = engagement_tracker.js; sourceTree = "<group>"; };
+		EXTENS001101D0001 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalCheckInView.swift; sourceTree = "<group>"; };
+		F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalBlockedView.swift; sourceTree = "<group>"; };
+		IMGFILT001101D0001 /* ImageFilterEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFilterEvent.swift; sourceTree = "<group>"; };
+		IMGFSVC001101D0001 /* ImageFilterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFilterService.swift; sourceTree = "<group>"; };
+		IMGSCJS001101D0001 /* image_scanner.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = image_scanner.js; sourceTree = "<group>"; };
+		INSIGHTS001101D0001 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		KOMLINTR001101D0001 /* KomalInterventionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalInterventionView.swift; sourceTree = "<group>"; };
+		PAGEENG001101D0001 /* PageEngagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageEngagement.swift; sourceTree = "<group>"; };
+		UNIFIED001101D0001 /* UnifiedDecisionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedDecisionModels.swift; sourceTree = "<group>"; };
+		VIEWCNT001101D0001 /* ViewportContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportContent.swift; sourceTree = "<group>"; };
+		VPTRKJS001101D0001 /* viewport_tracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = viewport_tracker.js; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +181,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B241187B2F1D1BC3001DC5AF /* GoogleSignInSwift in Frameworks */,
+				B24118792F1D1BC3001DC5AF /* GoogleSignIn in Frameworks */,
+				B241186F2F1D1A74001DC5AF /* FirebaseCore in Frameworks */,
+				B241186D2F1D1A74001DC5AF /* FirebaseAuth in Frameworks */,
+				B24118732F1D1A74001DC5AF /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,6 +203,9 @@
 		A1000001401D0001 = {
 			isa = PBXGroup;
 			children = (
+				B24118F62F1FB7D5001DC5AF /* MLModels */,
+				B24118BB2F1E05DC001DC5AF /* Komalios.entitlements */,
+				B241187C2F1D1C74001DC5AF /* Komalios-Info.plist */,
 				A1000001401D0002 /* Sources */,
 				A1000001401D0010 /* Products */,
 				3C34CB732F1A718C00E2F9D1 /* Recovered References */,
@@ -84,6 +215,7 @@
 		A1000001401D0002 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				B24118E62F1F99F5001DC5AF /* Doc */,
 				A1000001401D0003 /* Komalios */,
 			);
 			path = Sources;
@@ -92,8 +224,12 @@
 		A1000001401D0003 /* Komalios */ = {
 			isa = PBXGroup;
 			children = (
+				B24119662F226043001DC5AF /* Routes */,
+				B24118A72F1D490C001DC5AF /* PostAuth */,
+				B241189F2F1D361E001DC5AF /* Shared */,
+				B24118722F1D1AA2001DC5AF /* AppDelegate */,
+				B24118672F1D15B9001DC5AF /* PreAuth */,
 				A1000001101D0001 /* KomaliosApp.swift */,
-				A1000001401D0004 /* Views */,
 				A1000001401D0005 /* Models */,
 				A1000001401D0006 /* Services */,
 				A1000001401D0008 /* Theme */,
@@ -107,14 +243,17 @@
 			isa = PBXGroup;
 			children = (
 				A1000001101D0002 /* RootView.swift */,
-				A1000001101D0003 /* BrowserView.swift */,
 				A1000001101D0004 /* BlockedView.swift */,
 				A1000001101D0005 /* GateView.swift */,
 				A1000001101D0006 /* MindfulBreakView.swift */,
 				A1000001101D0007 /* RikiCheckInView.swift */,
+				A1000001101D0030 /* ReflectionTimeView.swift */,
 				A1000001101D0008 /* SettingsView.swift */,
+				9A8A403B9FC8EFEACBFC8FBB /* FilterPreferencesView.swift */,
 				A1000001101D000F /* FloatingMenuView.swift */,
+				ECAFED31FAD30DC4853EFDEF /* Components */,
 				A1000001401D0009 /* Onboarding */,
+				INSIGHTS401D0001 /* Insights */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -126,6 +265,11 @@
 				A1000001101D000A /* ContentPolicyModels.swift */,
 				A1000001101D000B /* ParentSettings.swift */,
 				A1000001101D0013 /* ContentFilterPreferences.swift */,
+				BROWSEVT001101D0001 /* BrowsingEvent.swift */,
+				BROWSESS001101D0001 /* BrowsingSession.swift */,
+				IMGFILT001101D0001 /* ImageFilterEvent.swift */,
+				PAGEENG001101D0001 /* PageEngagement.swift */,
+				VIEWCNT001101D0001 /* ViewportContent.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -133,7 +277,14 @@
 		A1000001401D0006 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				B24118A22F1D36E6001DC5AF /* Network */,
 				A1000001101D000C /* BlocklistService.swift */,
+				55C8711FDCF5AA5041D0CBFF /* FirestoreService.swift */,
+				BROWSHIS001101D0001 /* BrowsingHistoryService.swift */,
+				CONTENT001101D0001 /* ContentAnalysisService.swift */,
+				IMGFSVC001101D0001 /* ImageFilterService.swift */,
+				ENGTRCK001101D0001 /* EngagementTracker.swift */,
+				CNTANLZ001101D0001 /* ContentAnalyzerService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -143,6 +294,10 @@
 			children = (
 				A1000001101D000D /* Blocklists.json */,
 				A1000001101D0010 /* komaliconnobg.png */,
+				B24118752F1D1B4A001DC5AF /* GoogleService-Info.plist */,
+				ENGTRJS001101D0001 /* engagement_tracker.js */,
+				IMGSCJS001101D0001 /* image_scanner.js */,
+				VPTRKJS001101D0001 /* viewport_tracker.js */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -169,6 +324,247 @@
 				A1000001001D0001 /* Komalios.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		B24118662F1D15A8001DC5AF /* Login */ = {
+			isa = PBXGroup;
+			children = (
+				B24118842F1D1E19001DC5AF /* View */,
+				B24118682F1D15F0001DC5AF /* SocialLogin */,
+			);
+			path = Login;
+			sourceTree = "<group>";
+		};
+		B24118672F1D15B9001DC5AF /* PreAuth */ = {
+			isa = PBXGroup;
+			children = (
+				B241199E2F22604F001DC5AF /* SplashScreenView.swift */,
+				B24118662F1D15A8001DC5AF /* Login */,
+			);
+			path = PreAuth;
+			sourceTree = "<group>";
+		};
+		B24118682F1D15F0001DC5AF /* SocialLogin */ = {
+			isa = PBXGroup;
+			children = (
+				B241186A2F1D1607001DC5AF /* Google */,
+				B24118692F1D15FE001DC5AF /* Apple */,
+			);
+			path = SocialLogin;
+			sourceTree = "<group>";
+		};
+		B24118692F1D15FE001DC5AF /* Apple */ = {
+			isa = PBXGroup;
+			children = (
+				B24118B62F1D57E9001DC5AF /* Model */,
+				B24118B32F1D57A2001DC5AF /* ViewModel */,
+				B24118B02F1D5787001DC5AF /* Service */,
+			);
+			path = Apple;
+			sourceTree = "<group>";
+		};
+		B241186A2F1D1607001DC5AF /* Google */ = {
+			isa = PBXGroup;
+			children = (
+				B241187F2F1D1D6A001DC5AF /* ViewModel */,
+				B241187E2F1D1D61001DC5AF /* View */,
+				B241187D2F1D1D55001DC5AF /* Service */,
+			);
+			path = Google;
+			sourceTree = "<group>";
+		};
+		B24118722F1D1AA2001DC5AF /* AppDelegate */ = {
+			isa = PBXGroup;
+			children = (
+				B24118732F1D1AB7001DC5AF /* AppDelegate.swift */,
+			);
+			path = AppDelegate;
+			sourceTree = "<group>";
+		};
+		B241187D2F1D1D55001DC5AF /* Service */ = {
+			isa = PBXGroup;
+			children = (
+				B24118802F1D1D75001DC5AF /* GoogleAuthService.swift */,
+			);
+			path = Service;
+			sourceTree = "<group>";
+		};
+		B241187E2F1D1D61001DC5AF /* View */ = {
+			isa = PBXGroup;
+			children = (
+				B24118872F1D20F9001DC5AF /* SocialSignInButton.swift */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
+		B241187F2F1D1D6A001DC5AF /* ViewModel */ = {
+			isa = PBXGroup;
+			children = (
+				B24118822F1D1DC3001DC5AF /* AuthViewModel.swift */,
+			);
+			path = ViewModel;
+			sourceTree = "<group>";
+		};
+		B24118842F1D1E19001DC5AF /* View */ = {
+			isa = PBXGroup;
+			children = (
+				B24118852F1D1E21001DC5AF /* LoginView.swift */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
+		B241189F2F1D361E001DC5AF /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				B24118BE2F1E8C9E001DC5AF /* Extension.swift */,
+				B24118A02F1D362D001DC5AF /* Constants.swift */,
+				EXTENS001101D0001 /* Extensions.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		B24118A22F1D36E6001DC5AF /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				6B3BDF9724FD82DABA1EADE0 /* ScanNetworkService.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+		B24118A72F1D490C001DC5AF /* PostAuth */ = {
+			isa = PBXGroup;
+			children = (
+				B24118A82F1D4928001DC5AF /* BrowserView */,
+				A1000001401D0004 /* Views */,
+			);
+			path = PostAuth;
+			sourceTree = "<group>";
+		};
+		B24118A82F1D4928001DC5AF /* BrowserView */ = {
+			isa = PBXGroup;
+			children = (
+				B24118AD2F1D4A0D001DC5AF /* Model */,
+				B24118AA2F1D4943001DC5AF /* ViewModel */,
+				B24118A92F1D4938001DC5AF /* View */,
+			);
+			path = BrowserView;
+			sourceTree = "<group>";
+		};
+		B24118A92F1D4938001DC5AF /* View */ = {
+			isa = PBXGroup;
+			children = (
+				A1000001101D0003 /* BrowserView.swift */,
+				B24118BC2F1E0E4E001DC5AF /* KomalSafetyScanner.swift */,
+				AEAFDDDFAEFB51FFB41CABA6 /* Components/SimpleWebView.swift */,
+				D9516F609FA1E7A0FFB9CDF1 /* Components/ScanResultCards.swift */,
+			);
+			path = View;
+			sourceTree = "<group>";
+		};
+		B24118AA2F1D4943001DC5AF /* ViewModel */ = {
+			isa = PBXGroup;
+			children = (
+				B24118AB2F1D4963001DC5AF /* BrowserViewModel.swift */,
+				91CB05C3A4807C7785E182F1 /* KomalSafetyScannerViewModel.swift */,
+			);
+			path = ViewModel;
+			sourceTree = "<group>";
+		};
+		B24118AD2F1D4A0D001DC5AF /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				B24118AE2F1D4A18001DC5AF /* ScanUrlModel.swift */,
+				AEBEE7EDDCE1DD0EAB91CC36 /* ScanResponseModels.swift */,
+				UNIFIED001101D0001 /* UnifiedDecisionModels.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		B24118B02F1D5787001DC5AF /* Service */ = {
+			isa = PBXGroup;
+			children = (
+				B24118B92F1D5834001DC5AF /* Nonce+SHAHelper.swift */,
+				B24118B12F1D578F001DC5AF /* AppleSignInService.swift */,
+			);
+			path = Service;
+			sourceTree = "<group>";
+		};
+		B24118B32F1D57A2001DC5AF /* ViewModel */ = {
+			isa = PBXGroup;
+			children = (
+				B24118B42F1D57D6001DC5AF /* AppleSignInViewModel.swift */,
+			);
+			path = ViewModel;
+			sourceTree = "<group>";
+		};
+		B24118B62F1D57E9001DC5AF /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				B24118B72F1D580B001DC5AF /* AppleSignInResult.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		B24118E62F1F99F5001DC5AF /* Doc */ = {
+			isa = PBXGroup;
+			children = (
+				B24118E42F1F99F5001DC5AF /* Agent.xlsx */,
+				B24118E52F1F99F5001DC5AF /* Models_Masterdoc-2.xlsx */,
+			);
+			path = Doc;
+			sourceTree = "<group>";
+		};
+		B24118EE2F1FB7D5001DC5AF /* datasets */ = {
+			isa = PBXGroup;
+			children = (
+				B24118E92F1FB7D5001DC5AF /* cyberbullying_dataset.csv */,
+				B24118EA2F1FB7D5001DC5AF /* financial_dataset.csv */,
+				B24118EB2F1FB7D5001DC5AF /* horror_dataset.csv */,
+				B24118EC2F1FB7D5001DC5AF /* mature_dataset.csv */,
+				B24118ED2F1FB7D5001DC5AF /* parasocial_dataset.csv */,
+			);
+			path = datasets;
+			sourceTree = "<group>";
+		};
+		B24118F62F1FB7D5001DC5AF /* MLModels */ = {
+			isa = PBXGroup;
+			children = (
+				B24118EE2F1FB7D5001DC5AF /* datasets */,
+				B24118EF2F1FB7D5001DC5AF /* ContentSafetyTextClassifier.mlmodel */,
+				B241195C2F2244A4001DC5AF /* NSFW.mlmodel */,
+				B24118F02F1FB7D5001DC5AF /* convert_to_coreml.py */,
+				B24118F22F1FB7D5001DC5AF /* QUICK_START.md */,
+				B24118F32F1FB7D5001DC5AF /* README.md */,
+				B24118F52F1FB7D5001DC5AF /* train_template.py */,
+			);
+			path = MLModels;
+			sourceTree = "<group>";
+		};
+		B24119662F226043001DC5AF /* Routes */ = {
+			isa = PBXGroup;
+			children = (
+				B24119672F22604A001DC5AF /* PathManager.swift */,
+			);
+			path = Routes;
+			sourceTree = "<group>";
+		};
+		ECAFED31FAD30DC4853EFDEF /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				C8E3A128E66AC9CACE0AFC09 /* FilterActionSlider.swift */,
+				F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */,
+				F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */,
+				KOMLINTR001101D0001 /* KomalInterventionView.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		INSIGHTS401D0001 /* Insights */ = {
+			isa = PBXGroup;
+			children = (
+				INSIGHTS001101D0001 /* InsightsView.swift */,
+			);
+			path = Insights;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -215,6 +611,10 @@
 				Base,
 			);
 			mainGroup = A1000001401D0001;
+			packageReferences = (
+				B241186B2F1D1A74001DC5AF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				B24118772F1D1BC3001DC5AF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			productRefGroup = A1000001401D0010 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -229,10 +629,25 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B24118F72F1FB7D5001DC5AF /* mature_dataset.csv in Resources */,
+				B24118F82F1FB7D5001DC5AF /* cyberbullying_dataset.csv in Resources */,
+				B24118F92F1FB7D5001DC5AF /* horror_dataset.csv in Resources */,
+				B24118FB2F1FB7D5001DC5AF /* financial_dataset.csv in Resources */,
+				B24118FC2F1FB7D5001DC5AF /* README.md in Resources */,
+				B24118FD2F1FB7D5001DC5AF /* train_template.py in Resources */,
+				B24118FE2F1FB7D5001DC5AF /* QUICK_START.md in Resources */,
+				B24118FF2F1FB7D5001DC5AF /* parasocial_dataset.csv in Resources */,
+				B24119002F1FB7D5001DC5AF /* convert_to_coreml.py in Resources */,
 				A1000001201D000D /* Blocklists.json in Resources */,
 				A1000001201D0010 /* komaliconnobg.png in Resources */,
+				B24118762F1D1B4A001DC5AF /* GoogleService-Info.plist in Resources */,
 				A1000001201D0011 /* Assets.xcassets in Resources */,
+				B24118E72F1F99F5001DC5AF /* Models_Masterdoc-2.xlsx in Resources */,
+				B24118E82F1F99F5001DC5AF /* Agent.xlsx in Resources */,
 				A1000001201D0014 /* PrivacyInfo.xcprivacy in Resources */,
+				ENGTRJS001201D0001 /* engagement_tracker.js in Resources */,
+				IMGSCJS001201D0001 /* image_scanner.js in Resources */,
+				VPTRKJS001201D0001 /* viewport_tracker.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,16 +664,59 @@
 				A1000001201D0004 /* BlockedView.swift in Sources */,
 				A1000001201D0005 /* GateView.swift in Sources */,
 				A1000001201D0006 /* MindfulBreakView.swift in Sources */,
+				B24118A12F1D3631001DC5AF /* Constants.swift in Sources */,
+				B24118832F1D1DCC001DC5AF /* AuthViewModel.swift in Sources */,
 				A1000001201D0007 /* RikiCheckInView.swift in Sources */,
+				A1000001201D0030 /* ReflectionTimeView.swift in Sources */,
 				A1000001201D0008 /* SettingsView.swift in Sources */,
+				B24118812F1D1D7D001DC5AF /* GoogleAuthService.swift in Sources */,
 				A1000001201D0009 /* AppState.swift in Sources */,
 				A1000001201D000A /* ContentPolicyModels.swift in Sources */,
 				A1000001201D000B /* ParentSettings.swift in Sources */,
+				B24118882F1D20F9001DC5AF /* SocialSignInButton.swift in Sources */,
+				B24118BF2F1E8CA3001DC5AF /* Extension.swift in Sources */,
 				A1000001201D000C /* BlocklistService.swift in Sources */,
+				B24118BA2F1D5841001DC5AF /* Nonce+SHAHelper.swift in Sources */,
+				B24119012F1FB7D5001DC5AF /* ContentSafetyTextClassifier.mlmodel in Sources */,
 				A1000001201D000E /* KomalTheme.swift in Sources */,
+				B24118AC2F1D496F001DC5AF /* BrowserViewModel.swift in Sources */,
 				A1000001201D000F /* FloatingMenuView.swift in Sources */,
+				B24118BD2F1E0E4E001DC5AF /* KomalSafetyScanner.swift in Sources */,
+				91CB05C37C0D29ECFEAB0DFFCA8232D3 /* KomalSafetyScannerViewModel.swift in Sources */,
+				AEBEE7ED6BFDA8CA3CF5C6FAD26ABABC /* ScanResponseModels.swift in Sources */,
+				AEAFDDDFFBC3AC5A4ED0ED5A124310F1 /* Components/SimpleWebView.swift in Sources */,
+				D9516F603C9EAA56EDED7DADC8DA66E8 /* Components/ScanResultCards.swift in Sources */,
+				6B3BDF971CF675F2CED16D0FC97BC896 /* ScanNetworkService.swift in Sources */,
+				9A8A403BC83F19AEA62D45CCD379077D /* FilterPreferencesView.swift in Sources */,
+				C8E3A128D4DFC7C0AC136E7CCC17EF42 /* FilterActionSlider.swift in Sources */,
+				F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6 /* KomalCheckInView.swift in Sources */,
+				F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7 /* KomalBlockedView.swift in Sources */,
+				KOMLINTR001201D0001 /* KomalInterventionView.swift in Sources */,
+				55C8711FCD2EBDED9ABE21CDB448AFCF /* FirestoreService.swift in Sources */,
 				A1000001201D0012 /* OnboardingView.swift in Sources */,
+				B24118742F1D1ABC001DC5AF /* AppDelegate.swift in Sources */,
+				B24118B22F1D5797001DC5AF /* AppleSignInService.swift in Sources */,
+				B24118862F1D1E2A001DC5AF /* LoginView.swift in Sources */,
+				B241199F2F22604F001DC5AF /* SplashScreenView.swift in Sources */,
+				B24118B52F1D57D6001DC5AF /* AppleSignInViewModel.swift in Sources */,
 				A1000001201D0013 /* ContentFilterPreferences.swift in Sources */,
+				B24118AF2F1D4A2F001DC5AF /* ScanUrlModel.swift in Sources */,
+				B24118B82F1D5812001DC5AF /* AppleSignInResult.swift in Sources */,
+				INSIGHTS001201D0001 /* InsightsView.swift in Sources */,
+				BROWSEVT001201D0001 /* BrowsingEvent.swift in Sources */,
+				BROWSESS001201D0001 /* BrowsingSession.swift in Sources */,
+				BROWSHIS001201D0001 /* BrowsingHistoryService.swift in Sources */,
+				UNIFIED001201D0001 /* UnifiedDecisionModels.swift in Sources */,
+				B24119682F22604F001DC5AF /* PathManager.swift in Sources */,
+				CONTENT001201D0001 /* ContentAnalysisService.swift in Sources */,
+				EXTENS001201D0001 /* Extensions.swift in Sources */,
+				B241195D2F2244A4001DC5AF /* NSFW.mlmodel in Sources */,
+				IMGFILT001201D0001 /* ImageFilterEvent.swift in Sources */,
+				PAGEENG001201D0001 /* PageEngagement.swift in Sources */,
+				VIEWCNT001201D0001 /* ViewportContent.swift in Sources */,
+				IMGFSVC001201D0001 /* ImageFilterService.swift in Sources */,
+				ENGTRCK001201D0001 /* EngagementTracker.swift in Sources */,
+				CNTANLZ001201D0001 /* ContentAnalyzerService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -389,22 +847,25 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Komalios.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1.4;
 				DEVELOPMENT_TEAM = NXS4B9HC6S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Komalios-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Komal: Learn with AI";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.komalkids.komal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -418,22 +879,25 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Komalios.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1.4;
 				DEVELOPMENT_TEAM = NXS4B9HC6S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Komalios-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Komal: Learn with AI";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.komalkids.komal;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -464,6 +928,53 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B241186B2F1D1A74001DC5AF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.8.0;
+			};
+		};
+		B24118772F1D1BC3001DC5AF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B241186C2F1D1A74001DC5AF /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B241186B2F1D1A74001DC5AF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		B241186E2F1D1A74001DC5AF /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B241186B2F1D1A74001DC5AF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		B24118722F1D1A74001DC5AF /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B241186B2F1D1A74001DC5AF /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		B24118782F1D1BC3001DC5AF /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B24118772F1D1BC3001DC5AF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		B241187A2F1D1BC3001DC5AF /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B24118772F1D1BC3001DC5AF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A1000001801D0001 /* Project object */;
 }
