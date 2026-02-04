@@ -15,7 +15,14 @@ final class AppState: ObservableObject {
     }
 
     var currentProfileName: String {
-        accountMode == .guest ? "Guest" : activeProfile.name
+        switch accountMode {
+        case .guest:
+            return "Guest"
+        case .parent:
+            return "Parent"
+        case .child:
+            return activeProfile.name.isEmpty ? "Child" : activeProfile.name
+        }
     }
 
     init() {
@@ -86,7 +93,14 @@ final class AppState {
     var hasCompletedOnboarding: Bool = false
 
     var currentProfileName: String {
-        accountMode == .guest ? "Guest" : activeProfile.name
+        switch accountMode {
+        case .guest:
+            return "Guest"
+        case .parent:
+            return "Parent"
+        case .child:
+            return activeProfile.name.isEmpty ? "Child" : activeProfile.name
+        }
     }
 }
 #endif

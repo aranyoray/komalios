@@ -63,8 +63,7 @@ struct SettingsView: View {
                                 .font(.system(size: 13, weight: .regular, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
 
-                            HStack(spacing: 12) {
-                                // Child Mode Button
+                            VStack(spacing: 12) {
                                 AccountModeButton(
                                     icon: "face.smiling.fill",
                                     title: "Child",
@@ -77,21 +76,30 @@ struct SettingsView: View {
                                     }
                                 }
                                 
-                                // Parent Mode Button - requires PIN
+                                AccountModeButton(
+                                    icon: "person.crop.circle.badge.questionmark",
+                                    title: "Guest",
+                                    subtitle: "No saved profile",
+                                    color: KomalColors.bubblegumPink,
+                                    isSelected: appState.accountMode == .guest
+                                ) {
+                                    withAnimation(.spring(response: 0.3)) {
+                                        appState.accountMode = .guest
+                                    }
+                                }
+                                
                                 AccountModeButton(
                                     icon: "lock.shield.fill",
                                     title: "Parent",
                                     subtitle: "Full access",
                                     color: KomalColors.lavenderPurple,
-                                    isSelected: appState.accountMode == .guest
+                                    isSelected: appState.accountMode == .parent
                                 ) {
-                                    if appState.accountMode == .guest {
-                                        // Already in parent mode, switch to child
+                                    if appState.accountMode == .parent {
                                         withAnimation(.spring(response: 0.3)) {
                                             appState.accountMode = .child
                                         }
                                     } else {
-                                        // Show PIN entry to switch to parent mode
                                         showPinEntry = true
                                     }
                                 }
@@ -100,9 +108,12 @@ struct SettingsView: View {
                     }
                     
                     // Show different content based on mode
-                    if appState.accountMode == .child {
+                    switch appState.accountMode {
+                    case .child:
                         childModeContent
-                    } else {
+                    case .guest:
+                        guestModeContent
+                    case .parent:
                         parentModeContent
                     }
 
@@ -134,7 +145,7 @@ struct SettingsView: View {
                         showPinEntry = false
                         enteredPin = ""
                         withAnimation(.spring(response: 0.3)) {
-                            appState.accountMode = .guest
+                            appState.accountMode = .parent
                         }
                     } else {
                         pinError = true
@@ -269,6 +280,48 @@ struct SettingsView: View {
         }
     }
     
+    // MARK: - Guest Mode Content
+    private var guestModeContent: some View {
+        VStack(spacing: 24) {
+            SettingsCard {
+                VStack(spacing: 12) {
+                    Image(systemName: "person.crop.circle.badge.questionmark")
+                        .font(.system(size: 44))
+                        .foregroundColor(KomalColors.bubblegumPink)
+                    
+                    Text("Guest Mode")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
+                    
+                    Text("Browse without a saved profile. Guest sessions keep things simple and avoid changing your child settings.")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+            }
+            
+            SettingsCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    CardHeader(icon: "shield.lefthalf.filled", title: "What Guest Mode Means", color: KomalColors.pearlAqua)
+                    
+                    Text("- No profile changes are saved")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                    
+                    Text("- Filters remain in their current safe state")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                    
+                    Text("- Switch to Parent to edit rules or to Child for personalized browsing")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                }
+            }
+        }
+    }
+
     // MARK: - Parent Mode Content
     private var parentModeContent: some View {
         VStack(spacing: 24) {
