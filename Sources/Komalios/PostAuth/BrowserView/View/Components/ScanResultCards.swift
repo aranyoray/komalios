@@ -5,6 +5,7 @@
 //  Created on 18/01/26.
 //
 
+#if os(iOS)
 import SwiftUI
 
 // MARK: - Overall Score Card
@@ -377,3 +378,4 @@ struct ContentAnalysisCard: View {
         .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
 }
+#endif

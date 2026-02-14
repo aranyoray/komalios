@@ -1,4 +1,4 @@
-#if canImport(SwiftUI) && canImport(WebKit)
+#if os(iOS)
 import SwiftUI
 import WebKit
 

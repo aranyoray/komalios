@@ -5,7 +5,7 @@
 //  Created on 18/01/26.
 //
 
-#if canImport(SwiftUI)
+#if os(iOS)
 import SwiftUI
 
 struct FilterPreferencesView: View {

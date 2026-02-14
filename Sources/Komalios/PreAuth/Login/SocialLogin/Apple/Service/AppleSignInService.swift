@@ -6,7 +6,9 @@
 //
 
 import AuthenticationServices
+#if canImport(UIKit)
 import UIKit
+#endif
 
 final class AppleSignInService: NSObject {
     private var completion: ((Result<AppleSignInResult, Error>) -> Void)?
@@ -79,9 +81,13 @@ extension AppleSignInService: ASAuthorizationControllerDelegate {
 
 extension AppleSignInService: ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
+        #if canImport(UIKit)
+        return UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap { $0.windows }
             .first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        #else
+        return ASPresentationAnchor()
+        #endif
     }
 }

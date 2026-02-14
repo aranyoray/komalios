@@ -5,6 +5,7 @@
 //  Created by Amit Kumar on 19/01/26.
 //
 
+#if canImport(UIKit)
 import UIKit
 
 extension UIApplication {
@@ -13,3 +14,4 @@ extension UIApplication {
                    to: nil, from: nil, for: nil)
     }
 }
+#endif

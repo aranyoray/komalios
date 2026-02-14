@@ -1,4 +1,4 @@
-#if canImport(SwiftUI)
+#if os(iOS)
 import SwiftUI
 
 // MARK: - Reflection Time Main View
@@ -770,7 +770,7 @@ struct ReflectionQuestion {
 
 struct FreeChatSessionView: View {
     let onBack: () -> Void
-    @State private var messages: [ChatMessage] = []
+    @State private var messages: [ReflectionChatMessage] = []
     @State private var inputText = ""
     
     private let prompts = [
@@ -840,7 +840,7 @@ struct FreeChatSessionView: View {
         }
         .onAppear {
             // Initial greeting
-            messages.append(ChatMessage(
+            messages.append(ReflectionChatMessage(
                 id: UUID(),
                 text: "Hi! This is a safe space to share your thoughts. \(prompts.randomElement() ?? "")",
                 isFromUser: false
@@ -851,7 +851,7 @@ struct FreeChatSessionView: View {
     private func sendMessage() {
         guard !inputText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         
-        let userMessage = ChatMessage(id: UUID(), text: inputText, isFromUser: true)
+        let userMessage = ReflectionChatMessage(id: UUID(), text: inputText, isFromUser: true)
         messages.append(userMessage)
         inputText = ""
         
@@ -864,7 +864,7 @@ struct FreeChatSessionView: View {
                 "I understand. It's okay to feel that way.",
                 "Thanks for trusting me with that. What else is on your mind?"
             ]
-            let responseMessage = ChatMessage(id: UUID(), text: responses.randomElement() ?? "I'm listening.", isFromUser: false)
+            let responseMessage = ReflectionChatMessage(id: UUID(), text: responses.randomElement() ?? "I'm listening.", isFromUser: false)
             withAnimation {
                 messages.append(responseMessage)
             }
@@ -872,8 +872,15 @@ struct FreeChatSessionView: View {
     }
 }
 
+// Using a distinct name to avoid conflicts with other ChatMessage types in the project
+struct ReflectionChatMessage: Identifiable {
+    let id: UUID
+    let text: String
+    let isFromUser: Bool
+}
+
 struct FreeChatBubble: View {
-    let message: ChatMessage
+    let message: ReflectionChatMessage
     
     var body: some View {
         HStack {
@@ -945,8 +952,11 @@ struct CompletionView: View {
     }
 }
 
+#if canImport(PreviewsMacros)
 #Preview {
     ReflectionTimeView()
         .environmentObject(AppState())
 }
 #endif
+#endif
+

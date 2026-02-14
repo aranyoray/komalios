@@ -89,12 +89,14 @@ private struct TabButton: View {
     }
 }
 
+#if canImport(PreviewsMacros)
 #Preview {
     ZStack {
         Color.gray.opacity(0.2)
             .ignoresSafeArea()
-        
+
         FloatingMenuView(selectedTab: .constant(.browser))
     }
 }
+#endif
 #endif

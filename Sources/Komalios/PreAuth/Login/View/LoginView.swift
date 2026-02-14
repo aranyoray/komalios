@@ -62,16 +62,26 @@ struct LoginView: View {
                             Text("Guest User")
                         }
                         .padding()
-                        .foregroundStyle(.accent)
+                        .foregroundStyle(Color.accentColor)
                         .font(.title3)
                         .underline()
                     }
                 }
+#if os(iOS)
                 .fullScreenCover(isPresented: $showOnboarding) {
-                    OnboardingView {
+                    LoginGuestOnboardingSheet(onFinish: {
                         appState.savePreferences()
-                    }
+                        showOnboarding = false
+                    })
                 }
+#else
+                .sheet(isPresented: $showOnboarding) {
+                    LoginGuestOnboardingSheet(onFinish: {
+                        appState.savePreferences()
+                        showOnboarding = false
+                    })
+                }
+#endif
             case .loading:
                 ZStack {
                     GradientBackground()
@@ -121,6 +131,35 @@ struct LoginView: View {
     }
 
 
+#if canImport(PreviewsMacros)
 #Preview {
     LoginView(viewModel: AuthViewModel())
 }
+#endif
+
+private struct LoginGuestOnboardingSheet: View {
+    var onFinish: () -> Void
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                Text("Welcome!")
+                    .font(.title.bold())
+                Text("You can explore as a guest. When you're ready, you can sign in to sync across devices.")
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                Button("Continue") {
+                    onFinish()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            .navigationTitle("Getting Started")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { onFinish() }
+                }
+            }
+        }
+    }
+}
+

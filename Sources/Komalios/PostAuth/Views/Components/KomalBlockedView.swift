@@ -94,7 +94,9 @@ struct KomalBlockedView: View {
     }
 }
 
+#if canImport(PreviewsMacros)
 #Preview {
     KomalBlockedView(category: .violence, reason: "Content blocked")
 }
+#endif
 #endif

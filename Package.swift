@@ -4,17 +4,50 @@ import PackageDescription
 let package = Package(
     name: "Komalios",
     platforms: [
-        .iOS(.v16)
+        .iOS(.v16),
+        .macOS(.v13)
     ],
     products: [
-        .executable(name: "Komalios", targets: ["Komalios"])
+        .library(name: "Komalios", targets: ["Komalios"])
+    ],
+    dependencies: [
+        // Firebase dependencies
+        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "10.20.0"),
+        // Google Sign-In
+        .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "7.0.0")
     ],
     targets: [
-        .executableTarget(
+        .target(
             name: "Komalios",
+            dependencies: [
+                .product(name: "FirebaseAuth", package: "firebase-ios-sdk"),
+                .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
+                .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),
+                .product(name: "GoogleSignInSwift", package: "GoogleSignIn-iOS")
+            ],
             path: "Sources/Komalios",
+            exclude: [
+                "BUILD_FIX_GUIDE.md",
+                "BUILD_FAILURE_ANALYSIS.md",
+                "QUICK_FIX.md",
+                "complete_rebuild.sh",
+                "fix_build_errors.sh"
+            ],
             resources: [
-                .process("Resources")
+                .process("Resources"),
+                .process("Assets.xcassets"),
+                .process("PrivacyInfo.xcprivacy"),
+                .process("animal1.png"),
+                .process("animal2.png"),
+                .process("animal3.png"),
+                .process("animal4.png"),
+                .process("animal5.png"),
+                .process("animal6.png"),
+                .process("animal7.png"),
+                .process("animal8.png"),
+                .process("animal9.png"),
+                .process("animal10.png"),
+                .process("animal11.png")
             ]
         )
     ]

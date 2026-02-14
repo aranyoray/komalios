@@ -1,0 +1,234 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1000001 /* ContentSafetyTestApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000 /* ContentSafetyTestApp.swift */; };
+		A1000003 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002 /* MainTabView.swift */; };
+		A1000005 /* KomalWebAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000004 /* KomalWebAPI.swift */; };
+		A1000007 /* ContentFilterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000006 /* ContentFilterView.swift */; };
+		A1000009 /* ChatbotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000008 /* ChatbotView.swift */; };
+		A100000B /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000A /* SpeechRecognizer.swift */; };
+		A100000D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A100000C /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A0FFFFFF /* ContentSafetyTest.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ContentSafetyTest.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1000000 /* ContentSafetyTestApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentSafetyTestApp.swift; sourceTree = "<group>"; };
+		A1000002 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		A1000004 /* KomalWebAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KomalWebAPI.swift; sourceTree = "<group>"; };
+		A1000006 /* ContentFilterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentFilterView.swift; sourceTree = "<group>"; };
+		A1000008 /* ChatbotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatbotView.swift; sourceTree = "<group>"; };
+		A100000A /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
+		A100000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A100000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A0FFFFFE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A0FFFFFD /* ContentSafetyTest */ = {
+			isa = PBXGroup;
+			children = (
+				A1000000 /* ContentSafetyTestApp.swift */,
+				A1000002 /* MainTabView.swift */,
+				A1000004 /* KomalWebAPI.swift */,
+				A1000006 /* ContentFilterView.swift */,
+				A1000008 /* ChatbotView.swift */,
+				A100000A /* SpeechRecognizer.swift */,
+				A100000C /* Assets.xcassets */,
+				A100000E /* Info.plist */,
+			);
+			path = ContentSafetyTest;
+			sourceTree = "<group>";
+		};
+		A0FFFFFC /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A0FFFFFF /* ContentSafetyTest.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A0FFFFFB = {
+			isa = PBXGroup;
+			children = (
+				A0FFFFFD /* ContentSafetyTest */,
+				A0FFFFFC /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A0FFFFA /* ContentSafetyTest */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A0FFFFFA /* Build configuration list for PBXNativeTarget "ContentSafetyTest" */;
+			buildPhases = (
+				A0FFFFFE /* Frameworks */,
+				A0FFFFFF /* Resources */,
+				A1000000 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ContentSafetyTest;
+			productName = ContentSafetyTest;
+			productReference = A0FFFFFF /* ContentSafetyTest.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A0FFFFF9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					A0FFFFA = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = A0FFFFFB /* Build configuration list for PBXProject "ContentSafetyTest" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A0FFFFFB;
+			productRefGroup = A0FFFFFC /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A0FFFFA /* ContentSafetyTest */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A0FFFFFF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A100000D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000001 /* ContentSafetyTestApp.swift in Sources */,
+				A1000003 /* MainTabView.swift in Sources */,
+				A1000005 /* KomalWebAPI.swift in Sources */,
+				A1000007 /* ContentFilterView.swift in Sources */,
+				A1000009 /* ChatbotView.swift in Sources */,
+				A100000B /* SpeechRecognizer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A0FFFFFC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.ContentSafetyTest;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A0FFFFFD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.ContentSafetyTest;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A0FFFFFB /* Build configuration list for PBXProject "ContentSafetyTest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A0FFFFFC /* Debug */,
+				A0FFFFFD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A0FFFFFA /* Build configuration list for PBXNativeTarget "ContentSafetyTest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A0FFFFFC /* Debug */,
+				A0FFFFFD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A0FFFFF9 /* Project object */;
+}

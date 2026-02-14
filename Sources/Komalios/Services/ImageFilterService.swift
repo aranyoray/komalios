@@ -5,6 +5,7 @@
 //  Digital Guardian Enhancement - On-device image content classification
 //
 
+#if os(iOS)
 import Foundation
 import UIKit
 import Vision
@@ -578,3 +579,4 @@ struct ImageAnalysisResult {
         )
     }
 }
+#endif

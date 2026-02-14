@@ -80,9 +80,11 @@ struct SplashScreenView: View {
     }
 }
 
+#if canImport(PreviewsMacros)
 #Preview {
     SplashScreenView()
         .environmentObject(PathManager())
         .environmentObject(AuthViewModel())
         .environmentObject(AppState())
 }
+#endif

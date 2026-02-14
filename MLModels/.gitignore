@@ -1,0 +1,105 @@
+# 🔒 SECURITY - Keep API Keys Private
+# This .gitignore ensures sensitive files are NEVER committed to Git
+
+# ⚠️ CRITICAL - API Keys and Secrets
+Config.swift
+GoogleService-Info.plist
+Info.plist
+*.plist
+
+# Firebase
+google-services.json
+GoogleService-Info.plist
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Xcode - Build artifacts
+build/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# CocoaPods
+Pods/
+*.xcworkspace
+!default.xcworkspace
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code coverage
+*.gcno
+*.gcda
+coverage.profdata
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Thumbnails
+Thumbs.db
+
+# Xcode Playground
+playground.xcworkspace
+
+# Swift Package Manager artifacts
+/.swiftpm
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.tmp
+*.old
+
+# Logs
+*.log
+logs/
+
+# API Testing
+*.http
+*.rest
+
+# CoreML Models (large files)
+# Uncomment if models are stored in Git LFS or externally
+# *.mlmodel
+# *.mlpackage
+
+# Sensitive documentation
+PRIVATE_*.md
+SECRET_*.txt
+API_KEYS.txt

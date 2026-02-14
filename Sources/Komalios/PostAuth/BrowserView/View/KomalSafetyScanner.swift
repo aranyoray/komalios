@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-#if canImport(SwiftUI) && canImport(WebKit)
+#if os(iOS)
 
 struct KomalSafetyScannerView: View {
     @EnvironmentObject private var appState: AppState
@@ -136,8 +136,8 @@ private struct KomalSafetyScannerContentView: View {
         .sheet(isPresented: $viewModel.showGate) {
             GateView(category: viewModel.category)
                 .environmentObject(appState)
-    }
-        .onChange(of: viewModel.showGate) { oldValue, newValue in
+        }
+        .onChange(of: viewModel.showGate) { newValue in
             if !newValue {
                 viewModel.handleGateDismissed()
             }
@@ -145,7 +145,7 @@ private struct KomalSafetyScannerContentView: View {
         .fullScreenCover(isPresented: $viewModel.showBlocked) {
             KomalBlockedView(category: viewModel.category, reason: viewModel.blockReason)
                 }
-        .onChange(of: viewModel.showBlocked) { oldValue, newValue in
+        .onChange(of: viewModel.showBlocked) { newValue in
             if !newValue {
                 viewModel.handleBlockedDismissed()
             }
@@ -219,3 +219,4 @@ private struct ScanningIndicator: View {
     }
 }
 #endif
+

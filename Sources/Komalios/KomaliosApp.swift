@@ -1,5 +1,6 @@
-#if canImport(SwiftUI)
+#if os(iOS)
 import SwiftUI
+import FirebaseCore
 import FirebaseAuth
 
 @main
@@ -34,7 +35,7 @@ struct ContentView: View {
                     destinationView(for: route)
                 }
         }
-        .onChange(of: authViewModel.user) { oldUser, newUser in
+        .onChange(of: authViewModel.user) { newUser in
             // Handle user state changes
             if newUser == nil {
                 print("✅ User logged out, navigating to LoginView")
@@ -50,7 +51,7 @@ struct ContentView: View {
                 pathManager.push(Routes.onboardingView)
             }
         }
-        .onChange(of: appState.hasCompletedOnboarding) { oldValue, newValue in
+        .onChange(of: appState.hasCompletedOnboarding) { newValue in
             // Handle onboarding completion
             if newValue && authViewModel.user != nil {
                 pathManager.popToRoot()
@@ -97,11 +98,5 @@ struct ContentView: View {
         }
     }
 }
-#else
-@main
-enum KomaliosApp {
-    static func main() {
-        print("Komalios requires SwiftUI and iOS to run.")
-    }
-}
 #endif
+

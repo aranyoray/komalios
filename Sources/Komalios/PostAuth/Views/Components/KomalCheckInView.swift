@@ -133,7 +133,9 @@ struct KomalCheckInView: View {
     }
 }
 
+#if canImport(PreviewsMacros)
 #Preview {
     KomalCheckInView()
 }
+#endif
 #endif

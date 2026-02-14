@@ -5,8 +5,10 @@
 //  Created by Amit Kumar on 18/01/26.
 //
 
+#if os(iOS)
 import FirebaseCore
 import SwiftUI
+import UIKit
 
 class AppDelegate: NSObject, UIApplicationDelegate {
   func application(_ application: UIApplication,
@@ -15,3 +17,4 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     return true
   }
 }
+#endif

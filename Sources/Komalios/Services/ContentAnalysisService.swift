@@ -11,7 +11,9 @@ import NaturalLanguage
 import Vision
 import Speech
 import CoreML
+#if canImport(UIKit)
 import UIKit
+#endif
 
 @MainActor
 final class ContentAnalysisService {
@@ -600,8 +602,17 @@ final class ContentAnalysisService {
     }
     
     // MARK: - Step 4: Vision Analysis
-    
+
     private func analyzeVision(input: ContentAnalysisInput, filterPreferences: ContentFilterPreferences) async -> VisionResult {
+        #if os(iOS)
+        return await _analyzeVisionIOS(input: input, filterPreferences: filterPreferences)
+        #else
+        return VisionResult(subcategories: [], confidence: 0.0, used: false)
+        #endif
+    }
+
+    #if os(iOS)
+    private func _analyzeVisionIOS(input: ContentAnalysisInput, filterPreferences: ContentFilterPreferences) async -> VisionResult {
         guard let media = input.media, !media.images.isEmpty else {
             return VisionResult(subcategories: [], confidence: 0.0, used: false)
         }
@@ -682,8 +693,10 @@ final class ContentAnalysisService {
             used: !detectedSubcategories.isEmpty
         )
     }
-    
+    #endif
+
     /// Analyze image using Vision framework
+    #if os(iOS)
     private func analyzeImageWithVision(image: UIImage) async -> (subcategories: [Subcategory], confidence: Double) {
         guard let cgImage = image.cgImage else {
             return ([], 0.0)
@@ -773,7 +786,8 @@ final class ContentAnalysisService {
         
         return (subcategories, maxConfidence)
     }
-    
+    #endif
+
     // MARK: - Step 5: Audio Analysis
     
     private func analyzeAudio(input: ContentAnalysisInput) async -> AudioResult {

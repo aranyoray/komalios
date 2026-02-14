@@ -5,6 +5,7 @@
 //  Digital Guardian Enhancement - Manages engagement tracking and JS bridge
 //
 
+#if os(iOS)
 import Foundation
 import WebKit
 import Combine
@@ -481,3 +482,4 @@ final class EngagementTracker: ObservableObject {
         """
     }
 }
+#endif

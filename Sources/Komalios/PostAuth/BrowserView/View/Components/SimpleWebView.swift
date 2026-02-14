@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-#if canImport(WebKit)
+#if os(iOS)
 import WebKit
 
 struct SimpleWebView: UIViewRepresentable {

@@ -1,4 +1,4 @@
-#if canImport(SwiftUI)
+#if os(iOS)
 import SwiftUI
 import AVFoundation
 import Speech
@@ -204,7 +204,7 @@ struct CharacterChatView: View {
     let character: RikiCharacter
     let onBack: () -> Void
     
-    @State private var messages: [ChatMessage] = []
+    @State private var messages: [RikiChatMessage] = []
     @State private var inputText: String = ""
     @State private var isListening: Bool = false
     @FocusState private var isInputFocused: Bool
@@ -239,7 +239,7 @@ struct CharacterChatView: View {
         }
         .onAppear {
             // Add greeting message
-            messages.append(ChatMessage(
+            messages.append(RikiChatMessage(
                 id: UUID(),
                 text: character.greeting,
                 isFromUser: false
@@ -385,7 +385,7 @@ struct CharacterChatView: View {
     private func sendMessage() {
         guard !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         
-        let userMessage = ChatMessage(id: UUID(), text: inputText, isFromUser: true)
+        let userMessage = RikiChatMessage(id: UUID(), text: inputText, isFromUser: true)
         messages.append(userMessage)
         inputText = ""
         isInputFocused = false
@@ -393,7 +393,7 @@ struct CharacterChatView: View {
         // Simulate character response after a short delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             let response = character.responses.randomElement() ?? "That's so cool!"
-            let responseMessage = ChatMessage(id: UUID(), text: response, isFromUser: false)
+            let responseMessage = RikiChatMessage(id: UUID(), text: response, isFromUser: false)
             withAnimation {
                 messages.append(responseMessage)
             }
@@ -436,35 +436,62 @@ struct CharacterChatView: View {
     }
     
     private func requestMicrophonePermission() async -> Bool {
-        // Check microphone permission (using iOS 17+ API)
-        let micStatus = AVAudioApplication.shared.recordPermission
-        if micStatus == .undetermined {
-            let granted = await AVAudioApplication.requestRecordPermission()
-            if !granted {
+        // Check microphone permission with availability handling
+        // iOS 17+: use AVAudioApplication, earlier: use AVAudioSession
+        let micPermissionGranted: Bool
+        if #available(iOS 17.0, *) {
+            let micStatus = AVAudioApplication.shared.recordPermission
+            if micStatus == .undetermined {
+                let granted = await AVAudioApplication.requestRecordPermission()
+                if !granted {
+                    return false
+                }
+                micPermissionGranted = granted
+            } else if micStatus == .denied {
                 return false
+            } else {
+                micPermissionGranted = (micStatus == .granted)
             }
-        } else if micStatus == .denied {
-            return false
+        } else {
+            // Pre-iOS 17 path
+            let session = AVAudioSession.sharedInstance()
+            let micStatus = session.recordPermission
+            if micStatus == .undetermined {
+                var granted = false
+                await withCheckedContinuation { continuation in
+                    session.requestRecordPermission { isGranted in
+                        granted = isGranted
+                        continuation.resume()
+                    }
+                }
+                if !granted {
+                    return false
+                }
+                micPermissionGranted = granted
+            } else if micStatus == .denied {
+                return false
+            } else {
+                micPermissionGranted = (micStatus == .granted)
+            }
         }
-        
+
         // Check speech recognition permission
         let speechStatus = SFSpeechRecognizer.authorizationStatus()
         if speechStatus == .notDetermined {
             await withCheckedContinuation { continuation in
-                SFSpeechRecognizer.requestAuthorization { status in
+                SFSpeechRecognizer.requestAuthorization { _ in
                     continuation.resume()
                 }
             }
-            return SFSpeechRecognizer.authorizationStatus() == .authorized
         }
-        
-        return speechStatus == .authorized && micStatus == .granted
+        let speechAuthorized = SFSpeechRecognizer.authorizationStatus() == .authorized
+        return speechAuthorized && micPermissionGranted
     }
 }
 
 // MARK: - Chat Message Model
 
-struct ChatMessage: Identifiable {
+struct RikiChatMessage: Identifiable {
     let id: UUID
     let text: String
     let isFromUser: Bool
@@ -473,7 +500,7 @@ struct ChatMessage: Identifiable {
 // MARK: - Chat Bubble
 
 struct ChatBubble: View {
-    let message: ChatMessage
+    let message: RikiChatMessage
     let character: RikiCharacter
     
     var body: some View {
@@ -579,3 +606,4 @@ struct RikiAvatarView: View {
     }
 }
 #endif
+

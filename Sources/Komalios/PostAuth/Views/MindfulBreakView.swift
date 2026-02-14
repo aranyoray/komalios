@@ -1,4 +1,4 @@
-#if canImport(SwiftUI)
+#if os(iOS)
 import SwiftUI
 
 struct MindfulBreakView: View {
@@ -16,7 +16,17 @@ struct MindfulBreakView: View {
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
 
-                RikiAvatarView(size: 160)
+                ZStack {
+                    Circle()
+                        .fill(KomalColors.pearlAqua.opacity(0.25))
+                        .frame(width: 160, height: 160)
+                    Image(systemName: "person.circle.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 140, height: 140)
+                        .foregroundStyle(KomalColors.bubblegumPink)
+                        .opacity(0.9)
+                }
 
                 BubblyCard(tintColor: KomalColors.yellow) {
                     VStack(spacing: 14) {
@@ -62,3 +72,4 @@ struct MindfulBreakView: View {
     }
 }
 #endif
+

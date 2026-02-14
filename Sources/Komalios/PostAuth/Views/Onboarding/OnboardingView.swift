@@ -1,4 +1,4 @@
-#if canImport(SwiftUI)
+#if os(iOS)
 import SwiftUI
 
 // MARK: - Survey Data Models
@@ -24,7 +24,7 @@ enum ScreenTimeGoal: String, CaseIterable {
 
 // MARK: - Main Onboarding View
 
-struct OnboardingView: View {
+struct PostAuthOnboardingView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var pathManager: PathManager
     @State private var currentPage = 0
@@ -1202,8 +1202,11 @@ struct CategoryItemRow: View {
     }
 }
 
+#if canImport(PreviewsMacros)
 #Preview {
-    OnboardingView(onComplete: {})
+    PostAuthOnboardingView(onComplete: {})
         .environmentObject(AppState())
 }
 #endif
+#endif
+

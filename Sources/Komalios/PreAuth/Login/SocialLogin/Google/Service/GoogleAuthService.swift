@@ -5,14 +5,17 @@
 //  Created by Amit Kumar on 18/01/26.
 //
 
+import Foundation
 import FirebaseAuth
 import GoogleSignIn
 import FirebaseCore
 import FirebaseFirestore
 import AuthenticationServices
 import CryptoKit
+
+#if os(iOS) || os(tvOS)
 import UIKit
-import Foundation
+#endif
 
 protocol AuthServiceProtocol {
     func signInWithGoogle() async throws -> User
@@ -32,6 +35,7 @@ final class FirebaseAuthService: AuthServiceProtocol {
         let config = GIDConfiguration(clientID: clientID)
         GIDSignIn.sharedInstance.configuration = config
 
+#if os(iOS) || os(tvOS)
         let rootVC = await UIApplication.shared
             .connectedScenes
             .compactMap { $0 as? UIWindowScene }
@@ -65,6 +69,10 @@ final class FirebaseAuthService: AuthServiceProtocol {
         try await firestoreService.updateLastLogin(uid: user.uid)
 
         return user   // ✅ SUCCESS DATA
+#else
+        // On platforms without UIKit, Google sign-in via presenting a view controller is unsupported
+        throw NSError(domain: "GoogleSignIn", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not supported on this platform."])
+#endif
     }
 
     func signInWithApple() async throws -> User {
@@ -211,10 +219,14 @@ private class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate, 
     }
     
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+#if os(iOS) || os(tvOS)
         return UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap { $0.windows }
             .first { $0.isKeyWindow } ?? ASPresentationAnchor()
+#else
+        return ASPresentationAnchor()
+#endif
     }
     
     private func sha256(_ input: String) -> String {
@@ -227,3 +239,4 @@ private class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate, 
         return hashString
     }
 }
+

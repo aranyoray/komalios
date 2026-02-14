@@ -1,7 +1,8 @@
-#if canImport(SwiftUI)
+#if os(iOS)
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import UIKit
 #if canImport(GoogleSignIn)
 import GoogleSignIn
 #endif
@@ -114,12 +115,23 @@ struct SettingsView: View {
             }
         }
         .sheet(isPresented: $showFilterPreferences) {
-            FilterPreferencesView(preferences: $appState.contentFilterPreferences)
-                .onChange(of: appState.contentFilterPreferences) { _, d_ in
-                    // Auto-save when preferences change
-                    appState.savePreferences()
-                }
-                .environmentObject(appState)
+            if #available(iOS 17.0, *) {
+                // iOS 17+: Use the new onChange with initial parameter if needed
+                FilterPreferencesView(preferences: $appState.contentFilterPreferences)
+                    .onChange(of: appState.contentFilterPreferences, initial: false) { _, _ in
+                        // Auto-save when preferences change
+                        appState.savePreferences()
+                    }
+                    .environmentObject(appState)
+            } else {
+                // iOS 16 and earlier: Use legacy onChange signature
+                FilterPreferencesView(preferences: $appState.contentFilterPreferences)
+                    .onChange(of: appState.contentFilterPreferences) { _ in
+                        // Auto-save when preferences change
+                        appState.savePreferences()
+                    }
+                    .environmentObject(appState)
+            }
         }
         .sheet(isPresented: $showInsights) {
             InsightsView()
@@ -648,8 +660,12 @@ struct SettingsView: View {
             try Auth.auth().signOut()
             print("✅ Firebase Auth signed out")
             // Also sign out from Google Sign-In if it was used
+#if canImport(GoogleSignIn)
             GIDSignIn.sharedInstance.signOut()
             print("✅ Google Sign-In signed out")
+#else
+            // GoogleSignIn not available in this build configuration
+#endif
             appState.hasCompletedOnboarding = false
         } catch {
             print("❌ Error signing out: \(error.localizedDescription)")
@@ -700,8 +716,12 @@ struct SettingsView: View {
                 
                 // 3. Sign out from Google Sign-In if it was used
                 await MainActor.run {
+#if canImport(GoogleSignIn)
                     GIDSignIn.sharedInstance.signOut()
                     print("✅ Google Sign-In signed out")
+#else
+                    // GoogleSignIn not available in this build configuration
+#endif
                     
                     // 4. Clear local app state
                     appState.hasCompletedOnboarding = false
@@ -1115,3 +1135,5 @@ struct PinEntryView: View {
 }
 
 #endif
+
+

@@ -5,7 +5,7 @@
 //  Browsing insights report with professional charts
 //
 
-#if canImport(SwiftUI)
+#if os(iOS)
 import SwiftUI
 import Charts
 

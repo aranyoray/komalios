@@ -1,0 +1,41 @@
+{
+  "version": "2024-10-01",
+  "entries": [
+    {
+      "category": "Explicit & Body",
+      "reason": "Adult content domain",
+      "match": {
+        "hostContains": ["adult", "porn", "xxx"]
+      }
+    },
+    {
+      "category": "Violence & Disturbing",
+      "reason": "Weapons marketplace",
+      "match": {
+        "hostContains": ["guns", "weapons"]
+      }
+    },
+    {
+      "category": "Substances & Addictive",
+      "reason": "Drug-related storefront",
+      "match": {
+        "hostContains": ["vape", "weed", "cannabis"]
+      }
+    },
+    {
+      "category": "Financial & Commercial",
+      "reason": "Gambling and betting",
+      "match": {
+        "hostContains": ["casino", "bet", "sportsbook"],
+        "pathContains": ["/bet", "/casino"]
+      }
+    },
+    {
+      "category": "Platform Risks",
+      "reason": "Short-form video feeds",
+      "match": {
+        "pathContains": ["/shorts", "/reels", "/tiktok"]
+      }
+    }
+  ]
+}
