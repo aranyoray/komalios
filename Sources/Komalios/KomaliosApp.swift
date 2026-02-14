@@ -89,7 +89,7 @@ struct ContentView: View {
                     pathManager.push(Routes.loginView)
                 }
         case .onboardingView:
-            OnboardingView {
+            PostAuthOnboardingView {
                 appState.savePreferences()
             }
             .navigationBarBackButtonHidden(true)

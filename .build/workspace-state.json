@@ -105,6 +105,22 @@
           "location" : "https://github.com/google/grpc-binary.git",
           "name" : "gRPC"
         },
+        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/grpc-binary/grpc/grpc.xcframework",
+        "source" : {
+          "checksum" : "033336c8811628d66186486f3c26934afdedd15f01b6079b6e98d1236b39ed31",
+          "type" : "remote",
+          "url" : "https://dl.google.com/firebase/ios/bin/grpc/1.62.2/rc0/grpc.zip"
+        },
+        "targetName" : "grpc"
+      },
+      {
+        "kind" : "xcframework",
+        "packageRef" : {
+          "identity" : "grpc-binary",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/google/grpc-binary.git",
+          "name" : "gRPC"
+        },
         "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/grpc-binary/openssl_grpc/openssl_grpc.xcframework",
         "source" : {
           "checksum" : "4bced0ddb0c8866877c2ad95c106e4b0afbec6fce7c7bc5341a636f2e7ea4521",
@@ -128,22 +144,6 @@
           "url" : "https://dl.google.com/firebase/ios/bin/grpc/1.62.2/rc0/grpcpp.zip"
         },
         "targetName" : "grpcpp"
-      },
-      {
-        "kind" : "xcframework",
-        "packageRef" : {
-          "identity" : "grpc-binary",
-          "kind" : "remoteSourceControl",
-          "location" : "https://github.com/google/grpc-binary.git",
-          "name" : "gRPC"
-        },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/grpc-binary/grpc/grpc.xcframework",
-        "source" : {
-          "checksum" : "033336c8811628d66186486f3c26934afdedd15f01b6079b6e98d1236b39ed31",
-          "type" : "remote",
-          "url" : "https://dl.google.com/firebase/ios/bin/grpc/1.62.2/rc0/grpc.zip"
-        },
-        "targetName" : "grpc"
       }
     ],
     "dependencies" : [
