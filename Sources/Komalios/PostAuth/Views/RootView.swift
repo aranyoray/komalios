@@ -2,9 +2,10 @@
 import SwiftUI
 
 struct RootView: View {
+    @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var authViewModel: AuthViewModel
     @State private var selectedTab: NavigationTab = .browser
-    
+
     var body: some View {
         ZStack {
             // Content based on selected tab
@@ -21,9 +22,14 @@ struct RootView: View {
                         .environmentObject(authViewModel)
                 }
             }
-            
+
             // Floating menu overlay
             FloatingMenuView(selectedTab: $selectedTab)
+        }
+        .onChange(of: selectedTab) { _, _ in
+            if appState.accountMode == .guest {
+                appState.accountMode = .child
+            }
         }
     }
 }

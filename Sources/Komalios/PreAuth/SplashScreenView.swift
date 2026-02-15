@@ -68,9 +68,9 @@ struct SplashScreenView: View {
                 // Only navigate if path is empty (prevent double navigation)
                 guard pathManager.path.isEmpty else { return }
                 
-                // If user is already logged in and completed onboarding, go to RootView
+                // If user is already logged in (or guest) and completed onboarding, go to RootView
                 // Otherwise, go to LoginView
-                if authViewModel.user != nil && appState.hasCompletedOnboarding {
+                if (authViewModel.user != nil || appState.isGuestUser) && appState.hasCompletedOnboarding {
                     pathManager.push(Routes.rootView)
                 } else {
                     pathManager.push(Routes.loginView)

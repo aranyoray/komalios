@@ -99,23 +99,33 @@ final class ContentAnalysisService {
         )
         
         // Step 8: Check if cloud fallback is needed
-        if shouldUseCloudFallback(
+        let needsCloud = shouldUseCloudFallback(
             nlp: nlpResult,
             vision: visionResult,
             audio: audioResult,
             links: linksResult
-        ) {
-            // Call cloud API as fallback
-            let cloudResult = try await callCloudFallback(url: url, input: input)
-            return mergeAllDecisions(
-                nlp: nlpResult,
-                vision: visionResult,
-                audio: audioResult,
-                links: linksResult,
-                cloud: cloudResult,
-                ageBand: ageBand,
-                filterPreferences: filterPreferences
-            )
+        )
+        debugLogLine("[DEBUG-ANALYSIS] Cloud fallback needed: \(needsCloud)")
+        debugLogLine("[DEBUG-ANALYSIS] NLP confidence: \(nlpResult.confidence), categories: \(nlpResult.majorCategories.map { "\($0.name): \($0.probability)" })")
+        debugLogLine("[DEBUG-ANALYSIS] Vision confidence: \(visionResult.confidence), Audio confidence: \(audioResult.confidence)")
+        if needsCloud {
+            debugLogLine("[DEBUG-ANALYSIS] Calling cloud fallback for: \(url)")
+            do {
+                let cloudResult = try await callCloudFallback(url: url, input: input)
+                debugLogLine("[DEBUG-ANALYSIS] Cloud result received - confidence: \(cloudResult.confidence), categories: \(cloudResult.majorCategories.map { $0.name })")
+                return mergeAllDecisions(
+                    nlp: nlpResult,
+                    vision: visionResult,
+                    audio: audioResult,
+                    links: linksResult,
+                    cloud: cloudResult,
+                    ageBand: ageBand,
+                    filterPreferences: filterPreferences
+                )
+            } catch {
+                debugLogLine("[DEBUG-ANALYSIS] Cloud fallback FAILED: \(error.localizedDescription)")
+                throw error
+            }
         }
         
         // Step 9: Build unified response
@@ -286,7 +296,7 @@ final class ContentAnalysisService {
             // Create input for the model
             // Note: The exact input structure depends on how the model was trained
             // Common patterns: text input as String or as MLMultiArray
-            let input = try ContentSafetyTextClassifierInput(text: processedText)
+            let input = ContentSafetyTextClassifierInput(text: processedText)
             
             // Get prediction
             let prediction = try model.prediction(input: input)
@@ -472,7 +482,7 @@ final class ContentAnalysisService {
         // Detect entities (person names, organizations, etc.)
         var detectedEntities: Set<String> = []
         tagger.enumerateTags(in: combinedText.startIndex..<combinedText.endIndex, unit: .word, scheme: .nameType) { tag, tokenRange in
-            if let tag = tag {
+            if tag != nil {
                 detectedEntities.insert(String(combinedText[tokenRange]).lowercased())
             }
             return true
@@ -775,7 +785,7 @@ final class ContentAnalysisService {
         // Additional heuristic checks
         // Check image properties that might indicate inappropriate content
         let imageSize = image.size
-        let aspectRatio = imageSize.width / imageSize.height
+        _ = imageSize.width / imageSize.height
         
         // Very wide or very tall images might be banners/ads (less likely to be explicit)
         // Square or portrait images are more common for explicit content
@@ -956,7 +966,7 @@ final class ContentAnalysisService {
     private func analyzeExternalLink(link: LinkInfo) -> Subcategory? {
         // Lightweight on-device classification
         let domain = link.domain.lowercased()
-        let context = (link.context ?? "").lowercased()
+        _ = (link.context ?? "").lowercased()
         
         // Check for known risky domains (could be expanded with a local database)
         if domain.contains("gambling") || domain.contains("casino") {
@@ -1229,7 +1239,7 @@ final class ContentAnalysisService {
         mergedDecision: UnifiedDecisionResponse,
         input: ContentAnalysisInput
     ) -> UnifiedDecisionResponse {
-        var response = mergedDecision
+        _ = mergedDecision
         // Update URL and context type
         // This is a workaround since Swift structs are value types
         return UnifiedDecisionResponse(
@@ -1283,7 +1293,7 @@ final class ContentAnalysisService {
     private func callCloudFallback(url: String, input: ContentAnalysisInput) async throws -> CloudResult {
         // Call existing ScanNetworkService
         let networkService = ScanNetworkService()
-        let scanResponse = try await networkService.scanURL(url)
+        let scanResponse = try await networkService.scanURL(url, searchQuery: nil)
         
         // Convert ScanResponse to CloudResult
         return convertScanResponseToCloudResult(scanResponse)

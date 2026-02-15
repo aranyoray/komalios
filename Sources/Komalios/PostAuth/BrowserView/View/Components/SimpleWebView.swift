@@ -8,7 +8,7 @@
 import SwiftUI
 
 #if os(iOS)
-import WebKit
+@preconcurrency import WebKit
 
 struct SimpleWebView: UIViewRepresentable {
     let url: URL
@@ -253,32 +253,64 @@ struct SimpleWebView: UIViewRepresentable {
             return trustedDomains.contains(host)
         }
         
+        // Social media and video platforms that are not appropriate for children
+        private let blockedPlatforms: Set<String> = [
+            "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be",
+            "tiktok.com", "www.tiktok.com",
+            "instagram.com", "www.instagram.com",
+            "twitter.com", "www.twitter.com", "x.com", "www.x.com",
+            "facebook.com", "www.facebook.com", "m.facebook.com",
+            "reddit.com", "www.reddit.com", "old.reddit.com",
+            "snapchat.com", "www.snapchat.com",
+            "discord.com", "www.discord.com",
+            "twitch.tv", "www.twitch.tv"
+        ]
+
+        private func isBlockedPlatform(_ url: URL) -> Bool {
+            guard let host = url.host?.lowercased() else { return false }
+            return blockedPlatforms.contains(host)
+        }
+
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             guard let url = navigationAction.request.url else {
                 decisionHandler(.allow)
                 return
             }
-            
+
             // Skip content checks for trusted kid-friendly domains
             if isTrustedDomain(url) {
                 print("✅ SimpleWebView: Trusted domain - skipping content check: \(url.host ?? "")")
                 decisionHandler(.allow)
                 return
             }
-            
+
+            // Block social media and video platforms
+            if isBlockedPlatform(url) {
+                let host = url.host ?? "unknown"
+                print("🛡️ SimpleWebView blocked platform: \(host)")
+                historyService.logBlocked(url: url, category: "Platform Block", reason: "Blocked platform: \(host)")
+
+                DispatchQueue.main.async { [weak self] in
+                    self?.onInappropriateContent?(.urlKeyword(host), url)
+                }
+
+                decisionHandler(.cancel)
+                return
+            }
+
             // DIGITAL GUARDIAN: Check ALL navigations for inappropriate content
             let contentCheck = BrowserState.checkURL(url, parentSettings: parentSettings)
             if contentCheck.shouldIntervene, let trigger = contentCheck.trigger {
                 print("🛡️ SimpleWebView blocked navigation: \(trigger.searchTerm)")
-                
+
                 // Log the block
                 historyService.logBlocked(url: url, category: "Content Filter", reason: "Inappropriate: \(trigger.searchTerm)")
-                
+
                 // Notify parent view to show intervention
                 DispatchQueue.main.async { [weak self] in
                     self?.onInappropriateContent?(trigger, url)
                 }
-                
+
                 decisionHandler(.cancel)
                 return
             }

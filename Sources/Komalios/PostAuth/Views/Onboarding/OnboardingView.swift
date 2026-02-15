@@ -30,10 +30,14 @@ struct PostAuthOnboardingView: View {
     @State private var currentPage = 0
     @State private var surveyData = ChildSurveyData()
     @State private var preferences: ContentFilterPreferences = ContentFilterPreferences()
+    @State private var pinEntry: String = ""
+    @State private var pinConfirm: String = ""
+    @State private var pinMismatchError: Bool = false
+    @State private var enableBiometric: Bool = false
 
     var onComplete: () -> Void
 
-    private let totalPages = 8
+    private let totalPages = 9
 
     var body: some View {
         ZStack {
@@ -56,7 +60,8 @@ struct PostAuthOnboardingView: View {
                     likesScreen.tag(4)
                     dislikesScreen.tag(5)
                     parentConcernsScreen.tag(6)
-                    completionScreen.tag(7)
+                    pinSetupScreen.tag(7)
+                    completionScreen.tag(8)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.easeInOut(duration: 0.3), value: currentPage)
@@ -553,7 +558,7 @@ struct PostAuthOnboardingView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     SurveyHeader(
-                        step: "6 of 6",
+                        step: "6 of 7",
                         title: "Your Concerns",
                         subtitle: "What worries you most about your child online?"
                     )
@@ -595,8 +600,129 @@ struct PostAuthOnboardingView: View {
         }
     }
 
-    // MARK: - Screen 8: Completion
-    
+    // MARK: - Screen 8: PIN Setup
+
+    private var pinSetupScreen: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    SurveyHeader(
+                        step: "7 of 7",
+                        title: "Set Parent PIN",
+                        subtitle: "Create a PIN to protect parent settings"
+                    )
+
+                    Text("This PIN will be required to access parent mode and approve gated content.")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(KomalColors.textSecondary)
+                        .padding(.horizontal, 24)
+
+                    VStack(spacing: 20) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Enter PIN")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(KomalColors.textPrimary)
+
+                            SecureField("4-digit PIN", text: $pinEntry)
+                                .keyboardType(.numberPad)
+                                .font(.system(size: 18, weight: .medium))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                                .background(Color.white)
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                )
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Confirm PIN")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(KomalColors.textPrimary)
+
+                            SecureField("Confirm PIN", text: $pinConfirm)
+                                .keyboardType(.numberPad)
+                                .font(.system(size: 18, weight: .medium))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                                .background(Color.white)
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(pinMismatchError ? Color.red : Color.gray.opacity(0.2), lineWidth: pinMismatchError ? 2 : 1)
+                                )
+
+                            if pinMismatchError {
+                                Text("PINs do not match. Please try again.")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.red)
+                            }
+                        }
+
+                        // Biometric toggle
+                        if BiometricAuthService.availableBiometricType != .none {
+                            HStack(spacing: 12) {
+                                Image(systemName: BiometricAuthService.biometricIcon)
+                                    .font(.system(size: 22))
+                                    .foregroundColor(KomalColors.lavenderPurple)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Enable \(BiometricAuthService.biometricName)")
+                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                        .foregroundColor(KomalColors.textPrimary)
+                                    Text("Use \(BiometricAuthService.biometricName) instead of PIN")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(KomalColors.textSecondary)
+                                }
+
+                                Spacer()
+
+                                Toggle("", isOn: $enableBiometric)
+                                    .labelsHidden()
+                                    .tint(KomalColors.lavenderPurple)
+                            }
+                            .padding(14)
+                            .background(Color.white)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 24)
+
+                    ResearchNote(
+                        text: "A parent PIN ensures only authorized adults can modify safety settings and approve gated content."
+                    )
+                    .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 120)
+            }
+
+            SurveyNavigation(
+                canGoBack: true,
+                canGoNext: pinEntry.count >= 4 && pinConfirm.count >= 4,
+                onBack: { withAnimation { currentPage = 6 } },
+                onNext: {
+                    UIApplication.shared.hideKeyboard()
+                    if pinEntry == pinConfirm {
+                        pinMismatchError = false
+                        KeychainService.savePin(pinEntry)
+                        BiometricAuthService.isBiometricEnabled = enableBiometric
+                        appState.parentSettings.biometricEnabled = enableBiometric
+                        withAnimation { currentPage = 8 }
+                    } else {
+                        pinMismatchError = true
+                    }
+                }
+            )
+        }
+    }
+
+    // MARK: - Screen 9: Completion
+
     private var completionScreen: some View {
         ScrollView {
             VStack(spacing: 28) {
@@ -682,7 +808,7 @@ struct PostAuthOnboardingView: View {
                 }
                 .padding(.horizontal, 24)
                 
-                Button(action: { withAnimation { currentPage = 6 } }) {
+                Button(action: { withAnimation { currentPage = 7 } }) {
                     Text("Review Answers")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)

@@ -56,14 +56,9 @@
 		B24118BF2F1E8CA3001DC5AF /* Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24118BE2F1E8C9E001DC5AF /* Extension.swift */; };
 		B24118E72F1F99F5001DC5AF /* Models_Masterdoc-2.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = B24118E52F1F99F5001DC5AF /* Models_Masterdoc-2.xlsx */; };
 		B24118E82F1F99F5001DC5AF /* Agent.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = B24118E42F1F99F5001DC5AF /* Agent.xlsx */; };
-		B24118F72F1FB7D5001DC5AF /* mature_dataset.csv in Resources */ = {isa = PBXBuildFile; fileRef = B24118EC2F1FB7D5001DC5AF /* mature_dataset.csv */; };
-		B24118F82F1FB7D5001DC5AF /* cyberbullying_dataset.csv in Resources */ = {isa = PBXBuildFile; fileRef = B24118E92F1FB7D5001DC5AF /* cyberbullying_dataset.csv */; };
-		B24118F92F1FB7D5001DC5AF /* horror_dataset.csv in Resources */ = {isa = PBXBuildFile; fileRef = B24118EB2F1FB7D5001DC5AF /* horror_dataset.csv */; };
-		B24118FB2F1FB7D5001DC5AF /* financial_dataset.csv in Resources */ = {isa = PBXBuildFile; fileRef = B24118EA2F1FB7D5001DC5AF /* financial_dataset.csv */; };
 		B24118FC2F1FB7D5001DC5AF /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = B24118F32F1FB7D5001DC5AF /* README.md */; };
 		B24118FD2F1FB7D5001DC5AF /* train_template.py in Resources */ = {isa = PBXBuildFile; fileRef = B24118F52F1FB7D5001DC5AF /* train_template.py */; };
 		B24118FE2F1FB7D5001DC5AF /* QUICK_START.md in Resources */ = {isa = PBXBuildFile; fileRef = B24118F22F1FB7D5001DC5AF /* QUICK_START.md */; };
-		B24118FF2F1FB7D5001DC5AF /* parasocial_dataset.csv in Resources */ = {isa = PBXBuildFile; fileRef = B24118ED2F1FB7D5001DC5AF /* parasocial_dataset.csv */; };
 		B24119002F1FB7D5001DC5AF /* convert_to_coreml.py in Resources */ = {isa = PBXBuildFile; fileRef = B24118F02F1FB7D5001DC5AF /* convert_to_coreml.py */; };
 		B24119012F1FB7D5001DC5AF /* ContentSafetyTextClassifier.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = B24118EF2F1FB7D5001DC5AF /* ContentSafetyTextClassifier.mlmodel */; };
 		B241195D2F2244A4001DC5AF /* NSFW.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = B241195C2F2244A4001DC5AF /* NSFW.mlmodel */; };
@@ -90,6 +85,20 @@
 		UNIFIED001201D0001 /* UnifiedDecisionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = UNIFIED001101D0001 /* UnifiedDecisionModels.swift */; };
 		VIEWCNT001201D0001 /* ViewportContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = VIEWCNT001101D0001 /* ViewportContent.swift */; };
 		VPTRKJS001201D0001 /* viewport_tracker.js in Resources */ = {isa = PBXBuildFile; fileRef = VPTRKJS001101D0001 /* viewport_tracker.js */; };
+		GEMINI001201D0001 /* GeminiChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = GEMINI001101D0001 /* GeminiChatService.swift */; };
+		SPEECH001201D0001 /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPEECH001101D0001 /* SpeechRecognizer.swift */; };
+		CONFIG001201D0001 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = CONFIG001101D0001 /* Config.swift */; };
+		56EB8B5CD4334565AB504BBC /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7722813A6DB4A4AA30C1FF9 /* KeychainService.swift */; };
+		EBAC442E949D41EEBBFBEE68 /* BiometricAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 571BEFFCF566455496E03E65 /* BiometricAuthService.swift */; };
+		AD9394DD5D0245949324BF16 /* AppHistoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBD65FCE0B414FE5B2A9235D /* AppHistoryService.swift */; };
+		9FEF1C0067654E8F90E8B733 /* TextToSpeechService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F1144B541EB460ABCDEEA7E /* TextToSpeechService.swift */; };
+		DBE1B704AB4647D8B6EF72BB /* AudioPlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273666D3212249818E0A4B5A /* AudioPlaybackManager.swift */; };
+		430C4285FA864122929B71AD /* EmojiResponseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFFB361E650047D9B08729E9 /* EmojiResponseView.swift */; };
+		F16D265BA8E14877827A64B0 /* EmojiCheckInBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CFB6C2A24574315A940440A /* EmojiCheckInBubble.swift */; };
+		9869EE8E5D4F4CE99972BA40 /* BlockedEmojiPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = B622A5CC25894E9082F55295 /* BlockedEmojiPopup.swift */; };
+		6036166503A34655B56A4CFB /* DigitalJourneyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200D4F63E46462EA0048C50 /* DigitalJourneyModels.swift */; };
+		70C1B9B70632463291F51EC9 /* DigitalJourneyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32AC2F65BBC94205AC5AC06C /* DigitalJourneyViewModel.swift */; };
+		CA8FED38FA844F7693DDBE98 /* DigitalJourneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD65731DCD714DCDB000AE3F /* DigitalJourneyView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -140,11 +149,6 @@
 		B24118BE2F1E8C9E001DC5AF /* Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extension.swift; sourceTree = "<group>"; };
 		B24118E42F1F99F5001DC5AF /* Agent.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Agent.xlsx; sourceTree = "<group>"; };
 		B24118E52F1F99F5001DC5AF /* Models_Masterdoc-2.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Models_Masterdoc-2.xlsx"; sourceTree = "<group>"; };
-		B24118E92F1FB7D5001DC5AF /* cyberbullying_dataset.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = cyberbullying_dataset.csv; sourceTree = "<group>"; };
-		B24118EA2F1FB7D5001DC5AF /* financial_dataset.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = financial_dataset.csv; sourceTree = "<group>"; };
-		B24118EB2F1FB7D5001DC5AF /* horror_dataset.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = horror_dataset.csv; sourceTree = "<group>"; };
-		B24118EC2F1FB7D5001DC5AF /* mature_dataset.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = mature_dataset.csv; sourceTree = "<group>"; };
-		B24118ED2F1FB7D5001DC5AF /* parasocial_dataset.csv */ = {isa = PBXFileReference; lastKnownFileType = text; path = parasocial_dataset.csv; sourceTree = "<group>"; };
 		B24118EF2F1FB7D5001DC5AF /* ContentSafetyTextClassifier.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = ContentSafetyTextClassifier.mlmodel; sourceTree = "<group>"; };
 		B24118F02F1FB7D5001DC5AF /* convert_to_coreml.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = convert_to_coreml.py; sourceTree = "<group>"; };
 		B24118F22F1FB7D5001DC5AF /* QUICK_START.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QUICK_START.md; sourceTree = "<group>"; };
@@ -174,6 +178,20 @@
 		UNIFIED001101D0001 /* UnifiedDecisionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedDecisionModels.swift; sourceTree = "<group>"; };
 		VIEWCNT001101D0001 /* ViewportContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportContent.swift; sourceTree = "<group>"; };
 		VPTRKJS001101D0001 /* viewport_tracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = viewport_tracker.js; sourceTree = "<group>"; };
+		GEMINI001101D0001 /* GeminiChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiChatService.swift; sourceTree = "<group>"; };
+		SPEECH001101D0001 /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
+		CONFIG001101D0001 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		C7722813A6DB4A4AA30C1FF9 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		571BEFFCF566455496E03E65 /* BiometricAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuthService.swift; sourceTree = "<group>"; };
+		CBD65FCE0B414FE5B2A9235D /* AppHistoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHistoryService.swift; sourceTree = "<group>"; };
+		3F1144B541EB460ABCDEEA7E /* TextToSpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeechService.swift; sourceTree = "<group>"; };
+		273666D3212249818E0A4B5A /* AudioPlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackManager.swift; sourceTree = "<group>"; };
+		BFFB361E650047D9B08729E9 /* EmojiResponseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiResponseView.swift; sourceTree = "<group>"; };
+		6CFB6C2A24574315A940440A /* EmojiCheckInBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmojiCheckInBubble.swift; sourceTree = "<group>"; };
+		B622A5CC25894E9082F55295 /* BlockedEmojiPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockedEmojiPopup.swift; sourceTree = "<group>"; };
+		A200D4F63E46462EA0048C50 /* DigitalJourneyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalJourney/DigitalJourneyModels.swift; sourceTree = "<group>"; };
+		32AC2F65BBC94205AC5AC06C /* DigitalJourneyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalJourney/DigitalJourneyViewModel.swift; sourceTree = "<group>"; };
+		CD65731DCD714DCDB000AE3F /* DigitalJourneyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalJourney/DigitalJourneyView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -249,6 +267,9 @@
 				A1000001101D0007 /* RikiCheckInView.swift */,
 				A1000001101D0030 /* ReflectionTimeView.swift */,
 				A1000001101D0008 /* SettingsView.swift */,
+				A200D4F63E46462EA0048C50 /* DigitalJourneyModels.swift */,
+				32AC2F65BBC94205AC5AC06C /* DigitalJourneyViewModel.swift */,
+				CD65731DCD714DCDB000AE3F /* DigitalJourneyView.swift */,
 				9A8A403B9FC8EFEACBFC8FBB /* FilterPreferencesView.swift */,
 				A1000001101D000F /* FloatingMenuView.swift */,
 				ECAFED31FAD30DC4853EFDEF /* Components */,
@@ -280,11 +301,19 @@
 				B24118A22F1D36E6001DC5AF /* Network */,
 				A1000001101D000C /* BlocklistService.swift */,
 				55C8711FDCF5AA5041D0CBFF /* FirestoreService.swift */,
+				C7722813A6DB4A4AA30C1FF9 /* KeychainService.swift */,
+				571BEFFCF566455496E03E65 /* BiometricAuthService.swift */,
+				CBD65FCE0B414FE5B2A9235D /* AppHistoryService.swift */,
+				3F1144B541EB460ABCDEEA7E /* TextToSpeechService.swift */,
+				273666D3212249818E0A4B5A /* AudioPlaybackManager.swift */,
 				BROWSHIS001101D0001 /* BrowsingHistoryService.swift */,
 				CONTENT001101D0001 /* ContentAnalysisService.swift */,
 				IMGFSVC001101D0001 /* ImageFilterService.swift */,
 				ENGTRCK001101D0001 /* EngagementTracker.swift */,
 				CNTANLZ001101D0001 /* ContentAnalyzerService.swift */,
+				GEMINI001101D0001 /* GeminiChatService.swift */,
+				SPEECH001101D0001 /* SpeechRecognizer.swift */,
+				CONFIG001101D0001 /* Config.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -517,11 +546,6 @@
 		B24118EE2F1FB7D5001DC5AF /* datasets */ = {
 			isa = PBXGroup;
 			children = (
-				B24118E92F1FB7D5001DC5AF /* cyberbullying_dataset.csv */,
-				B24118EA2F1FB7D5001DC5AF /* financial_dataset.csv */,
-				B24118EB2F1FB7D5001DC5AF /* horror_dataset.csv */,
-				B24118EC2F1FB7D5001DC5AF /* mature_dataset.csv */,
-				B24118ED2F1FB7D5001DC5AF /* parasocial_dataset.csv */,
 			);
 			path = datasets;
 			sourceTree = "<group>";
@@ -554,6 +578,9 @@
 				C8E3A128E66AC9CACE0AFC09 /* FilterActionSlider.swift */,
 				F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C7 /* KomalCheckInView.swift */,
 				F2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D8 /* KomalBlockedView.swift */,
+				BFFB361E650047D9B08729E9 /* EmojiResponseView.swift */,
+				6CFB6C2A24574315A940440A /* EmojiCheckInBubble.swift */,
+				B622A5CC25894E9082F55295 /* BlockedEmojiPopup.swift */,
 				KOMLINTR001101D0001 /* KomalInterventionView.swift */,
 			);
 			path = Components;
@@ -629,14 +656,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B24118F72F1FB7D5001DC5AF /* mature_dataset.csv in Resources */,
-				B24118F82F1FB7D5001DC5AF /* cyberbullying_dataset.csv in Resources */,
-				B24118F92F1FB7D5001DC5AF /* horror_dataset.csv in Resources */,
-				B24118FB2F1FB7D5001DC5AF /* financial_dataset.csv in Resources */,
 				B24118FC2F1FB7D5001DC5AF /* README.md in Resources */,
 				B24118FD2F1FB7D5001DC5AF /* train_template.py in Resources */,
 				B24118FE2F1FB7D5001DC5AF /* QUICK_START.md in Resources */,
-				B24118FF2F1FB7D5001DC5AF /* parasocial_dataset.csv in Resources */,
 				B24119002F1FB7D5001DC5AF /* convert_to_coreml.py in Resources */,
 				A1000001201D000D /* Blocklists.json in Resources */,
 				A1000001201D0010 /* komaliconnobg.png in Resources */,
@@ -717,6 +739,20 @@
 				IMGFSVC001201D0001 /* ImageFilterService.swift in Sources */,
 				ENGTRCK001201D0001 /* EngagementTracker.swift in Sources */,
 				CNTANLZ001201D0001 /* ContentAnalyzerService.swift in Sources */,
+				GEMINI001201D0001 /* GeminiChatService.swift in Sources */,
+				SPEECH001201D0001 /* SpeechRecognizer.swift in Sources */,
+				CONFIG001201D0001 /* Config.swift in Sources */,				56EB8B5CD4334565AB504BBC /* KeychainService.swift in Sources */,
+				EBAC442E949D41EEBBFBEE68 /* BiometricAuthService.swift in Sources */,
+				AD9394DD5D0245949324BF16 /* AppHistoryService.swift in Sources */,
+				9FEF1C0067654E8F90E8B733 /* TextToSpeechService.swift in Sources */,
+				DBE1B704AB4647D8B6EF72BB /* AudioPlaybackManager.swift in Sources */,
+				430C4285FA864122929B71AD /* EmojiResponseView.swift in Sources */,
+				F16D265BA8E14877827A64B0 /* EmojiCheckInBubble.swift in Sources */,
+				9869EE8E5D4F4CE99972BA40 /* BlockedEmojiPopup.swift in Sources */,
+				6036166503A34655B56A4CFB /* DigitalJourneyModels.swift in Sources */,
+				70C1B9B70632463291F51EC9 /* DigitalJourneyViewModel.swift in Sources */,
+				CA8FED38FA844F7693DDBE98 /* DigitalJourneyView.swift in Sources */,
+
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -775,7 +811,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -832,7 +868,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;

@@ -42,7 +42,7 @@ struct GateView: View {
                                     .roundedTextFieldStyle()
 
                                 Button {
-                                    if pin == appState.parentSettings.parentPin {
+                                    if pin == KeychainService.getPin() ?? "1234" {
                                         dismiss()
                                     }
                                 } label: {

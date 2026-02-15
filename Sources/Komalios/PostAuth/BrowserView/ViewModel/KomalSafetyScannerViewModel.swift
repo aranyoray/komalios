@@ -33,7 +33,15 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     private let networkService = ScanNetworkService()
     private let historyService = BrowsingHistoryService.shared
     private let contentAnalysisService = ContentAnalysisService.shared
+    private let appHistoryService = AppHistoryService.shared
     var appState: AppState
+
+    // MARK: - Emoji Check-In State
+    @Published var pagesLoadedSinceLastEmoji: Int = 0
+    @Published var showEmojiCheckIn = false
+    @Published var showBlockedEmojiPopup = false
+    @Published var currentSubcategory: String = ""
+    @Published var lastLoggedDocumentId: String?
     
     // MARK: - Unified Decision (new system)
     @Published var unifiedDecision: UnifiedDecisionResponse?
@@ -63,6 +71,24 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         "typing.com", "www.typing.com"
     ]
     
+    // MARK: - Blocked Platforms (not appropriate for children)
+    private let blockedPlatforms: Set<String> = [
+        "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be",
+        "tiktok.com", "www.tiktok.com",
+        "instagram.com", "www.instagram.com",
+        "twitter.com", "www.twitter.com", "x.com", "www.x.com",
+        "facebook.com", "www.facebook.com", "m.facebook.com",
+        "reddit.com", "www.reddit.com", "old.reddit.com",
+        "snapchat.com", "www.snapchat.com",
+        "discord.com", "www.discord.com",
+        "twitch.tv", "www.twitch.tv"
+    ]
+
+    private func isBlockedPlatform(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased() else { return false }
+        return blockedPlatforms.contains(host)
+    }
+
     // MARK: - Search Tracking
     private var searchCount: Int = 0
     private var nextCheckInAt: Int = 0 // Dynamic check-in interval (3-4 searches)
@@ -88,7 +114,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     func handleUrlSubmit() async {
         guard !urlInput.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         
-        print("🔍 Starting URL scan for: \(urlInput)")
+        debugLogLine("[DEBUG-SCAN] Starting URL scan for: \(urlInput)")
         
         // DIGITAL GUARDIAN: Check raw input FIRST before ANY processing
         // Only check as search query if it doesn't look like a URL
@@ -98,9 +124,10 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         // For search-like input, check with full keyword list
         // For URL-like input, only check strict keywords (avoid false positives)
         if let flaggedKeyword = BrowserState.checkForInappropriateContent(trimmedInput, isSearchQuery: !looksLikeURL) {
-            print("🛡️ RAW INPUT FLAGGED: \(flaggedKeyword)")
-            
-            // Don't reset states or set loading - just show intervention immediately
+            debugLogLine("[DEBUG-SCAN] RAW INPUT FLAGGED: \(flaggedKeyword)")
+
+            // Reset ALL states first to dismiss any stale fullScreenCovers
+            resetStates()
             self.currentURL = nil  // Ensure no URL loads
             self.interventionTrigger = looksLikeURL ? .urlKeyword(flaggedKeyword) : .searchQuery(flaggedKeyword)
             self.showKomalIntervention = true
@@ -132,16 +159,20 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         
         // Normalize URL
         let normalizedURL = normalizeURL(urlInput)
-        print("📡 Normalized URL: \(normalizedURL)")
+        debugLogLine("[DEBUG-SCAN] Normalized URL: \(normalizedURL)")
         
         // Secondary check on the normalized URL
         if let url = URL(string: normalizedURL) {
             // Check URL for inappropriate content
             let contentCheck = BrowserState.checkURL(url, parentSettings: appState.parentSettings)
             if contentCheck.shouldIntervene, let trigger = contentCheck.trigger {
-                print("🛡️ URL content check triggered: \(trigger.searchTerm)")
+                debugLogLine("[DEBUG-SCAN] URL content check triggered: \(trigger.searchTerm)")
                 historyService.logBlocked(url: url, category: "Content Filter", reason: "Intervention: \(trigger.searchTerm)")
-                
+
+                // Reset all states to prevent competing fullScreenCovers
+                showGate = false
+                showBlocked = false
+                showKomalCheckIn = false
                 self.currentURL = nil
                 self.interventionTrigger = trigger
                 self.showKomalIntervention = true
@@ -153,13 +184,50 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             historyService.logTypedURL(url: url)
         }
         
+        // Block social media and video platforms
+        if let url = URL(string: normalizedURL), isBlockedPlatform(url) {
+            let host = url.host ?? "unknown"
+            debugLogLine("[DEBUG-SCAN] Blocked platform: \(host)")
+            historyService.logBlocked(url: url, category: "Platform Block", reason: "Blocked platform: \(host)")
+
+            // Log to Firebase
+            Task {
+                await appHistoryService.logEvent(
+                    url: normalizedURL,
+                    action: "BLOCK",
+                    category: "Platform Block",
+                    subcategory: host,
+                    childName: appState.activeProfile.name,
+                    ageGroup: appState.activeProfile.ageGroup.rawValue
+                )
+            }
+
+            self.currentURL = nil
+            self.interventionTrigger = .urlKeyword(host)
+            self.showKomalIntervention = true
+            self.loading = false
+            return
+        }
+
         // Check if this is a trusted kid-friendly domain (skip scanning)
-        if let url = URL(string: normalizedURL), isTrustedDomain(url) {
-            print("✅ Trusted domain - skipping scan: \(url.host ?? "")")
+        // Only skip for direct URL inputs, NOT for search queries converted to Google URLs
+        if looksLikeURL, let url = URL(string: normalizedURL), isTrustedDomain(url) {
+            debugLogLine("[DEBUG-SCAN] Trusted domain (direct URL) - skipping scan: \(url.host ?? "")")
             currentURL = url
             historyService.logEvent(url: url, type: .allowed, category: "Trusted Site", action: .allow)
             loading = false
-            
+
+            // Log to Firebase
+            Task {
+                await appHistoryService.logEvent(
+                    url: normalizedURL,
+                    action: "ALLOW",
+                    category: "Trusted Site",
+                    childName: appState.activeProfile.name,
+                    ageGroup: appState.activeProfile.ageGroup.rawValue
+                )
+            }
+
             // Still show check-in if it's time
             if shouldCheckIn {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
@@ -170,78 +238,49 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             return
         }
         
-        // Analyze content using unified system (on-device first, cloud fallback)
+        // Send ALL non-trusted domains to server for analysis
+        // Server decides gate/block/allow based on URL + raw search input
         do {
-            let ageBand = appState.activeProfile.ageGroup.toAgeBand()
-            let input = buildContentAnalysisInput(url: normalizedURL)
-            
-            let decision = try await contentAnalysisService.analyzeContent(
-                url: normalizedURL,
-                input: input,
-                ageBand: ageBand,
-                customBlockedKeywords: appState.parentSettings.blockedKeywords,
-                customBlockedHosts: appState.parentSettings.blockedHosts,
-                filterPreferences: appState.contentFilterPreferences
-            )
-            
-            print("✅ Content analysis completed")
-            unifiedDecision = decision
-            
-            // Process unified decision
-            await processUnifiedDecision(normalizedURL: normalizedURL, decision: decision)
-            
+            let rawSearchInput = trimmedInput
+            debugLogLine("[DEBUG-SCAN] Sending to server - URL: \(normalizedURL), searchQuery: \(rawSearchInput)")
+
+            scanResult = try await networkService.scanURL(normalizedURL, searchQuery: rawSearchInput)
+            debugLogLine("[DEBUG-SCAN] Server scan completed successfully")
+            await processScanResult(normalizedURL: normalizedURL)
+
             // Show check-in after successful search (if it's time)
             if shouldCheckIn && !showBlocked && !showGate && !showKomalIntervention {
-                // Delay check-in slightly so user sees the page loaded
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     self.showKomalCheckIn = true
-                    // Schedule next check-in
                     self.updateNextCheckIn()
                 }
             }
         } catch {
-            print("❌ Analysis Error: \(error.localizedDescription)")
-            
-            // Fallback: try existing API (networkService)
-            do {
-                scanResult = try await networkService.scanURL(normalizedURL)
-                print("✅ Fallback scan completed")
-                await processScanResult(normalizedURL: normalizedURL)
-                
-                // Show check-in if it's time
-                if shouldCheckIn && !showBlocked && !showGate && !showKomalIntervention {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        self.showKomalCheckIn = true
-                        self.updateNextCheckIn()
-                    }
+            debugLogLine("[DEBUG-SCAN] Server scan failed: \(error.localizedDescription)")
+            self.error = error
+            loading = false
+
+            // Fail-closed: block untrusted URLs when server is unavailable
+            if let url = URL(string: normalizedURL) {
+                let finalCheck = BrowserState.checkURL(url, parentSettings: appState.parentSettings)
+                if finalCheck.shouldIntervene, let trigger = finalCheck.trigger {
+                    self.interventionTrigger = trigger
+                    self.showKomalIntervention = true
+                    self.currentURL = nil
+                    return
                 }
-            } catch {
-                // Both unified system and fallback API failed
-                print("❌ Both analysis systems failed: \(error.localizedDescription)")
-                self.error = error
-                loading = false
-                
-                // Final safety check: ensure we don't load inappropriate content even if all systems fail
-                if let url = URL(string: normalizedURL) {
-                    let finalCheck = BrowserState.checkURL(url, parentSettings: appState.parentSettings)
-                    if finalCheck.shouldIntervene, let trigger = finalCheck.trigger {
-                        self.interventionTrigger = trigger
-                        self.showKomalIntervention = true
-                        self.currentURL = nil
-                        return
-                    }
-                    
-                    // If all checks pass, allow the URL (fail-open for availability)
-                    currentURL = url
-                    
-                    // Show check-in if it's time
-                    if shouldCheckIn {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            self.showKomalCheckIn = true
-                            self.updateNextCheckIn()
-                        }
-                    }
-                }
+
+                debugLogLine("[DEBUG-SCAN] Blocking untrusted URL (server unavailable): \(url)")
+                self.blockReason = "We couldn't verify this content is safe right now. Let's try something else!"
+                self.category = .unknown
+                self.currentURL = nil
+                self.showBlocked = true
+
+                historyService.logBlocked(
+                    url: url,
+                    category: "Safety Check Failed",
+                    reason: "Server analysis unavailable"
+                )
             }
         }
     }
@@ -255,9 +294,11 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         }
     }
     
-    /// Handle blocked view dismissal - reset states
+    /// Handle blocked view dismissal - redirect to safe page
     func handleBlockedDismissed() {
-        currentURL = nil
+        // Redirect to safe page (same as intervention dismissal)
+        urlInput = "khanacademy.org"
+        currentURL = URL(string: "https://www.khanacademy.org")
         pendingURL = nil
     }
     
@@ -271,6 +312,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     private func resetStates() {
         showGate = false
         showBlocked = false
+        showBlockedEmojiPopup = false
+        showEmojiCheckIn = false
         showKomalCheckIn = false
         showKomalIntervention = false
         interventionTrigger = nil
@@ -451,7 +494,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         let ageBand = appState.activeProfile.ageGroup.toAgeBand()
         guard let ageAction = decision.ageActions[ageBand.rawValue] else {
             // Fallback: allow
-            print("⚠️ No action found for age band, allowing by default")
+            debugLogLine("[DEBUG-SCAN] No action found for age band \(ageBand.rawValue), allowing by default")
             loading = false
             if let url = URL(string: normalizedURL) {
                 currentURL = url
@@ -459,12 +502,12 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             return
         }
         
-        print("🎯 Action determined: \(ageAction.action.rawValue) (score: \(ageAction.score))")
-        
+        debugLogLine("[DEBUG-SCAN] Action determined: \(ageAction.action.rawValue) (score: \(ageAction.score))")
+
         // Determine category from major categories
         if let firstMajor = decision.majorCategories.first {
             category = ContentCategory(label: firstMajor.name)
-            print("📋 Category: \(firstMajor.name) (probability: \(firstMajor.probability))")
+            debugLogLine("[DEBUG-SCAN] Category: \(firstMajor.name) (probability: \(firstMajor.probability))")
         }
         
         blockReason = ageAction.reason ?? "Content filtered for safety"
@@ -478,24 +521,45 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             )
         }
         
+        // Extract subcategory for emoji system
+        if let firstSub = decision.subcategories.first {
+            currentSubcategory = firstSub.name
+        }
+
         // Handle action
         handleUnifiedAction(ageAction.action, decision: decision)
+
+        // Log to Firebase
+        let searchQuery = urlInput
+        Task {
+            let docId = await appHistoryService.logEvent(
+                url: decision.url,
+                searchQuery: searchQuery,
+                action: ageAction.action.rawValue,
+                category: decision.majorCategories.first?.name,
+                subcategory: decision.subcategories.first?.name,
+                childName: appState.activeProfile.name,
+                ageGroup: appState.activeProfile.ageGroup.rawValue
+            )
+            if let docId = docId {
+                await MainActor.run { self.lastLoggedDocumentId = docId }
+            }
+        }
     }
     
     /// Handle action from unified decision
     private func handleUnifiedAction(_ action: Action, decision: UnifiedDecisionResponse) {
         switch action {
         case .block:
-            print("🚫 BLOCK action - Setting showBlocked = true")
+            debugLogLine("[DEBUG-SCAN] BLOCK action for URL: \(decision.url)")
             currentURL = nil
             showGate = false
             showKomalCheckIn = false
             loading = false
-            showBlocked = true
-            print("🚫 State updated - showBlocked: \(showBlocked)")
-            
+            showBlockedEmojiPopup = true
+
         case .gate:
-            print("🚧 GATE action - Setting showGate = true")
+            debugLogLine("[DEBUG-SCAN] GATE action for URL: \(decision.url)")
             if let url = URL(string: decision.url) {
                 pendingURL = url
             }
@@ -504,16 +568,23 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             showKomalCheckIn = false
             loading = false
             showGate = true
-            print("🚧 State updated - showGate: \(showGate)")
-            
+
         case .allow:
-            print("✅ ALLOW action - Loading website")
+            debugLogLine("[DEBUG-SCAN] ALLOW action - Loading: \(decision.url)")
             showGate = false
             showBlocked = false
             if let url = URL(string: decision.url) {
                 currentURL = url
                 loading = true // WebView will set to false when done
-                print("✅ URL set: \(url), loading: \(loading)")
+
+                // Emoji check-in tracking
+                pagesLoadedSinceLastEmoji += 1
+                if pagesLoadedSinceLastEmoji >= 5 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                        self?.showEmojiCheckIn = true
+                    }
+                    pagesLoadedSinceLastEmoji = 0
+                }
             } else {
                 loading = false
             }
@@ -530,18 +601,18 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         }
         
         let ageGroupString = appState.activeProfile.ageGroup.rawValue
-        print("👤 User age group: '\(ageGroupString)'")
-        
+        debugLogLine("[DEBUG-SCAN] User age group: '\(ageGroupString)'")
+
         // Debug: Print all available age group keys
-        print("📊 Available age group keys in scan result:")
+        debugLogLine("[DEBUG-SCAN] Available age group keys in scan result:")
         for (key, value) in result.ageGroupScores {
-            print("   - Key: '\(key)' -> Action: \(value.action.rawValue)")
+            debugLogLine("[DEBUG-SCAN]    Key: '\(key)' -> Action: \(value.action.rawValue)")
         }
         
         // Determine action for user's age group
         guard let action = determineAction(for: ageGroupString, from: result) else {
             // Fallback: allow by default
-            print("⚠️ No action found, allowing by default")
+            debugLogLine("[DEBUG-SCAN] No action found, allowing by default")
             loading = false
             if let url = URL(string: result.url) {
                 currentURL = url
@@ -549,8 +620,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             return
         }
         
-        print("🎯 Action determined: \(action.rawValue)")
-        
+        debugLogLine("[DEBUG-SCAN] Legacy action determined: \(action.rawValue)")
+
         // Determine category and reason
         let (determinedCategory, determinedReason) = determineCategoryAndReason(
             from: result,
@@ -560,40 +631,76 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         category = determinedCategory
         blockReason = determinedReason
         
+        // Extract subcategory for emoji system
+        if let firstRisk = result.childSafetyAnalysis.riskCategories.first {
+            currentSubcategory = firstRisk.category
+        }
+
         // Handle action
         handleAction(action, result: result)
+
+        // Log to Firebase
+        let searchQuery = urlInput
+        Task {
+            let docId = await appHistoryService.logEvent(
+                url: result.url,
+                searchQuery: searchQuery,
+                action: action.rawValue,
+                category: category.label,
+                subcategory: currentSubcategory.isEmpty ? nil : currentSubcategory,
+                childName: appState.activeProfile.name,
+                ageGroup: appState.activeProfile.ageGroup.rawValue
+            )
+            if let docId = docId {
+                await MainActor.run { self.lastLoggedDocumentId = docId }
+            }
+        }
     }
     
+    /// Map app AgeGroup rawValue to server age group key
+    /// App: "< 10", "10–13", "13–16", "16–18", "18+"
+    /// Server: "<10", "10-13", "13-16", "16+"
+    private func serverAgeGroupKey(for ageGroup: String) -> String {
+        switch ageGroup {
+        case "< 10":
+            return "<10"
+        case "10–13":
+            return "10-13"
+        case "13–16":
+            return "13-16"
+        case "16–18", "18+":
+            return "16+"
+        default:
+            // Fallback: normalize em-dash to hyphen, strip spaces
+            return ageGroup
+                .replacingOccurrences(of: "–", with: "-")
+                .replacingOccurrences(of: " ", with: "")
+        }
+    }
+
     private func determineAction(for ageGroup: String, from result: ScanResponse) -> Action? {
         // Try exact match first
         if let action = result.ageGroupScores[ageGroup]?.action {
+            debugLogLine("[DEBUG-SCAN] Exact match for '\(ageGroup)' -> \(action.rawValue)")
             return action
         }
-        
-        // Try alternative formats
-        print("🔍 Trying alternative key formats...")
-        let alternatives = [
-            ageGroup.replacingOccurrences(of: "–", with: "-"),
-            ageGroup.replacingOccurrences(of: "–", with: " to "),
-            ageGroup.lowercased(),
-            ageGroup.uppercased()
-        ]
-        
-        for alt in alternatives {
-            if let action = result.ageGroupScores[alt]?.action {
-                print("✅ Found action using alternative format: '\(alt)' -> \(action.rawValue)")
-                return action
-            }
+
+        // Map to server key format
+        let serverKey = serverAgeGroupKey(for: ageGroup)
+        debugLogLine("[DEBUG-SCAN] Mapped '\(ageGroup)' -> server key '\(serverKey)'")
+        if let action = result.ageGroupScores[serverKey]?.action {
+            debugLogLine("[DEBUG-SCAN] Found action via server key: '\(serverKey)' -> \(action.rawValue)")
+            return action
         }
-        
-        // Try partial match
+
+        // Try partial match as last resort
         for (key, value) in result.ageGroupScores {
             if key.contains(ageGroup) || ageGroup.contains(key) {
-                print("✅ Found action by partial match: '\(key)' -> \(value.action.rawValue)")
+                debugLogLine("[DEBUG-SCAN] Found action by partial match: '\(key)' -> \(value.action.rawValue)")
                 return value.action
             }
         }
-        
+
         // Use fallback: most restrictive action
         return getFallbackAction(from: result)
     }
@@ -601,17 +708,17 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     private func getFallbackAction(from result: ScanResponse) -> Action? {
         guard !result.ageGroupScores.isEmpty else { return nil }
         
-        print("⚠️ No exact match found, using fallback")
+        debugLogLine("[DEBUG-SCAN] No exact match found, using fallback")
         let allActions = result.ageGroupScores.values.map { $0.action }
-        
+
         if allActions.contains(.block) {
-            print("⚠️ Using BLOCK as fallback (most restrictive)")
+            debugLogLine("[DEBUG-SCAN] Using BLOCK as fallback (most restrictive)")
             return .block
         } else if allActions.contains(.gate) {
-            print("⚠️ Using GATE as fallback")
+            debugLogLine("[DEBUG-SCAN] Using GATE as fallback")
             return .gate
         } else if let firstAction = allActions.first {
-            print("⚠️ Using first available action: \(firstAction.rawValue)")
+            debugLogLine("[DEBUG-SCAN] Using first available action: \(firstAction.rawValue)")
             return firstAction
         }
         
@@ -623,7 +730,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             let firstRisk = result.childSafetyAnalysis.riskCategories.first!
             let category = ContentCategory(label: firstRisk.category)
             let reason = getReason(for: ageGroup, from: result) ?? firstRisk.category
-            print("📋 Category from risk: \(firstRisk.category)")
+            debugLogLine("[DEBUG-SCAN] Category from risk: \(firstRisk.category)")
             return (category, reason)
         } else {
             // Fallback: determine category from overall risk level
@@ -639,7 +746,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 category = .unknown
             }
             let reason = getReason(for: ageGroup, from: result) ?? "Content blocked for safety reasons"
-            print("📋 Category from overall risk: \(result.childSafetyAnalysis.overallRisk.rawValue)")
+            debugLogLine("[DEBUG-SCAN] Category from overall risk: \(result.childSafetyAnalysis.overallRisk.rawValue)")
             return (category, reason)
         }
     }
@@ -649,31 +756,23 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         if let reason = result.ageGroupScores[ageGroup]?.reason {
             return reason
         }
-        
-        // Try alternative formats
-        let alternatives = [
-            ageGroup.replacingOccurrences(of: "–", with: "-"),
-            ageGroup.replacingOccurrences(of: "–", with: " to "),
-            ageGroup.lowercased(),
-            ageGroup.uppercased()
-        ]
-        
-        for alt in alternatives {
-            if let reason = result.ageGroupScores[alt]?.reason {
-                return reason
-            }
+
+        // Try server key format
+        let serverKey = serverAgeGroupKey(for: ageGroup)
+        if let reason = result.ageGroupScores[serverKey]?.reason {
+            return reason
         }
-        
+
         return nil
     }
     
     private func handleAction(_ action: Action, result: ScanResponse) {
         // Determine category string for logging
         let categoryString = result.childSafetyAnalysis.riskCategories.first?.category ?? category.label
-        
+
         switch action {
         case .block:
-            print("🚫 BLOCK action - Setting showBlocked = true")
+            debugLogLine("[DEBUG-SCAN] Legacy BLOCK for: \(result.url)")
             // Log blocked event for history tracking
             if let url = URL(string: result.url) {
                 historyService.logBlocked(url: url, category: categoryString, reason: blockReason)
@@ -682,11 +781,10 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             showGate = false
             showKomalCheckIn = false
             loading = false
-            showBlocked = true
-            print("🚫 State updated - showBlocked: \(showBlocked), showGate: \(showGate), loading: \(loading)")
-            
+            showBlockedEmojiPopup = true
+
         case .gate:
-            print("🚧 GATE action - Setting showGate = true")
+            debugLogLine("[DEBUG-SCAN] Legacy GATE for: \(result.url)")
             if let url = URL(string: result.url) {
                 pendingURL = url
                 // Log gated event for history tracking
@@ -697,10 +795,9 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             showKomalCheckIn = false
             loading = false
             showGate = true
-            print("🚧 State updated - showGate: \(showGate), showBlocked: \(showBlocked), loading: \(loading)")
-            
+
         case .allow:
-            print("✅ ALLOW action - Loading website")
+            debugLogLine("[DEBUG-SCAN] Legacy ALLOW - Loading: \(result.url)")
             showGate = false
             showBlocked = false
             if let url = URL(string: result.url) {
@@ -708,13 +805,32 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 // Log allowed event for history tracking
                 historyService.logEvent(url: url, type: .allowed, category: categoryString, action: .allow)
                 loading = true // WebView will set to false when done
-                print("✅ URL set: \(url), loading: \(loading)")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in
                     self?.loading = false
+                }
+
+                // Emoji check-in tracking
+                pagesLoadedSinceLastEmoji += 1
+                if pagesLoadedSinceLastEmoji >= 5 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                        self?.showEmojiCheckIn = true
+                    }
+                    pagesLoadedSinceLastEmoji = 0
                 }
             } else {
                 loading = false
             }
+        }
+    }
+
+    // MARK: - Emoji Response Handler
+
+    func handleEmojiResponse(emoji: String, forDocumentId documentId: String?) {
+        showEmojiCheckIn = false
+        showBlockedEmojiPopup = false
+        guard let docId = documentId else { return }
+        Task {
+            await appHistoryService.updateEmojiResponse(documentId: docId, emoji: emoji)
         }
     }
 }

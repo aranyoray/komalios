@@ -26,7 +26,8 @@ struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var pathManager: PathManager
-    
+    @Environment(\.scenePhase) var scenePhase
+
     var body: some View {
         NavigationStack(path: $pathManager.path) {
             // Start with SplashScreen - it will navigate after 3 seconds
@@ -35,8 +36,9 @@ struct ContentView: View {
                     destinationView(for: route)
                 }
         }
-        .onChange(of: authViewModel.user) { newUser in
-            // Handle user state changes
+        .onChange(of: authViewModel.user) { _, newUser in
+            // Handle user state changes (skip if guest user)
+            guard !appState.isGuestUser else { return }
             if newUser == nil {
                 print("✅ User logged out, navigating to LoginView")
                 pathManager.popToRoot()
@@ -51,11 +53,18 @@ struct ContentView: View {
                 pathManager.push(Routes.onboardingView)
             }
         }
-        .onChange(of: appState.hasCompletedOnboarding) { newValue in
-            // Handle onboarding completion
-            if newValue && authViewModel.user != nil {
+        .onChange(of: appState.hasCompletedOnboarding) { _, newValue in
+            // Handle onboarding completion for both authenticated and guest users
+            if newValue && (authViewModel.user != nil || appState.isGuestUser) {
                 pathManager.popToRoot()
                 pathManager.push(Routes.rootView)
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background || newPhase == .inactive {
+                if appState.accountMode == .guest {
+                    appState.accountMode = .child
+                }
             }
         }
         .onAppear {
@@ -66,6 +75,7 @@ struct ContentView: View {
             // Backup: Force update authViewModel state if notification is received
             print("📢 Received UserDidSignOut notification")
             Task { @MainActor in
+                appState.isGuestUser = false
                 authViewModel.user = nil
                 authViewModel.loginState = .notRunning
                 pathManager.popToRoot()

@@ -8,8 +8,25 @@
 #if os(iOS)
 import Foundation
 import UIKit
-import Vision
+@preconcurrency import Vision
 import CoreML
+
+/// Thread-safe guard to ensure a CheckedContinuation is only resumed once.
+/// Uses NSLock instead of raw pointers to avoid use-after-free when
+/// Vision's perform() both calls the completion handler AND throws.
+private final class ContinuationResumeGuard: @unchecked Sendable {
+    private var _resumed = false
+    private let lock = NSLock()
+
+    /// Atomically marks as resumed. Returns true if this is the first call, false if already resumed.
+    func tryMarkResumed() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        if _resumed { return false }
+        _resumed = true
+        return true
+    }
+}
 
 /// Service for analyzing images and determining if they should be filtered
 final class ImageFilterService: ObservableObject {
@@ -118,17 +135,17 @@ final class ImageFilterService: ObservableObject {
         }
         
         // Analyze with CoreML if available, otherwise use heuristics
-        if isModelLoaded, let visionModel = visionModel {
+        if isModelLoaded, visionModel != nil {
             return await analyzeWithCoreML(image: image, url: url, preferences: preferences)
         } else {
             return analyzeWithHeuristics(image: image, url: url, preferences: preferences)
         }
     }
-    
+
     /// Analyze image data directly
     func analyzeImageData(_ data: Data, url: URL, preferences: ContentFilterPreferences) async -> ImageAnalysisResult {
         totalImagesAnalyzed += 1
-        
+
         guard let image = UIImage(data: data) else {
             return ImageAnalysisResult(
                 imageURL: url,
@@ -138,8 +155,8 @@ final class ImageFilterService: ObservableObject {
                 action: .failed
             )
         }
-        
-        if isModelLoaded, let visionModel = visionModel {
+
+        if isModelLoaded, visionModel != nil {
             return await analyzeWithCoreML(image: image, url: url, preferences: preferences)
         } else {
             return analyzeWithHeuristics(image: image, url: url, preferences: preferences)
@@ -180,8 +197,16 @@ final class ImageFilterService: ObservableObject {
                 ))
                 return
             }
-            
+
+            // Thread-safe guard to prevent double-resume.
+            // Vision's perform() can both call the completion handler AND throw,
+            // which would otherwise resume the continuation twice and crash.
+            // Using a class with NSLock avoids the use-after-free bug that raw pointers cause.
+            let resumeGuard = ContinuationResumeGuard()
+
             let request = VNCoreMLRequest(model: visionModel) { [weak self] request, error in
+                guard resumeGuard.tryMarkResumed() else { return }
+
                 guard let self = self else {
                     continuation.resume(returning: ImageAnalysisResult(
                         imageURL: url,
@@ -192,7 +217,7 @@ final class ImageFilterService: ObservableObject {
                     ))
                     return
                 }
-                
+
                 if let error = error {
                     print("🛡️ CoreML analysis error: \(error)")
                     continuation.resume(returning: ImageAnalysisResult(
@@ -204,7 +229,7 @@ final class ImageFilterService: ObservableObject {
                     ))
                     return
                 }
-                
+
                 // NSFW models typically output classification observations
                 // Try to get classification results first
                 if let classificationResults = request.results as? [VNClassificationObservation],
@@ -214,16 +239,16 @@ final class ImageFilterService: ObservableObject {
                     let category = self.determineCategory(from: nsfwScore)
                     let confidence = Float(nsfwScore)
                     let shouldFilter = self.shouldFilter(category: category, preferences: preferences) && confidence >= self.filterConfidenceThreshold
-                    
+
                     let action: ImageFilterAction = shouldFilter ? .replaced : .allowed
-                    
+
                     if shouldFilter {
                         DispatchQueue.main.async {
                             self.totalImagesFiltered += 1
                         }
                         print("🛡️ NSFW detected: \(category.displayName) (confidence: \(Int(confidence * 100))%)")
                     }
-                    
+
                     continuation.resume(returning: ImageAnalysisResult(
                         imageURL: url,
                         category: category,
@@ -233,9 +258,8 @@ final class ImageFilterService: ObservableObject {
                     ))
                     return
                 }
-                
+
                 // Fallback: If no classification results, assume safe
-                // This handles models that might output different observation types
                 print("🛡️ NSFW model returned unexpected results, defaulting to safe")
                 continuation.resume(returning: ImageAnalysisResult(
                     imageURL: url,
@@ -245,16 +269,18 @@ final class ImageFilterService: ObservableObject {
                     action: .allowed
                 ))
             }
-            
+
             // Configure request for optimal NSFW detection
             request.imageCropAndScaleOption = .scaleFill  // Better for NSFW detection
-            
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            
+
+            nonisolated(unsafe) let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            nonisolated(unsafe) let visionRequest = request
+
             analysisQueue.async {
                 do {
-                    try handler.perform([request])
+                    try handler.perform([visionRequest])
                 } catch {
+                    guard resumeGuard.tryMarkResumed() else { return }
                     print("🛡️ Vision request failed: \(error)")
                     continuation.resume(returning: ImageAnalysisResult(
                         imageURL: url,

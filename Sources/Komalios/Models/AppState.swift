@@ -13,13 +13,20 @@ final class AppState: ObservableObject {
             UserDefaults.standard.set(hasCompletedOnboarding, forKey: "komal.hasCompletedOnboarding")
         }
     }
+    @Published var isGuestUser: Bool {
+        didSet {
+            UserDefaults.standard.set(isGuestUser, forKey: "komal.isGuestUser")
+        }
+    }
 
     var currentProfileName: String {
-        accountMode == .guest ? "Guest" : activeProfile.name
+        if isGuestUser { return "Guest" }
+        return accountMode == .guest ? "Guest" : activeProfile.name
     }
 
     init() {
         self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "komal.hasCompletedOnboarding")
+        self.isGuestUser = UserDefaults.standard.bool(forKey: "komal.isGuestUser")
         loadPreferences()
     }
 
@@ -84,9 +91,11 @@ final class AppState {
     var accountMode: AccountMode = .child
     var contentFilterPreferences = ContentFilterPreferences()
     var hasCompletedOnboarding: Bool = false
+    var isGuestUser: Bool = false
 
     var currentProfileName: String {
-        accountMode == .guest ? "Guest" : activeProfile.name
+        if isGuestUser { return "Guest" }
+        return accountMode == .guest ? "Guest" : activeProfile.name
     }
 }
 #endif

@@ -19,6 +19,12 @@ struct ScanResponse: Codable {
     let analysisMethod: String? // "live" or "demo"
     let usedSearchFallback: Bool?
     let performanceMetrics: PerformanceMetrics?
+    let pythonDebug: PythonDebug?
+}
+
+struct PythonDebug: Codable {
+    let status: String?
+    let url: String?
 }
 
 struct AgeGroupScore: Codable {
@@ -45,6 +51,7 @@ struct TextAnalysis: Codable {
     let sentiment: String
     let keyTopics: [String]
     let languageScore: Int
+    let entities: [String]?
     let unsafeKeywordsFound: [String]
     let safeKeywordsFound: [String]
 }
@@ -111,4 +118,12 @@ struct PerformanceStep: Codable {
     let name: String
     let durationMs: Int
     let details: String?
+}
+
+// MARK: - Convenience Extensions
+
+extension ScanResponse {
+    var primarySubcategory: String? {
+        childSafetyAnalysis.riskCategories.first?.category
+    }
 }

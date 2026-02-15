@@ -91,18 +91,20 @@ final class FirebaseAuthService: AuthServiceProtocol {
         
         // Use async/await with continuation
         return try await withCheckedThrowingContinuation { continuation in
-            let delegate = AppleSignInDelegate(
-                nonce: nonce,
-                continuation: continuation,
-                firestoreService: firestoreService
-            )
-            authorizationController.delegate = delegate
-            authorizationController.presentationContextProvider = delegate
-            
-            // Retain delegate
-            objc_setAssociatedObject(authorizationController, "delegate", delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-            
-            authorizationController.performRequests()
+            MainActor.assumeIsolated {
+                let delegate = AppleSignInDelegate(
+                    nonce: nonce,
+                    continuation: continuation,
+                    firestoreService: self.firestoreService
+                )
+                authorizationController.delegate = delegate
+                authorizationController.presentationContextProvider = delegate
+
+                // Retain delegate
+                objc_setAssociatedObject(authorizationController, "delegate", delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+
+                authorizationController.performRequests()
+            }
         }
     }
     
@@ -158,11 +160,12 @@ final class FirebaseAuthService: AuthServiceProtocol {
 
 // MARK: - Apple Sign-In Delegate
 
+@MainActor
 private class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
     private let nonce: String
     private let continuation: CheckedContinuation<User, Error>
     private let firestoreService: FirestoreService
-    
+
     init(nonce: String, continuation: CheckedContinuation<User, Error>, firestoreService: FirestoreService) {
         self.nonce = nonce
         self.continuation = continuation

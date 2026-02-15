@@ -70,15 +70,22 @@ struct LoginView: View {
 #if os(iOS)
                 .fullScreenCover(isPresented: $showOnboarding) {
                     LoginGuestOnboardingSheet(onFinish: {
+                        appState.isGuestUser = true
                         appState.savePreferences()
                         showOnboarding = false
+                        // Navigate to onboarding survey
+                        pathManager.popToRoot()
+                        pathManager.push(Routes.onboardingView)
                     })
                 }
 #else
                 .sheet(isPresented: $showOnboarding) {
                     LoginGuestOnboardingSheet(onFinish: {
+                        appState.isGuestUser = true
                         appState.savePreferences()
                         showOnboarding = false
+                        pathManager.popToRoot()
+                        pathManager.push(Routes.onboardingView)
                     })
                 }
 #endif

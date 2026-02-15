@@ -30,10 +30,15 @@ struct SettingsView: View {
         self.selectedTab = selectedTab
     }
     
-    private let correctPin = "1234" // Parent PIN
+    @State private var attemptingBiometric = false
+    @State private var showDigitalJourney = false
     
     private var isLoggedIn: Bool {
         Auth.auth().currentUser != nil || authViewModel.user != nil
+    }
+
+    private var isGuestMode: Bool {
+        appState.isGuestUser && !isLoggedIn
     }
 
     var body: some View {
@@ -92,8 +97,25 @@ struct SettingsView: View {
                                             appState.accountMode = .child
                                         }
                                     } else {
-                                        // Show PIN entry to switch to parent mode
-                                        showPinEntry = true
+                                        // Try biometric first if enabled
+                                        if BiometricAuthService.isBiometricEnabled {
+                                            attemptingBiometric = true
+                                            Task {
+                                                let success = await BiometricAuthService.authenticate()
+                                                await MainActor.run {
+                                                    attemptingBiometric = false
+                                                    if success {
+                                                        withAnimation(.spring(response: 0.3)) {
+                                                            appState.accountMode = .guest
+                                                        }
+                                                    } else {
+                                                        showPinEntry = true
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            showPinEntry = true
+                                        }
                                     }
                                 }
                             }
@@ -115,23 +137,11 @@ struct SettingsView: View {
             }
         }
         .sheet(isPresented: $showFilterPreferences) {
-            if #available(iOS 17.0, *) {
-                // iOS 17+: Use the new onChange with initial parameter if needed
-                FilterPreferencesView(preferences: $appState.contentFilterPreferences)
-                    .onChange(of: appState.contentFilterPreferences, initial: false) { _, _ in
-                        // Auto-save when preferences change
-                        appState.savePreferences()
-                    }
-                    .environmentObject(appState)
-            } else {
-                // iOS 16 and earlier: Use legacy onChange signature
-                FilterPreferencesView(preferences: $appState.contentFilterPreferences)
-                    .onChange(of: appState.contentFilterPreferences) { _ in
-                        // Auto-save when preferences change
-                        appState.savePreferences()
-                    }
-                    .environmentObject(appState)
-            }
+            FilterPreferencesView(preferences: $appState.contentFilterPreferences)
+                .onChange(of: appState.contentFilterPreferences, initial: false) { _, _ in
+                    appState.savePreferences()
+                }
+                .environmentObject(appState)
         }
         .sheet(isPresented: $showInsights) {
             InsightsView()
@@ -141,7 +151,7 @@ struct SettingsView: View {
                 enteredPin: $enteredPin,
                 pinError: $pinError,
                 onSubmit: {
-                    if enteredPin == correctPin {
+                    if enteredPin == KeychainService.getPin() ?? "1234" {
                         pinError = false
                         showPinEntry = false
                         enteredPin = ""
@@ -157,9 +167,17 @@ struct SettingsView: View {
                     showPinEntry = false
                     enteredPin = ""
                     pinError = false
+                },
+                onBiometricSuccess: {
+                    showPinEntry = false
+                    enteredPin = ""
+                    pinError = false
+                    withAnimation(.spring(response: 0.3)) {
+                        appState.accountMode = .guest
+                    }
                 }
             )
-            .presentationDetents([.height(280)])
+            .presentationDetents([.height(340)])
         }
         .alert("Logout", isPresented: $showLogoutAlert) {
             Button("Cancel", role: .cancel) {
@@ -170,6 +188,10 @@ struct SettingsView: View {
             }
         } message: {
             Text("Do you want to logout?")
+        }
+        .fullScreenCover(isPresented: $showDigitalJourney) {
+            DigitalJourneyView()
+                .environmentObject(appState)
         }
         .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
             Button("Cancel", role: .cancel) {
@@ -284,6 +306,40 @@ struct SettingsView: View {
     // MARK: - Parent Mode Content
     private var parentModeContent: some View {
         VStack(spacing: 24) {
+            // Digital Journey
+            SettingsCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    CardHeader(icon: "book.fill", title: "Digital Journey", color: KomalColors.lavenderPurple)
+
+                    Button(action: {
+                        showDigitalJourney = true
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.system(size: 20))
+                                .foregroundColor(KomalColors.lavenderPurple)
+                                .frame(width: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("View Digital Journey")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(KomalColors.textPrimary)
+                                Text("See your child's browsing activity with AI insights")
+                                    .font(.caption)
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
             // Child Profile (editable in parent mode)
             SettingsCard {
                 VStack(alignment: .leading, spacing: 16) {
@@ -555,8 +611,73 @@ struct SettingsView: View {
             SettingsCard {
                 VStack(alignment: .leading, spacing: 16) {
                     CardHeader(icon: "person.circle.fill", title: "Account", color: KomalColors.lavenderPurple)
-                    
-                    if isLoggedIn {
+
+                    if isGuestMode {
+                        // Guest mode: show sign-in option and guest exit
+                        HStack(spacing: 8) {
+                            Image(systemName: "person.crop.circle.badge.questionmark")
+                                .font(.system(size: 20))
+                                .foregroundColor(KomalColors.lavenderPurple)
+                            Text("Using as Guest")
+                                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                .foregroundColor(KomalColors.textPrimary)
+                            Spacer()
+                        }
+
+                        Text("Your data is stored locally on this device only. Sign in to sync across devices.")
+                            .font(.caption)
+                            .foregroundColor(KomalColors.textSecondary)
+
+                        Button(action: {
+                            // Sign in: clear guest flag and go to login
+                            appState.isGuestUser = false
+                            appState.hasCompletedOnboarding = false
+                            pathManager.popToRoot()
+                            pathManager.push(Routes.loginView)
+                        }) {
+                            HStack {
+                                Image(systemName: "person.badge.plus.fill")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(KomalColors.pearlAqua)
+
+                                Text("Sign In")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(KomalColors.pearlAqua)
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(KomalColors.pearlAqua.opacity(0.6))
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.plain)
+
+                        Divider().padding(.vertical, 4)
+
+                        Button(action: {
+                            showLogoutAlert = true
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.right.square.fill")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.red)
+
+                                Text("Exit Guest Mode")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.red)
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.red.opacity(0.6))
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.plain)
+                    } else if isLoggedIn {
                         // Delete Account Button
                         Button(action: {
                             showDeleteAccountAlert = true
@@ -565,13 +686,13 @@ struct SettingsView: View {
                                 Image(systemName: "trash.fill")
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.red)
-                                
+
                                 Text("Delete Account")
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(.red)
-                                
+
                                 Spacer()
-                                
+
                                 if isDeletingAccount {
                                     ProgressView()
                                         .scaleEffect(0.8)
@@ -585,9 +706,9 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(isDeletingAccount)
-                        
+
                         Divider().padding(.vertical, 4)
-                        
+
                         // Logout Button
                         Button(action: {
                             showLogoutAlert = true
@@ -596,13 +717,13 @@ struct SettingsView: View {
                                 Image(systemName: "arrow.right.square.fill")
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.red)
-                                
+
                                 Text("Logout")
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(.red)
-                                
+
                                 Spacer()
-                                
+
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(.red.opacity(0.6))
@@ -610,7 +731,7 @@ struct SettingsView: View {
                             .padding(.vertical, 8)
                         }
                         .buttonStyle(.plain)
-                        
+
                         if let email = Auth.auth().currentUser?.email {
                             Text(email)
                                 .font(.caption)
@@ -627,13 +748,13 @@ struct SettingsView: View {
                                 Image(systemName: "person.badge.plus.fill")
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(KomalColors.pearlAqua)
-                                
+
                                 Text("Login")
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.pearlAqua)
-                                
+
                                 Spacer()
-                                
+
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(KomalColors.pearlAqua.opacity(0.6))
@@ -641,7 +762,7 @@ struct SettingsView: View {
                             .padding(.vertical, 8)
                         }
                         .buttonStyle(.plain)
-                        
+
                         Text("Sign in to sync your preferences across devices")
                             .font(.caption)
                             .foregroundColor(KomalColors.textSecondary)
@@ -654,42 +775,44 @@ struct SettingsView: View {
     
     private func handleLogout() {
         print("🔄 Starting logout process...")
-        
-        // Sign out from Firebase Auth first
-        do {
-            try Auth.auth().signOut()
-            print("✅ Firebase Auth signed out")
-            // Also sign out from Google Sign-In if it was used
+
+        let wasGuest = appState.isGuestUser
+
+        // Reset guest and onboarding flags
+        appState.isGuestUser = false
+        appState.hasCompletedOnboarding = false
+
+        if !wasGuest {
+            // Sign out from Firebase Auth first
+            do {
+                try Auth.auth().signOut()
+                print("✅ Firebase Auth signed out")
 #if canImport(GoogleSignIn)
-            GIDSignIn.sharedInstance.signOut()
-            print("✅ Google Sign-In signed out")
+                GIDSignIn.sharedInstance.signOut()
+                print("✅ Google Sign-In signed out")
 #else
-            // GoogleSignIn not available in this build configuration
+                // GoogleSignIn not available in this build configuration
 #endif
-            appState.hasCompletedOnboarding = false
-        } catch {
-            print("❌ Error signing out: \(error.localizedDescription)")
+            } catch {
+                print("❌ Error signing out: \(error.localizedDescription)")
+            }
         }
-        
+
         // Update the shared authViewModel state immediately using Task with @MainActor
         Task { @MainActor in
             print("🔄 Updating authViewModel state...")
-            print("📊 Current user before logout: \(authViewModel.user?.uid ?? "nil")")
-            
+
             // Directly update the state
             authViewModel.user = nil
             authViewModel.loginState = .notRunning
-            
-            print("✅ authViewModel.user is now: \(authViewModel.user?.uid ?? "nil")")
-            print("✅ authViewModel.loginState is now: \(authViewModel.loginState)")
-            
+
             // Clear navigation stack and navigate to LoginView
             pathManager.popToRoot()
             pathManager.push(Routes.loginView)
-            
+
             // Post notification as additional backup
             NotificationCenter.default.post(name: NSNotification.Name("UserDidSignOut"), object: nil)
-            print("✅ Notification posted")
+            print("✅ Logout completed (wasGuest: \(wasGuest))")
         }
     }
     
@@ -725,9 +848,11 @@ struct SettingsView: View {
                     
                     // 4. Clear local app state
                     appState.hasCompletedOnboarding = false
-                    
+                    appState.isGuestUser = false
+
                     // Clear UserDefaults
                     UserDefaults.standard.removeObject(forKey: "komal.hasCompletedOnboarding")
+                    UserDefaults.standard.removeObject(forKey: "komal.isGuestUser")
                     UserDefaults.standard.removeObject(forKey: "komal.contentFilterPreferences")
                     UserDefaults.standard.removeObject(forKey: "komal.activeProfile")
                     UserDefaults.standard.removeObject(forKey: "komal.accountMode")
@@ -1064,7 +1189,8 @@ struct PinEntryView: View {
     @Binding var pinError: Bool
     let onSubmit: () -> Void
     let onCancel: () -> Void
-    
+    var onBiometricSuccess: (() -> Void)? = nil
+
     var body: some View {
         VStack(spacing: 24) {
             // Header
@@ -1072,17 +1198,17 @@ struct PinEntryView: View {
                 Image(systemName: "lock.shield.fill")
                     .font(.system(size: 40))
                     .foregroundColor(KomalColors.lavenderPurple)
-                
+
                 Text("Enter Parent PIN")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
-                
+
                 Text("Enter your 4-digit PIN to access parent settings")
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
                     .multilineTextAlignment(.center)
             }
-            
+
             // PIN Input
             VStack(spacing: 8) {
                 SecureField("PIN", text: $enteredPin)
@@ -1098,14 +1224,36 @@ struct PinEntryView: View {
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(pinError ? Color.red : Color.black.opacity(0.05), lineWidth: pinError ? 2 : 1)
                     )
-                
+
                 if pinError {
                     Text("Incorrect PIN. Try again.")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundColor(.red)
                 }
             }
-            
+
+            // Biometric button
+            if BiometricAuthService.isBiometricEnabled && BiometricAuthService.availableBiometricType != .none {
+                Button(action: {
+                    Task {
+                        let success = await BiometricAuthService.authenticate()
+                        if success {
+                            await MainActor.run {
+                                onBiometricSuccess?()
+                            }
+                        }
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: BiometricAuthService.biometricIcon)
+                            .font(.system(size: 20))
+                        Text("Use \(BiometricAuthService.biometricName)")
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                    }
+                    .foregroundColor(KomalColors.lavenderPurple)
+                }
+            }
+
             // Buttons
             HStack(spacing: 16) {
                 Button(action: onCancel) {
@@ -1117,7 +1265,7 @@ struct PinEntryView: View {
                         .background(KomalColors.background)
                         .cornerRadius(12)
                 }
-                
+
                 Button(action: onSubmit) {
                     Text("Enter")
                         .font(.system(size: 16, weight: .semibold, design: .rounded))

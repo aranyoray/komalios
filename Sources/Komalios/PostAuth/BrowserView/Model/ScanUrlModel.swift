@@ -9,4 +9,5 @@ import Foundation
 
 struct ScanRequest: Encodable {
     let url: String
+    let searchQuery: String?
 }

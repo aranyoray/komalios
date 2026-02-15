@@ -1,6 +1,6 @@
 #if os(iOS)
 import SwiftUI
-import WebKit
+@preconcurrency import WebKit
 
 struct BrowserView: View {
     @EnvironmentObject private var appState: AppState

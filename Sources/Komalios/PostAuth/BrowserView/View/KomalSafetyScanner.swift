@@ -111,7 +111,7 @@ private struct KomalSafetyScannerContentView: View {
                         .padding(.horizontal, 8)
                 }
                 
-                if let url = viewModel.currentURL, !viewModel.showGate, !viewModel.showBlocked, !viewModel.showKomalIntervention {
+                if let url = viewModel.currentURL, !viewModel.showGate, !viewModel.showBlocked, !viewModel.showBlockedEmojiPopup, !viewModel.showKomalIntervention {
                     SimpleWebView(
                         url: url,
                         loading: Binding(
@@ -132,23 +132,49 @@ private struct KomalSafetyScannerContentView: View {
                     .padding(.bottom, 80) // Space for floating nav bar
                 }
             }
+
+            // Emoji check-in bubble overlay
+            if viewModel.showEmojiCheckIn {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        EmojiCheckInBubble { emoji in
+                            viewModel.handleEmojiResponse(emoji: emoji, forDocumentId: viewModel.lastLoggedDocumentId)
+                        }
+                    }
+                }
+            }
         }
         .sheet(isPresented: $viewModel.showGate) {
             GateView(category: viewModel.category)
                 .environmentObject(appState)
         }
-        .onChange(of: viewModel.showGate) { newValue in
+        .onChange(of: viewModel.showGate) { _, newValue in
             if !newValue {
                 viewModel.handleGateDismissed()
             }
         }
         .fullScreenCover(isPresented: $viewModel.showBlocked) {
             KomalBlockedView(category: viewModel.category, reason: viewModel.blockReason)
-                }
-        .onChange(of: viewModel.showBlocked) { newValue in
+        }
+        .onChange(of: viewModel.showBlocked) { _, newValue in
             if !newValue {
                 viewModel.handleBlockedDismissed()
             }
+        }
+        .fullScreenCover(isPresented: $viewModel.showBlockedEmojiPopup) {
+            BlockedEmojiPopup(
+                subcategory: viewModel.currentSubcategory,
+                characterName: "Komal",
+                onDismiss: {
+                    viewModel.showBlockedEmojiPopup = false
+                    viewModel.handleBlockedDismissed()
+                },
+                onEmojiSelected: { emoji in
+                    viewModel.handleEmojiResponse(emoji: emoji, forDocumentId: viewModel.lastLoggedDocumentId)
+                }
+            )
         }
         .fullScreenCover(isPresented: $viewModel.showKomalCheckIn) {
             KomalCheckInView()
