@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Primary Meta Tags -->
+    <title>Komal: Learn with AI — AI-Powered Safe Browsing for Kids</title>
+    <meta name="title" content="Komal: Learn with AI — AI-Powered Safe Browsing for Kids">
+    <meta name="description" content="Protect your child online with Komal's 5 on-device AI models. Real-time content filtering, parent dashboard, and age-based controls. All processing stays on device. Download free for iOS.">
+    <meta name="keywords" content="parental control app, child safety browser, AI content filter, safe browsing for kids, screen time, COPPA compliant, kids internet safety, family safe browser, web filter for children, parental monitoring">
+    <meta name="author" content="Komal">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="7 days">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://komalkids.com/">
+    <meta property="og:title" content="Komal: Learn with AI — AI-Powered Safe Browsing for Kids">
+    <meta property="og:description" content="Protect your child online with 5 on-device AI models. Real-time content filtering that never sends data off the phone. Free for iOS.">
+    <meta property="og:image" content="https://komalkids.com/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Komal: Learn with AI">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://komalkids.com/">
+    <meta name="twitter:title" content="Komal: Learn with AI — AI-Powered Safe Browsing for Kids">
+    <meta name="twitter:description" content="Protect your child online with 5 on-device AI models. Real-time content filtering that never sends data off the phone.">
+    <meta name="twitter:image" content="https://komalkids.com/assets/og-image.png">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://komalkids.com/">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#F7567C">
+
+    <!-- Apple Smart App Banner -->
+    <meta name="apple-itunes-app" content="app-id=YOUR_APP_ID">
+
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "MobileApplication",
+        "name": "Komal: Learn with AI",
+        "operatingSystem": "iOS",
+        "applicationCategory": "UtilitiesApplication",
+        "description": "AI-powered safe browsing app for kids with on-device content filtering, parent dashboard, and age-based controls.",
+        "url": "https://komalkids.com",
+        "author": {
+            "@type": "Organization",
+            "name": "Komal",
+            "url": "https://komalkids.com"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "0"
+        },
+        "featureList": [
+            "On-device AI content filtering",
+            "5 specialized ML models",
+            "Parent dashboard with AI reports",
+            "Age-based filter customization",
+            "Browsing history and export",
+            "Mindful break reminders"
+        ]
+    }
+    </script>
+
+    <!-- Organization Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Komal",
+        "url": "https://komalkids.com",
+        "logo": "https://komalkids.com/assets/logo.png",
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "support@komalkids.com",
+            "contactType": "customer support",
+            "url": "https://komalkids.com/support"
+        },
+        "sameAs": []
+    }
+    </script>
+
+    <!-- FAQ Schema -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "How does Komal protect my child online?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Komal uses 5 on-device AI models to classify web content in real time. It detects cyberbullying, mature content, horror imagery, financial scams, and parasocial manipulation — blocking harmful pages before they fully load."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does Komal send my child's browsing data to the cloud?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. All content analysis and classification happens entirely on the device using CoreML. No web page content, text, or images are sent to external servers for AI processing."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is Komal COPPA compliant?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. Komal is designed for families with children and complies with COPPA. Only parents can create accounts, data collection is minimal, no ads are served to children, and parents can delete all child data at any time."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What age groups does Komal support?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Komal supports four age groups with automatically adjusted filter sensitivity: under 10, 10-13, 13-16, and 16+. Parents can further customize filter preferences for each child profile."
+                }
+            }
+        ]
+    }
+    </script>
+
+    <style>
+        /* Reset & Base */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #F7567C;
+            --secondary: #99E1D9;
+            --accent: #8269ff;
+            --bg: #F8F8FC;
+            --text: #2C3E50;
+            --text-secondary: #7F8C8D;
+            --white: #FCFCFC;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --radius: 16px;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Navigation */
+        nav {
+            background: rgba(252, 252, 252, 0.95);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-cta {
+            background: var(--primary);
+            color: var(--white) !important;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(247, 86, 124, 0.3);
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 140px 0 80px;
+            text-align: center;
+            background: linear-gradient(135deg, var(--bg) 0%, #EDE7FF 50%, #E0F7F5 100%);
+        }
+
+        .hero h1 {
+            font-size: 3.2rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+
+        .hero h1 .highlight {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 640px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary);
+            color: var(--white);
+            padding: 16px 36px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(247, 86, 124, 0.3);
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--white);
+            color: var(--text);
+            padding: 16px 36px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: 2px solid rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(130, 105, 255, 0.1);
+            color: var(--accent);
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        /* Trust Bar */
+        .trust-bar {
+            padding: 40px 0;
+            text-align: center;
+            background: var(--white);
+            border-top: 1px solid rgba(0,0,0,0.04);
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+
+        .trust-items {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            flex-wrap: wrap;
+        }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .trust-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        /* Features */
+        .features {
+            padding: 100px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-header h2 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .section-header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .feature-card {
+            background: var(--white);
+            padding: 36px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-icon.pink { background: rgba(247, 86, 124, 0.1); }
+        .feature-icon.purple { background: rgba(130, 105, 255, 0.1); }
+        .feature-icon.teal { background: rgba(153, 225, 217, 0.2); }
+
+        .feature-card h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 100px 0;
+            background: var(--white);
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 32px;
+            margin-top: 64px;
+        }
+
+        .step {
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin: 0 auto 20px;
+        }
+
+        .step h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .step p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Privacy Section */
+        .privacy-section {
+            padding: 100px 0;
+            background: linear-gradient(135deg, #2C3E50 0%, #34495E 100%);
+            color: white;
+        }
+
+        .privacy-section .section-header h2 {
+            color: white;
+        }
+
+        .privacy-section .section-header p {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .privacy-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+        }
+
+        .privacy-card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: var(--radius);
+            padding: 32px;
+        }
+
+        .privacy-card h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--secondary);
+        }
+
+        .privacy-card p {
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.75);
+            line-height: 1.6;
+        }
+
+        /* FAQ */
+        .faq {
+            padding: 100px 0;
+        }
+
+        .faq-list {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            padding: 24px 0;
+        }
+
+        .faq-question {
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-question::after {
+            content: '+';
+            font-size: 1.5rem;
+            color: var(--primary);
+            transition: transform 0.3s;
+        }
+
+        .faq-item.active .faq-question::after {
+            transform: rotate(45deg);
+        }
+
+        .faq-answer {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 300px;
+            padding-top: 16px;
+        }
+
+        /* CTA */
+        .cta {
+            padding: 100px 0;
+            text-align: center;
+            background: linear-gradient(135deg, var(--bg) 0%, #EDE7FF 100%);
+        }
+
+        .cta h2 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cta p {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--text);
+            color: rgba(255,255,255,0.7);
+            padding: 60px 0 30px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 48px;
+            margin-bottom: 48px;
+        }
+
+        .footer-brand .logo {
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .footer-brand p {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .footer-col h4 {
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .footer-col ul {
+            list-style: none;
+        }
+
+        .footer-col ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-col ul a {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+            transition: color 0.2s;
+        }
+
+        .footer-col ul a:hover {
+            color: var(--secondary);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .hero h1 {
+                font-size: 2.4rem;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hero {
+                padding: 120px 0 60px;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1.05rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .steps {
+                grid-template-columns: 1fr;
+            }
+
+            .privacy-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: var(--white);
+                flex-direction: column;
+                padding: 24px;
+                gap: 16px;
+                box-shadow: var(--shadow);
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .trust-items {
+                gap: 24px;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            .section-header h2 {
+                font-size: 1.8rem;
+            }
+
+            .cta h2 {
+                font-size: 1.8rem;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            *, *::before, *::after {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+
+        :focus-visible {
+            outline: 3px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* Skip link */
+        .skip-link {
+            position: absolute;
+            top: -100%;
+            left: 16px;
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            z-index: 200;
+            font-weight: 600;
+        }
+
+        .skip-link:focus {
+            top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip Link for Accessibility -->
+    <a href="#main" class="skip-link">Skip to main content</a>
+
+    <!-- Navigation -->
+    <nav role="navigation" aria-label="Main navigation">
+        <div class="container">
+            <a href="/" class="logo" aria-label="Komal home">Komal<span>.</span></a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#privacy">Privacy</a></li>
+                <li><a href="#faq">FAQ</a></li>
+                <li><a href="#download" class="nav-cta">Download</a></li>
+            </ul>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu" aria-expanded="false">
+                &#9776;
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main">
+        <!-- Hero Section -->
+        <section class="hero" aria-labelledby="hero-heading">
+            <div class="container">
+                <div class="hero-badge">On-Device AI &middot; No Data Leaves the Phone</div>
+                <h1 id="hero-heading">Your Child's <span class="highlight">AI-Powered Shield</span> for the Internet</h1>
+                <p>Komal uses 5 on-device machine learning models to detect and block harmful web content in real time. All processing stays on your child's device — no browsing data is ever sent to the cloud.</p>
+                <div class="hero-buttons">
+                    <a href="#download" class="btn-primary" role="button">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 21.99 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 21.99C7.79 22.03 6.8 20.68 5.96 19.47C4.25 16.97 2.94 12.45 4.7 9.39C5.57 7.87 7.13 6.91 8.82 6.88C10.1 6.86 11.32 7.75 12.11 7.75C12.89 7.75 14.37 6.68 15.92 6.84C16.57 6.87 18.39 7.1 19.56 8.82C19.47 8.88 17.39 10.1 17.41 12.63C17.44 15.65 20.06 16.66 20.09 16.67C20.06 16.74 19.67 18.11 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z"/></svg>
+                        Download for iOS
+                    </a>
+                    <a href="#features" class="btn-secondary" role="button">
+                        Learn More
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trust Bar -->
+        <section class="trust-bar" aria-label="Trust indicators">
+            <div class="container">
+                <div class="trust-items">
+                    <div class="trust-item">
+                        <span class="trust-icon" aria-hidden="true">&#128274;</span>
+                        <span>On-Device Processing</span>
+                    </div>
+                    <div class="trust-item">
+                        <span class="trust-icon" aria-hidden="true">&#128119;</span>
+                        <span>COPPA Compliant</span>
+                    </div>
+                    <div class="trust-item">
+                        <span class="trust-icon" aria-hidden="true">&#9889;</span>
+                        <span>&lt;30ms Blocking</span>
+                    </div>
+                    <div class="trust-item">
+                        <span class="trust-icon" aria-hidden="true">&#127968;</span>
+                        <span>Made for Families</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features" id="features" aria-labelledby="features-heading">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="features-heading">Protection Powered by AI</h2>
+                    <p>Five specialized machine learning models work together on your child's device to filter harmful content in real time.</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon pink" aria-hidden="true">&#129302;</div>
+                        <h3>5 On-Device AI Models</h3>
+                        <p>Specialized classifiers for cyberbullying, mature content, horror, financial scams, and parasocial manipulation — all running in parallel on-device.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon purple" aria-hidden="true">&#128274;</div>
+                        <h3>Privacy by Design</h3>
+                        <p>Every content classification happens locally on the phone. No browsing data, page content, or images are sent to external servers.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon teal" aria-hidden="true">&#128200;</div>
+                        <h3>Parent Dashboard</h3>
+                        <p>View AI classification reports, browsing history, and content categories encountered. Export data as CSV for your records.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon pink" aria-hidden="true">&#127922;</div>
+                        <h3>Age-Based Filters</h3>
+                        <p>Filter sensitivity adjusts automatically based on your child's age group: under 10, 10-13, 13-16, and 16+. Customize further per child.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon purple" aria-hidden="true">&#128225;</div>
+                        <h3>Hybrid Filtering</h3>
+                        <p>AI classification combined with curated blocklists for comprehensive coverage. Catches emerging threats that static lists miss.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon teal" aria-hidden="true">&#128150;</div>
+                        <h3>Digital Wellness</h3>
+                        <p>Mindful break reminders, Riki companion check-ins, and engagement insights help children develop healthy screen habits.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="how-it-works" id="how-it-works" aria-labelledby="how-heading">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="how-heading">How Komal Works</h2>
+                    <p>Set up in minutes. Protection starts immediately.</p>
+                </div>
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <h3>Download &amp; Sign In</h3>
+                        <p>Install Komal and sign in with Apple or Google. Your account is ready in seconds.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <h3>Create Child Profiles</h3>
+                        <p>Add your children with their name and age group. Filters calibrate automatically.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <h3>Start Safe Browsing</h3>
+                        <p>Your child browses the web through Komal's built-in browser. AI filters activate instantly.</p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <h3>Review &amp; Adjust</h3>
+                        <p>Check the parent dashboard for AI reports and fine-tune filter settings as needed.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Privacy Section -->
+        <section class="privacy-section" id="privacy" aria-labelledby="privacy-heading">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="privacy-heading">Privacy Without Compromise</h2>
+                    <p>We built Komal with a fundamental belief: protecting your child's safety should not require sacrificing their privacy.</p>
+                </div>
+                <div class="privacy-grid">
+                    <div class="privacy-card">
+                        <h3>On-Device Intelligence</h3>
+                        <p>All 5 AI models run locally using Apple's CoreML framework. Content classification never leaves the device — not even to our servers.</p>
+                    </div>
+                    <div class="privacy-card">
+                        <h3>No Ads, No Tracking</h3>
+                        <p>Komal contains zero advertising SDKs and zero third-party analytics trackers. Firebase is used only for authentication and settings sync.</p>
+                    </div>
+                    <div class="privacy-card">
+                        <h3>COPPA &amp; GDPR Ready</h3>
+                        <p>Designed from the ground up for children's privacy regulations. Minimal data collection, parental consent, and full data deletion rights.</p>
+                    </div>
+                    <div class="privacy-card">
+                        <h3>Works Offline</h3>
+                        <p>AI models are embedded in the app. Content filtering works even without an internet connection — no cloud dependency for safety.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="faq" id="faq" aria-labelledby="faq-heading">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="faq-heading">Frequently Asked Questions</h2>
+                </div>
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
+                            How does Komal protect my child online?
+                        </div>
+                        <div class="faq-answer">
+                            Komal uses 5 on-device AI models to classify web content in real time. It detects cyberbullying, mature content, horror imagery, financial scams, and parasocial manipulation — blocking harmful pages before they fully load. Combined with curated blocklists, it provides comprehensive protection.
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
+                            Does Komal send my child's browsing data to the cloud?
+                        </div>
+                        <div class="faq-answer">
+                            No. All content analysis and classification happens entirely on the device using Apple's CoreML framework. No web page content, text, or images are sent to external servers for AI processing. Only account settings and child profiles sync to Firebase for multi-device access.
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
+                            Is Komal COPPA compliant?
+                        </div>
+                        <div class="faq-answer">
+                            Yes. Komal is designed for families with children and complies with the Children's Online Privacy Protection Act (COPPA). Only parents can create accounts, data collection is minimal, no ads are served to children, and parents can view, modify, or delete all child data at any time.
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
+                            What age groups does Komal support?
+                        </div>
+                        <div class="faq-answer">
+                            Komal supports four age groups with automatically adjusted filter sensitivity: under 10 (strictest), 10-13, 13-16, and 16+ (most permissive). Parents can further customize filter preferences for each individual child profile.
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
+                            Can harmful content still get through?
+                        </div>
+                        <div class="faq-answer">
+                            No filtering system is 100% perfect. Komal's AI models are designed to be highly accurate, but false negatives (harmful content not caught) can occur with novel or edge-case content. We continuously update our models and blocklists. Komal is designed as a supplementary tool alongside active parental guidance.
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
+                            Does Komal work without an internet connection?
+                        </div>
+                        <div class="faq-answer">
+                            The AI classification models are embedded in the app and work offline. However, since the browser requires internet access to load web pages, content filtering during offline browsing applies to cached or locally stored content.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta" id="download" aria-labelledby="cta-heading">
+            <div class="container">
+                <h2 id="cta-heading">Give Your Child a Safer Internet</h2>
+                <p>Download Komal today — free on the App Store. Set up in minutes, protection starts immediately.</p>
+                <a href="https://apps.apple.com/app/komal-learn-with-ai/idYOUR_APP_ID" class="btn-primary" role="button">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 21.99 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 21.99C7.79 22.03 6.8 20.68 5.96 19.47C4.25 16.97 2.94 12.45 4.7 9.39C5.57 7.87 7.13 6.91 8.82 6.88C10.1 6.86 11.32 7.75 12.11 7.75C12.89 7.75 14.37 6.68 15.92 6.84C16.57 6.87 18.39 7.1 19.56 8.82C19.47 8.88 17.39 10.1 17.41 12.63C17.44 15.65 20.06 16.66 20.09 16.67C20.06 16.74 19.67 18.11 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z"/></svg>
+                    Download Free on the App Store
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer role="contentinfo">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <span class="logo">Komal<span>.</span></span>
+                    <p>AI-powered safe browsing for kids. On-device machine learning that protects your child's online experience without compromising their privacy.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#how-it-works">How It Works</a></li>
+                        <li><a href="#privacy">Privacy</a></li>
+                        <li><a href="#faq">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="/privacy">Privacy Policy</a></li>
+                        <li><a href="/terms">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="mailto:support@komalkids.com">support@komalkids.com</a></li>
+                        <li><a href="/support">Help Center</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Komal. All rights reserved.</p>
+                <p>Made with care in India</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const navLinks = document.getElementById('navLinks');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            const expanded = mobileMenuBtn.getAttribute('aria-expanded') === 'true';
+            mobileMenuBtn.setAttribute('aria-expanded', !expanded);
+        });
+
+        // FAQ accordion
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const item = question.parentElement;
+                const isActive = item.classList.contains('active');
+
+                document.querySelectorAll('.faq-item').forEach(i => {
+                    i.classList.remove('active');
+                    i.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+                });
+
+                if (!isActive) {
+                    item.classList.add('active');
+                    question.setAttribute('aria-expanded', 'true');
+                }
+            });
+
+            question.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    question.click();
+                }
+            });
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Close mobile menu if open
+                    navLinks.classList.remove('active');
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
