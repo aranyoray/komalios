@@ -11,6 +11,16 @@ final class DigitalJourneyViewModel: ObservableObject {
 
     enum ActionFilter: String, CaseIterable {
         case all = "All", blocked = "Blocked", gated = "Gated", allowed = "Allowed"
+
+        /// Maps display label to actual Firestore action value
+        var actionKey: String {
+            switch self {
+            case .all: return ""
+            case .blocked: return "BLOCK"
+            case .gated: return "GATE"
+            case .allowed: return "ALLOW"
+            }
+        }
     }
 
     private let appHistoryService = AppHistoryService.shared
@@ -21,9 +31,9 @@ final class DigitalJourneyViewModel: ObservableObject {
 
     private func filterGroups(_ groups: [TopicGroup]) -> [TopicGroup] {
         guard selectedFilter != .all else { return groups }
-        let actionKey = selectedFilter.rawValue.uppercased()
+        let key = selectedFilter.actionKey
         return groups.compactMap { group in
-            let filtered = group.items.filter { $0.action == actionKey }
+            let filtered = group.items.filter { $0.action == key }
             guard !filtered.isEmpty else { return nil }
             return TopicGroup(topicName: group.topicName, intentDescription: group.intentDescription, emojiSummary: group.emojiSummary, items: filtered, isFlagged: group.isFlagged)
         }
@@ -117,6 +127,7 @@ final class DigitalJourneyViewModel: ObservableObject {
     }
 
     func changeAction(for itemId: String, to newAction: String) {
+        guard ["BLOCK", "GATE", "ALLOW"].contains(newAction) else { return }
         for i in flaggedGroups.indices {
             if let j = flaggedGroups[i].items.firstIndex(where: { $0.id == itemId }) {
                 flaggedGroups[i].items[j].action = newAction

@@ -7,9 +7,9 @@
           "identity" : "abseil-cpp-binary",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/google/abseil-cpp-binary.git",
-          "name" : "abseil"
+          "name" : "abseil-cpp-binary"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/abseil-cpp-binary/absl/absl.xcframework",
+        "path" : "/Users/aranyoray/Downloads/komalios/.build/artifacts/abseil-cpp-binary/absl/absl.xcframework",
         "source" : {
           "checksum" : "a1bff202614bf1e804b44df65739d61c5ae3d4b7dd59bde73f819fe3aa259fc7",
           "type" : "remote",
@@ -23,9 +23,9 @@
           "identity" : "firebase-ios-sdk",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/firebase/firebase-ios-sdk.git",
-          "name" : "Firebase"
+          "name" : "firebase-ios-sdk"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/firebase-ios-sdk/FirebaseFirestoreInternal/FirebaseFirestoreInternal.xcframework",
+        "path" : "/Users/aranyoray/Downloads/komalios/.build/artifacts/firebase-ios-sdk/FirebaseFirestoreInternal/FirebaseFirestoreInternal.xcframework",
         "source" : {
           "checksum" : "38f6d1bb13fabca97f53c0ef5bf283b2fbbbf460eac8fa875cd3faab597097b8",
           "type" : "remote",
@@ -39,9 +39,9 @@
           "identity" : "firebase-ios-sdk",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/firebase/firebase-ios-sdk.git",
-          "name" : "Firebase"
+          "name" : "firebase-ios-sdk"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/firebase-ios-sdk/FirebaseAnalytics/FirebaseAnalytics.xcframework",
+        "path" : "/Users/aranyoray/Downloads/komalios/.build/artifacts/firebase-ios-sdk/FirebaseAnalytics/FirebaseAnalytics.xcframework",
         "source" : {
           "checksum" : "50af00e4f2b62e60f8c1686538285aaa10989df35a170c1761f9626edee4a79d",
           "type" : "remote",
@@ -57,7 +57,7 @@
           "location" : "https://github.com/google/GoogleAppMeasurement.git",
           "name" : "GoogleAppMeasurement"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/googleappmeasurement/GoogleAppMeasurement/GoogleAppMeasurement.xcframework",
+        "path" : "/Users/aranyoray/Downloads/komalios/.build/artifacts/googleappmeasurement/GoogleAppMeasurement/GoogleAppMeasurement.xcframework",
         "source" : {
           "checksum" : "66a64e366f06e452f7b6c0676d96926e97db09558cb26b9b7b99f66962f72ee0",
           "type" : "remote",
@@ -73,23 +73,7 @@
           "location" : "https://github.com/google/GoogleAppMeasurement.git",
           "name" : "GoogleAppMeasurement"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/googleappmeasurement/GoogleAppMeasurementOnDeviceConversion/GoogleAppMeasurementOnDeviceConversion.xcframework",
-        "source" : {
-          "checksum" : "d36e557ffc4134e1490fdd45eabe00523f8b5ad7bed0a217b9df310480a376ae",
-          "type" : "remote",
-          "url" : "https://dl.google.com/firebase/ios/swiftpm/10.28.0/GoogleAppMeasurementOnDeviceConversion.zip"
-        },
-        "targetName" : "GoogleAppMeasurementOnDeviceConversion"
-      },
-      {
-        "kind" : "xcframework",
-        "packageRef" : {
-          "identity" : "googleappmeasurement",
-          "kind" : "remoteSourceControl",
-          "location" : "https://github.com/google/GoogleAppMeasurement.git",
-          "name" : "GoogleAppMeasurement"
-        },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/googleappmeasurement/GoogleAppMeasurementIdentitySupport/GoogleAppMeasurementIdentitySupport.xcframework",
+        "path" : "/Users/aranyoray/Downloads/komalios/.build/artifacts/googleappmeasurement/GoogleAppMeasurementIdentitySupport/GoogleAppMeasurementIdentitySupport.xcframework",
         "source" : {
           "checksum" : "c7014395cc31d5cec4096467bd24ae6cd4eb5203762182e909081387f89f7941",
           "type" : "remote",
@@ -100,18 +84,18 @@
       {
         "kind" : "xcframework",
         "packageRef" : {
-          "identity" : "grpc-binary",
+          "identity" : "googleappmeasurement",
           "kind" : "remoteSourceControl",
-          "location" : "https://github.com/google/grpc-binary.git",
-          "name" : "gRPC"
+          "location" : "https://github.com/google/GoogleAppMeasurement.git",
+          "name" : "GoogleAppMeasurement"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/grpc-binary/grpc/grpc.xcframework",
+        "path" : "/Users/aranyoray/Downloads/komalios/.build/artifacts/googleappmeasurement/GoogleAppMeasurementOnDeviceConversion/GoogleAppMeasurementOnDeviceConversion.xcframework",
         "source" : {
-          "checksum" : "033336c8811628d66186486f3c26934afdedd15f01b6079b6e98d1236b39ed31",
+          "checksum" : "d36e557ffc4134e1490fdd45eabe00523f8b5ad7bed0a217b9df310480a376ae",
           "type" : "remote",
-          "url" : "https://dl.google.com/firebase/ios/bin/grpc/1.62.2/rc0/grpc.zip"
+          "url" : "https://dl.google.com/firebase/ios/swiftpm/10.28.0/GoogleAppMeasurementOnDeviceConversion.zip"
         },
-        "targetName" : "grpc"
+        "targetName" : "GoogleAppMeasurementOnDeviceConversion"
       },
       {
         "kind" : "xcframework",
@@ -119,9 +103,9 @@
           "identity" : "grpc-binary",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/google/grpc-binary.git",
-          "name" : "gRPC"
+          "name" : "grpc-binary"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/grpc-binary/openssl_grpc/openssl_grpc.xcframework",
+        "path" : "/Users/aranyoray/Downloads/komalios/.build/artifacts/grpc-binary/openssl_grpc/openssl_grpc.xcframework",
         "source" : {
           "checksum" : "4bced0ddb0c8866877c2ad95c106e4b0afbec6fce7c7bc5341a636f2e7ea4521",
           "type" : "remote",
@@ -135,15 +119,31 @@
           "identity" : "grpc-binary",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/google/grpc-binary.git",
-          "name" : "gRPC"
+          "name" : "grpc-binary"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/grpc-binary/grpcpp/grpcpp.xcframework",
+        "path" : "/Users/aranyoray/Downloads/komalios/.build/artifacts/grpc-binary/grpcpp/grpcpp.xcframework",
         "source" : {
           "checksum" : "99ad505db238c66d4173d01d9efa4bc14aee80a94c96a28c0a86c4ead2c467d2",
           "type" : "remote",
           "url" : "https://dl.google.com/firebase/ios/bin/grpc/1.62.2/rc0/grpcpp.zip"
         },
         "targetName" : "grpcpp"
+      },
+      {
+        "kind" : "xcframework",
+        "packageRef" : {
+          "identity" : "grpc-binary",
+          "kind" : "remoteSourceControl",
+          "location" : "https://github.com/google/grpc-binary.git",
+          "name" : "grpc-binary"
+        },
+        "path" : "/Users/aranyoray/Downloads/komalios/.build/artifacts/grpc-binary/grpc/grpc.xcframework",
+        "source" : {
+          "checksum" : "033336c8811628d66186486f3c26934afdedd15f01b6079b6e98d1236b39ed31",
+          "type" : "remote",
+          "url" : "https://dl.google.com/firebase/ios/bin/grpc/1.62.2/rc0/grpc.zip"
+        },
+        "targetName" : "grpc"
       }
     ],
     "dependencies" : [
@@ -153,7 +153,7 @@
           "identity" : "abseil-cpp-binary",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/google/abseil-cpp-binary.git",
-          "name" : "abseil"
+          "name" : "abseil-cpp-binary"
         },
         "state" : {
           "checkoutState" : {
@@ -170,7 +170,7 @@
           "identity" : "app-check",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/google/app-check.git",
-          "name" : "AppCheck"
+          "name" : "app-check"
         },
         "state" : {
           "checkoutState" : {
@@ -187,7 +187,7 @@
           "identity" : "appauth-ios",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/openid/AppAuth-iOS.git",
-          "name" : "AppAuth"
+          "name" : "AppAuth-iOS"
         },
         "state" : {
           "checkoutState" : {
@@ -204,7 +204,7 @@
           "identity" : "firebase-ios-sdk",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/firebase/firebase-ios-sdk.git",
-          "name" : "Firebase"
+          "name" : "firebase-ios-sdk"
         },
         "state" : {
           "checkoutState" : {
@@ -255,7 +255,7 @@
           "identity" : "googlesignin-ios",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/google/GoogleSignIn-iOS",
-          "name" : "GoogleSignIn"
+          "name" : "GoogleSignIn-iOS"
         },
         "state" : {
           "checkoutState" : {
@@ -289,7 +289,7 @@
           "identity" : "grpc-binary",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/google/grpc-binary.git",
-          "name" : "gRPC"
+          "name" : "grpc-binary"
         },
         "state" : {
           "checkoutState" : {
@@ -306,7 +306,7 @@
           "identity" : "gtm-session-fetcher",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/google/gtm-session-fetcher.git",
-          "name" : "GTMSessionFetcher"
+          "name" : "gtm-session-fetcher"
         },
         "state" : {
           "checkoutState" : {
@@ -340,7 +340,7 @@
           "identity" : "interop-ios-for-google-sdks",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/google/interop-ios-for-google-sdks.git",
-          "name" : "InteropForGoogle"
+          "name" : "interop-ios-for-google-sdks"
         },
         "state" : {
           "checkoutState" : {
@@ -391,7 +391,7 @@
           "identity" : "promises",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/google/promises.git",
-          "name" : "Promises"
+          "name" : "promises"
         },
         "state" : {
           "checkoutState" : {
@@ -408,21 +408,18 @@
           "identity" : "swift-protobuf",
           "kind" : "remoteSourceControl",
           "location" : "https://github.com/apple/swift-protobuf.git",
-          "name" : "SwiftProtobuf"
+          "name" : "swift-protobuf"
         },
         "state" : {
           "checkoutState" : {
-            "revision" : "c169a5744230951031770e27e475ff6eefe51f9d",
-            "version" : "1.33.3"
+            "revision" : "c5ab62237f21cad094812719a1bbe29443407c5f",
+            "version" : "1.34.1"
           },
           "name" : "sourceControlCheckout"
         },
         "subpath" : "swift-protobuf"
       }
-    ],
-    "prebuilts" : [
-
     ]
   },
-  "version" : 7
+  "version" : 6
 }

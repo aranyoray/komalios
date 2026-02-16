@@ -26,7 +26,7 @@ struct RootView: View {
             // Floating menu overlay
             FloatingMenuView(selectedTab: $selectedTab)
         }
-        .onChange(of: selectedTab) { _, _ in
+        .onChange(of: selectedTab) { _ in
             if appState.accountMode == .guest {
                 appState.accountMode = .child
             }

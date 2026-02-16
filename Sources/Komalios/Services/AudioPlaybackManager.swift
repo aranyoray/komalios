@@ -5,6 +5,7 @@ import AVFoundation
 @MainActor
 class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var isPlaying = false
+    @Published var isMuted = false
 
     private var audioPlayer: AVAudioPlayer?
     private let ttsService = TextToSpeechService.shared
@@ -16,6 +17,7 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     func speak(text: String, characterName: String) async {
+        guard !isMuted else { return }
         stop()
         do {
             let audioData = try await ttsService.synthesize(text: text, characterName: characterName)

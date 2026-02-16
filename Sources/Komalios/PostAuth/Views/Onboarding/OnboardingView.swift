@@ -37,7 +37,7 @@ struct PostAuthOnboardingView: View {
 
     var onComplete: () -> Void
 
-    private let totalPages = 9
+    private let totalPages = 10
 
     var body: some View {
         ZStack {
@@ -60,8 +60,9 @@ struct PostAuthOnboardingView: View {
                     likesScreen.tag(4)
                     dislikesScreen.tag(5)
                     parentConcernsScreen.tag(6)
-                    pinSetupScreen.tag(7)
-                    completionScreen.tag(8)
+                    filterPreferencesScreen.tag(7)
+                    pinSetupScreen.tag(8)
+                    completionScreen.tag(9)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.easeInOut(duration: 0.3), value: currentPage)
@@ -558,7 +559,7 @@ struct PostAuthOnboardingView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     SurveyHeader(
-                        step: "6 of 7",
+                        step: "6 of 8",
                         title: "Your Concerns",
                         subtitle: "What worries you most about your child online?"
                     )
@@ -595,19 +596,56 @@ struct PostAuthOnboardingView: View {
                 canGoBack: true,
                 canGoNext: surveyData.parentConcerns.count >= 1,
                 onBack: { withAnimation { currentPage = 5 } },
-                onNext: { withAnimation { currentPage = 7 } }
+                onNext: {
+                    applyParentConcernsToFilters()
+                    withAnimation { currentPage = 7 }
+                }
             )
         }
     }
 
-    // MARK: - Screen 8: PIN Setup
+    // MARK: - Screen 8: Filter Preferences
+
+    private var filterPreferencesScreen: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    SurveyHeader(
+                        step: "7 of 8",
+                        title: "Content Filters",
+                        subtitle: "Review and customize content filtering"
+                    )
+
+                    Text("These defaults are based on your child's age and your concerns. Adjust any setting below.")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(KomalColors.textSecondary)
+                        .padding(.horizontal, 24)
+
+                    VStack(spacing: 12) {
+                        ForEach(OnboardingCategory.allCategories) { category in
+                            CategorySettingsCard(category: category, preferences: $preferences)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 120)
+            }
+
+            SurveyNavigation(
+                canGoBack: true,
+                canGoNext: true,
+                onBack: { withAnimation { currentPage = 6 } },
+                onNext: { withAnimation { currentPage = 8 } }
+            )
+        }
+    }
 
     private var pinSetupScreen: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 24) {
                     SurveyHeader(
-                        step: "7 of 7",
+                        step: "8 of 8",
                         title: "Set Parent PIN",
                         subtitle: "Create a PIN to protect parent settings"
                     )
@@ -634,6 +672,9 @@ struct PostAuthOnboardingView: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                                 )
+                                .onChange(of: pinEntry) { newValue in
+                                    if newValue.count > 4 { pinEntry = String(newValue.prefix(4)) }
+                                }
                         }
 
                         VStack(alignment: .leading, spacing: 8) {
@@ -652,6 +693,9 @@ struct PostAuthOnboardingView: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(pinMismatchError ? Color.red : Color.gray.opacity(0.2), lineWidth: pinMismatchError ? 2 : 1)
                                 )
+                                .onChange(of: pinConfirm) { newValue in
+                                    if newValue.count > 4 { pinConfirm = String(newValue.prefix(4)) }
+                                }
 
                             if pinMismatchError {
                                 Text("PINs do not match. Please try again.")
@@ -704,7 +748,7 @@ struct PostAuthOnboardingView: View {
             SurveyNavigation(
                 canGoBack: true,
                 canGoNext: pinEntry.count >= 4 && pinConfirm.count >= 4,
-                onBack: { withAnimation { currentPage = 6 } },
+                onBack: { withAnimation { currentPage = 7 } },
                 onNext: {
                     UIApplication.shared.hideKeyboard()
                     if pinEntry == pinConfirm {
@@ -712,7 +756,7 @@ struct PostAuthOnboardingView: View {
                         KeychainService.savePin(pinEntry)
                         BiometricAuthService.isBiometricEnabled = enableBiometric
                         appState.parentSettings.biometricEnabled = enableBiometric
-                        withAnimation { currentPage = 8 }
+                        withAnimation { currentPage = 9 }
                     } else {
                         pinMismatchError = true
                     }
@@ -721,7 +765,7 @@ struct PostAuthOnboardingView: View {
         }
     }
 
-    // MARK: - Screen 9: Completion
+    // MARK: - Screen 10: Completion
 
     private var completionScreen: some View {
         ScrollView {
@@ -784,10 +828,7 @@ struct PostAuthOnboardingView: View {
                     appState.activeProfile = ChildProfile(name: surveyData.name, ageGroup: surveyData.ageGroup)
                     appState.contentFilterPreferences = preferences
                     appState.hasCompletedOnboarding = true
-                    
-                    // Apply concerns to filter settings
-                    applyParentConcernsToFilters()
-                    
+
                     // Save preferences
                     appState.savePreferences()
                     
@@ -808,7 +849,7 @@ struct PostAuthOnboardingView: View {
                 }
                 .padding(.horizontal, 24)
                 
-                Button(action: { withAnimation { currentPage = 7 } }) {
+                Button(action: { withAnimation { currentPage = 8 } }) {
                     Text("Review Answers")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)

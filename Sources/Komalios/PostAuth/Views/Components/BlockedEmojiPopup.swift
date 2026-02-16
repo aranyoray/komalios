@@ -12,12 +12,15 @@ struct BlockedEmojiPopup: View {
     @State private var showVoiceChat = false
     @State private var isListening = false
     @StateObject private var speechRecognizer = SpeechRecognizer()
+    @StateObject private var audioPlayback = AudioPlaybackManager()
     @State private var chatResponse: String?
     @State private var isLoadingChat = false
     @State private var avatarImage = "animal1"
+    @State private var hasSentTranscript = false
+    @State private var silenceTimer: Timer?
 
     private let geminiService = GeminiChatService()
-    private let avatarNames = (1...9).map { "animal\($0)" }
+    private let avatarNames = (1...11).map { "animal\($0)" }
 
     var body: some View {
         ZStack {
@@ -26,11 +29,20 @@ struct BlockedEmojiPopup: View {
             VStack(spacing: 24) {
                 Spacer()
 
-                if let uiImage = UIImage(named: avatarImage) {
-                    Image(uiImage: uiImage)
-                        .resizable().aspectRatio(contentMode: .fit)
-                        .frame(width: 100, height: 100).clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white, lineWidth: 3))
+                ZStack(alignment: .bottomTrailing) {
+                    if let uiImage = UIImage(named: avatarImage) {
+                        Image(uiImage: uiImage)
+                            .resizable().aspectRatio(contentMode: .fit)
+                            .frame(width: 100, height: 100).clipShape(Circle())
+                            .overlay(Circle().stroke(Color.white, lineWidth: 3))
+                    }
+                    if audioPlayback.isPlaying {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.system(size: 12)).foregroundColor(.white)
+                            .padding(4)
+                            .background(Circle().fill(KomalColors.lavenderPurple))
+                            .offset(x: 4, y: 4)
+                    }
                 }
 
                 VStack(spacing: 8) {
@@ -57,9 +69,20 @@ struct BlockedEmojiPopup: View {
             }
         }
         .onAppear { avatarImage = avatarNames.randomElement() ?? "animal1" }
-        .onChange(of: speechRecognizer.transcript) { _, newValue in
-            if !newValue.isEmpty && !isListening {
-                sendVoiceMessage(newValue)
+        .onDisappear {
+            silenceTimer?.invalidate()
+            silenceTimer = nil
+        }
+        .onReceive(speechRecognizer.$transcript) { newValue in
+            if isListening && !newValue.isEmpty && !hasSentTranscript {
+                silenceTimer?.invalidate()
+                silenceTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+                    Task { @MainActor in
+                        if isListening && !hasSentTranscript {
+                            toggleListening()
+                        }
+                    }
+                }
             }
         }
     }
@@ -113,11 +136,21 @@ struct BlockedEmojiPopup: View {
     }
 
     private func toggleListening() {
+        silenceTimer?.invalidate()
+        silenceTimer = nil
+        if audioPlayback.isPlaying { audioPlayback.stop() }
+
         if isListening {
             speechRecognizer.stopRecording()
             isListening = false
-            if !speechRecognizer.transcript.isEmpty { sendVoiceMessage(speechRecognizer.transcript) }
+            let transcript = speechRecognizer.transcript
+            if !transcript.isEmpty && !hasSentTranscript {
+                hasSentTranscript = true
+                sendVoiceMessage(transcript)
+            }
         } else {
+            hasSentTranscript = false
+            audioPlayback.interruptForChildSpeech()
             speechRecognizer.startRecording()
             isListening = true
         }
@@ -131,11 +164,18 @@ struct BlockedEmojiPopup: View {
                     userMessage: text, conversationHistory: [], characterName: characterName,
                     characterPersonality: "A caring, gentle companion who helps children process difficult emotions about blocked content."
                 )
-                chatResponse = response
+                await MainActor.run {
+                    chatResponse = response
+                    isLoadingChat = false
+                }
+                // Speak the response via TTS
+                await audioPlayback.speak(text: response, characterName: characterName)
             } catch {
-                chatResponse = "I'm here for you. Let's go explore something fun together!"
+                await MainActor.run {
+                    chatResponse = "I'm here for you. Let's go explore something fun together!"
+                    isLoadingChat = false
+                }
             }
-            isLoadingChat = false
         }
     }
 }

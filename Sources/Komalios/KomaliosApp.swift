@@ -36,32 +36,27 @@ struct ContentView: View {
                     destinationView(for: route)
                 }
         }
-        .onChange(of: authViewModel.user) { _, newUser in
-            // Handle user state changes (skip if guest user)
+        .onChange(of: authViewModel.user) { _ in
             guard !appState.isGuestUser else { return }
-            if newUser == nil {
-                print("✅ User logged out, navigating to LoginView")
+            if authViewModel.user == nil {
                 pathManager.popToRoot()
                 pathManager.push(Routes.loginView)
-            } else if newUser != nil && appState.hasCompletedOnboarding {
-                // User logged in and completed onboarding
+            } else if appState.hasCompletedOnboarding {
                 pathManager.popToRoot()
                 pathManager.push(Routes.rootView)
-            } else if newUser != nil && !appState.hasCompletedOnboarding {
-                // User logged in but needs onboarding
+            } else {
                 pathManager.popToRoot()
                 pathManager.push(Routes.onboardingView)
             }
         }
-        .onChange(of: appState.hasCompletedOnboarding) { _, newValue in
-            // Handle onboarding completion for both authenticated and guest users
-            if newValue && (authViewModel.user != nil || appState.isGuestUser) {
+        .onChange(of: appState.hasCompletedOnboarding) { _ in
+            if appState.hasCompletedOnboarding && (authViewModel.user != nil || appState.isGuestUser) {
                 pathManager.popToRoot()
                 pathManager.push(Routes.rootView)
             }
         }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .background || newPhase == .inactive {
+        .onChange(of: scenePhase) { _ in
+            if scenePhase == .background || scenePhase == .inactive {
                 if appState.accountMode == .guest {
                     appState.accountMode = .child
                 }

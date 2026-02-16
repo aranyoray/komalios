@@ -13,6 +13,7 @@ actor TextToSpeechService {
     }
 
     private let voices: [String: VoiceConfig] = [
+        "Komal": .init(name: "en-US-Neural2-F", pitch: 1.0, speakingRate: 0.95),
         "Momo": .init(name: "en-US-Neural2-A", pitch: 4.0, speakingRate: 1.15),
         "Goldie": .init(name: "en-US-Neural2-F", pitch: 0.0, speakingRate: 1.0),
         "Oreo": .init(name: "en-US-Neural2-C", pitch: 2.0, speakingRate: 1.05),

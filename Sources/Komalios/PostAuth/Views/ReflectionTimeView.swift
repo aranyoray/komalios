@@ -811,7 +811,7 @@ struct FreeChatSessionView: View {
                     .padding(.bottom, 8)
                     .id("bottom")
                 }
-                .onChange(of: messages.count) { _, _ in
+                .onChange(of: messages.count) { _ in
                     withAnimation {
                         proxy.scrollTo("bottom", anchor: .bottom)
                     }

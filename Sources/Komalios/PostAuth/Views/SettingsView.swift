@@ -138,7 +138,7 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showFilterPreferences) {
             FilterPreferencesView(preferences: $appState.contentFilterPreferences)
-                .onChange(of: appState.contentFilterPreferences, initial: false) { _, _ in
+                .onChange(of: appState.contentFilterPreferences) { _ in
                     appState.savePreferences()
                 }
                 .environmentObject(appState)
@@ -151,7 +151,7 @@ struct SettingsView: View {
                 enteredPin: $enteredPin,
                 pinError: $pinError,
                 onSubmit: {
-                    if enteredPin == KeychainService.getPin() ?? "1234" {
+                    if let savedPin = KeychainService.getPin(), enteredPin == savedPin {
                         pinError = false
                         showPinEntry = false
                         enteredPin = ""
@@ -1224,6 +1224,9 @@ struct PinEntryView: View {
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(pinError ? Color.red : Color.black.opacity(0.05), lineWidth: pinError ? 2 : 1)
                     )
+                    .onChange(of: enteredPin) { newValue in
+                        if newValue.count > 4 { enteredPin = String(newValue.prefix(4)) }
+                    }
 
                 if pinError {
                     Text("Incorrect PIN. Try again.")
@@ -1272,9 +1275,10 @@ struct PinEntryView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(KomalColors.lavenderPurple)
+                        .background(enteredPin.count == 4 ? KomalColors.lavenderPurple : KomalColors.lavenderPurple.opacity(0.4))
                         .cornerRadius(12)
                 }
+                .disabled(enteredPin.count != 4)
             }
         }
         .padding(24)

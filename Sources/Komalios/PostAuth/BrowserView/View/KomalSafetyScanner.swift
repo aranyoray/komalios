@@ -133,8 +133,12 @@ private struct KomalSafetyScannerContentView: View {
                 }
             }
 
-            // Emoji check-in bubble overlay
+            // Mandatory emoji check-in overlay (blocks interaction until responded)
             if viewModel.showEmojiCheckIn {
+                Color.black.opacity(0.25)
+                    .ignoresSafeArea()
+                    .onTapGesture {} // Absorb taps to block web interaction
+
                 VStack {
                     Spacer()
                     HStack {
@@ -146,22 +150,44 @@ private struct KomalSafetyScannerContentView: View {
                 }
             }
         }
-        .sheet(isPresented: $viewModel.showGate) {
-            GateView(category: viewModel.category)
-                .environmentObject(appState)
-        }
-        .onChange(of: viewModel.showGate) { _, newValue in
-            if !newValue {
-                viewModel.handleGateDismissed()
+        .sheet(isPresented: $viewModel.showGate, onDismiss: {
+            viewModel.handleGateDismissed()
+        }) {
+            // Emoji gate: collect emoji then allow content
+            VStack(spacing: 24) {
+                Spacer()
+
+                if let uiImage = UIImage(named: "animal\(viewModel.gateAvatarIndex)") {
+                    Image(uiImage: uiImage)
+                        .resizable().aspectRatio(contentMode: .fit)
+                        .frame(width: 100, height: 100).clipShape(Circle())
+                        .overlay(Circle().stroke(KomalColors.bubblegumPink, lineWidth: 3))
+                }
+
+                VStack(spacing: 6) {
+                    Text("Before you go...")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
+                    Text("How are you feeling right now?")
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                }
+
+                EmojiResponseView(subcategory: viewModel.currentSubcategory) { emoji in
+                    viewModel.handleEmojiResponse(emoji: emoji, forDocumentId: viewModel.lastLoggedDocumentId)
+                    viewModel.showGate = false
+                }
+
+                Spacer()
             }
+            .padding(.horizontal, 24)
+            .interactiveDismissDisabled()
+            .presentationDetents([.medium])
         }
-        .fullScreenCover(isPresented: $viewModel.showBlocked) {
+        .fullScreenCover(isPresented: $viewModel.showBlocked, onDismiss: {
+            viewModel.handleBlockedDismissed()
+        }) {
             KomalBlockedView(category: viewModel.category, reason: viewModel.blockReason)
-        }
-        .onChange(of: viewModel.showBlocked) { _, newValue in
-            if !newValue {
-                viewModel.handleBlockedDismissed()
-            }
         }
         .fullScreenCover(isPresented: $viewModel.showBlockedEmojiPopup) {
             BlockedEmojiPopup(

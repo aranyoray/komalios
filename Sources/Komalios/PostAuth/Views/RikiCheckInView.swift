@@ -175,6 +175,7 @@ struct CharacterChatView: View {
     @State private var inputText: String = ""
     @State private var isLoading: Bool = false
     @State private var isListening: Bool = false
+    @State private var silenceTimer: Timer?
     @FocusState private var isInputFocused: Bool
 
     @StateObject private var speechRecognizer = SpeechRecognizer()
@@ -213,12 +214,12 @@ struct CharacterChatView: View {
                     .padding(.bottom, 8)
                     .id("bottom")
                 }
-                .onChange(of: messages.count) {
+                .onChange(of: messages.count) { _ in
                     withAnimation {
                         proxy.scrollTo("bottom", anchor: .bottom)
                     }
                 }
-                .onChange(of: isLoading) {
+                .onChange(of: isLoading) { _ in
                     withAnimation {
                         proxy.scrollTo("bottom", anchor: .bottom)
                     }
@@ -240,9 +241,25 @@ struct CharacterChatView: View {
                 await audioPlayback.speak(text: character.greeting, characterName: character.name)
             }
         }
-        .onChange(of: speechRecognizer.transcript) { _, newValue in
+        .onDisappear {
+            silenceTimer?.invalidate()
+            silenceTimer = nil
+        }
+        .onReceive(speechRecognizer.$transcript) { newValue in
             if !newValue.isEmpty {
                 inputText = newValue
+            }
+            // Reset 3-second silence timer for auto-send
+            if isListening && !newValue.isEmpty {
+                silenceTimer?.invalidate()
+                silenceTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+                    Task { @MainActor in
+                        if isListening && !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            stopListening()
+                            sendMessage()
+                        }
+                    }
+                }
             }
         }
     }
@@ -292,6 +309,18 @@ struct CharacterChatView: View {
             }
 
             Spacer()
+
+            // Mute/unmute TTS button
+            Button(action: { audioPlayback.isMuted.toggle() }) {
+                Image(systemName: audioPlayback.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(audioPlayback.isMuted ? KomalColors.textSecondary : KomalColors.lavenderPurple)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                    )
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -446,6 +475,9 @@ struct CharacterChatView: View {
     }
 
     private func startListening() {
+        // Cancel any existing silence timer
+        silenceTimer?.invalidate()
+        silenceTimer = nil
         // Interrupt any character speech when child starts talking
         audioPlayback.interruptForChildSpeech()
 
@@ -465,6 +497,8 @@ struct CharacterChatView: View {
     }
 
     private func stopListening() {
+        silenceTimer?.invalidate()
+        silenceTimer = nil
         speechRecognizer.stopRecording()
         // Capture final transcript
         if !speechRecognizer.transcript.isEmpty {

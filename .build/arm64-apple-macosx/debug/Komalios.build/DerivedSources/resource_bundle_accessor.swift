@@ -3,7 +3,7 @@ import Foundation
 extension Foundation.Bundle {
     static let module: Bundle = {
         let mainPath = Bundle.main.bundleURL.appendingPathComponent("Komalios_Komalios.bundle").path
-        let buildPath = "/Users/aranyoray/Documents/komalios/.build/arm64-apple-macosx/debug/Komalios_Komalios.bundle"
+        let buildPath = "/Users/aranyoray/Downloads/komalios/.build/arm64-apple-macosx/debug/Komalios_Komalios.bundle"
 
         let preferredBundle = Bundle(path: mainPath)
 

@@ -26,21 +26,28 @@ func debugLogLine(_ message: String) {
     }
 }
 
+// MARK: - Scan Result (supports both API formats)
+
+enum ScanAPIResult {
+    case legacy(ScanResponse)
+    case unified(UnifiedDecisionResponse)
+}
+
 // MARK: - Network Service
 
 class ScanNetworkService {
     private let baseURL = "https://www.komalkids.com"
     private let session: URLSession
-    
+
     init() {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30.0
         config.timeoutIntervalForResource = 60.0
         self.session = URLSession(configuration: config)
     }
-    
-    /// Main function to scan URL - sends URL and raw search input to server for analysis
-    func scanURL(_ urlString: String, searchQuery: String? = nil) async throws -> ScanResponse {
+
+    /// Scan URL - tries unified format first, falls back to legacy
+    func scanURLWithFormat(_ urlString: String, searchQuery: String? = nil) async throws -> ScanAPIResult {
         let endpoint = "\(baseURL)/api/scan-url"
         debugLogLine("[DEBUG-NET] Calling cloud endpoint: \(endpoint)")
         debugLogLine("[DEBUG-NET] Scanning URL: \(urlString)")
@@ -81,16 +88,36 @@ class ScanNetworkService {
         }
 
         let responseStr = String(data: data, encoding: .utf8) ?? "<binary>"
-        debugLogLine("[DEBUG-NET] Response body: \(responseStr.prefix(500))")
+        debugLogLine("[DEBUG-NET] Response body: \(responseStr.prefix(800))")
 
         let decoder = JSONDecoder()
-        do {
-            let result = try decoder.decode(ScanResponse.self, from: data)
-            debugLogLine("[DEBUG-NET] Decoded successfully - overallScore: \(result.overallScore), ageGroups: \(result.ageGroupScores.map { "\($0.key): \($0.value.action.rawValue)" })")
-            return result
-        } catch {
-            debugLogLine("[DEBUG-NET] DECODE ERROR: \(error)")
-            throw error
+
+        // Try unified format first (newer API)
+        if let unified = try? decoder.decode(UnifiedDecisionResponse.self, from: data) {
+            debugLogLine("[DEBUG-NET] Decoded as UNIFIED - ageActions: \(unified.ageActions.map { "\($0.key): \($0.value.action.rawValue)" })")
+            return .unified(unified)
+        }
+
+        // Fall back to legacy format
+        if let legacy = try? decoder.decode(ScanResponse.self, from: data) {
+            debugLogLine("[DEBUG-NET] Decoded as LEGACY - overallScore: \(legacy.overallScore), ageGroups: \(legacy.ageGroupScores.map { "\($0.key): \($0.value.action.rawValue)" })")
+            return .legacy(legacy)
+        }
+
+        // Neither format decoded — log the actual error
+        debugLogLine("[DEBUG-NET] DECODE ERROR: Response doesn't match unified or legacy format")
+        debugLogLine("[DEBUG-NET] Full response: \(responseStr.prefix(2000))")
+        throw ScanNetworkError.decodingError
+    }
+
+    /// Legacy method kept for backward compat
+    func scanURL(_ urlString: String, searchQuery: String? = nil) async throws -> ScanResponse {
+        let result = try await scanURLWithFormat(urlString, searchQuery: searchQuery)
+        switch result {
+        case .legacy(let response):
+            return response
+        case .unified:
+            throw ScanNetworkError.decodingError
         }
     }
 }
@@ -103,7 +130,7 @@ enum ScanNetworkError: LocalizedError {
     case httpError(Int)
     case apiError(String)
     case decodingError
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidURL:

@@ -42,6 +42,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     @Published var showBlockedEmojiPopup = false
     @Published var currentSubcategory: String = ""
     @Published var lastLoggedDocumentId: String?
+    @Published var gateAvatarIndex: Int = Int.random(in: 1...11)
+    private var lastSafeURL: URL?
     
     // MARK: - Unified Decision (new system)
     @Published var unifiedDecision: UnifiedDecisionResponse?
@@ -133,12 +135,23 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             self.showKomalIntervention = true
             self.loading = false
             
-            // Log for history
+            // Log for local + Firebase history
             historyService.logBlocked(
                 url: URL(string: "blocked://\(urlInput)") ?? URL(string: "about:blank")!,
                 category: "Content Filter",
                 reason: "Searched for: \(flaggedKeyword)"
             )
+            Task {
+                await appHistoryService.logEvent(
+                    url: trimmedInput,
+                    searchQuery: trimmedInput,
+                    action: "BLOCK",
+                    category: "Content Filter",
+                    subcategory: flaggedKeyword,
+                    childName: appState.activeProfile.name,
+                    ageGroup: appState.activeProfile.ageGroup.rawValue
+                )
+            }
             return
         }
         
@@ -168,6 +181,17 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             if contentCheck.shouldIntervene, let trigger = contentCheck.trigger {
                 debugLogLine("[DEBUG-SCAN] URL content check triggered: \(trigger.searchTerm)")
                 historyService.logBlocked(url: url, category: "Content Filter", reason: "Intervention: \(trigger.searchTerm)")
+                Task {
+                    await appHistoryService.logEvent(
+                        url: normalizedURL,
+                        searchQuery: urlInput,
+                        action: "BLOCK",
+                        category: "Content Filter",
+                        subcategory: trigger.searchTerm,
+                        childName: appState.activeProfile.name,
+                        ageGroup: appState.activeProfile.ageGroup.rawValue
+                    )
+                }
 
                 // Reset all states to prevent competing fullScreenCovers
                 showGate = false
@@ -213,6 +237,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         // Only skip for direct URL inputs, NOT for search queries converted to Google URLs
         if looksLikeURL, let url = URL(string: normalizedURL), isTrustedDomain(url) {
             debugLogLine("[DEBUG-SCAN] Trusted domain (direct URL) - skipping scan: \(url.host ?? "")")
+            lastSafeURL = url
             currentURL = url
             historyService.logEvent(url: url, type: .allowed, category: "Trusted Site", action: .allow)
             loading = false
@@ -244,12 +269,21 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             let rawSearchInput = trimmedInput
             debugLogLine("[DEBUG-SCAN] Sending to server - URL: \(normalizedURL), searchQuery: \(rawSearchInput)")
 
-            scanResult = try await networkService.scanURL(normalizedURL, searchQuery: rawSearchInput)
-            debugLogLine("[DEBUG-SCAN] Server scan completed successfully")
-            await processScanResult(normalizedURL: normalizedURL)
+            let apiResult = try await networkService.scanURLWithFormat(normalizedURL, searchQuery: rawSearchInput)
+
+            switch apiResult {
+            case .unified(let decision):
+                debugLogLine("[DEBUG-SCAN] Processing UNIFIED decision")
+                unifiedDecision = decision
+                await processUnifiedDecision(normalizedURL: normalizedURL, decision: decision)
+            case .legacy(let response):
+                debugLogLine("[DEBUG-SCAN] Processing LEGACY scan result")
+                scanResult = response
+                await processScanResult(normalizedURL: normalizedURL)
+            }
 
             // Show check-in after successful search (if it's time)
-            if shouldCheckIn && !showBlocked && !showGate && !showKomalIntervention {
+            if shouldCheckIn && !showBlocked && !showBlockedEmojiPopup && !showGate && !showKomalIntervention {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     self.showKomalCheckIn = true
                     self.updateNextCheckIn()
@@ -267,6 +301,17 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                     self.interventionTrigger = trigger
                     self.showKomalIntervention = true
                     self.currentURL = nil
+                    Task {
+                        await appHistoryService.logEvent(
+                            url: normalizedURL,
+                            searchQuery: urlInput,
+                            action: "BLOCK",
+                            category: "Content Filter",
+                            subcategory: trigger.searchTerm,
+                            childName: appState.activeProfile.name,
+                            ageGroup: appState.activeProfile.ageGroup.rawValue
+                        )
+                    }
                     return
                 }
 
@@ -281,24 +326,44 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                     category: "Safety Check Failed",
                     reason: "Server analysis unavailable"
                 )
+                Task {
+                    await appHistoryService.logEvent(
+                        url: normalizedURL,
+                        searchQuery: urlInput,
+                        action: "BLOCK",
+                        category: "Safety Check Failed",
+                        childName: appState.activeProfile.name,
+                        ageGroup: appState.activeProfile.ageGroup.rawValue
+                    )
+                }
             }
         }
     }
     
-    /// Handle gate dismissal - load pending URL if approved
+    /// Handle gate dismissal - load gated URL after emoji collected
     func handleGateDismissed() {
-        if let url = pendingURL {
-            currentURL = url
-            pendingURL = nil
-            loading = true
+        guard let url = pendingURL else { return }
+        pendingURL = nil
+        lastSafeURL = url
+        urlInput = url.host ?? url.absoluteString
+        // Small delay to let the sheet dismiss animation complete before loading WebView
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.currentURL = url
+            self?.loading = true
         }
     }
     
-    /// Handle blocked view dismissal - redirect to safe page
+    /// Handle blocked view dismissal - redirect to previous safe page
     func handleBlockedDismissed() {
-        // Redirect to safe page (same as intervention dismissal)
-        urlInput = "khanacademy.org"
-        currentURL = URL(string: "https://www.khanacademy.org")
+        // Don't redirect if a new scan is already in progress (resetStates triggered this)
+        guard !loading else { return }
+        if let safeURL = lastSafeURL {
+            urlInput = safeURL.host ?? safeURL.absoluteString
+            currentURL = safeURL
+        } else {
+            urlInput = "google.com"
+            currentURL = URL(string: "https://www.google.com")
+        }
         pendingURL = nil
     }
     
@@ -326,15 +391,19 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     func handleInterventionDismissed(allowContinue: Bool = false) {
         showKomalIntervention = false
         interventionTrigger = nil
-        
+
         if allowContinue, let url = pendingURL {
-            // Allow continuing (for less severe content after reflection)
             currentURL = url
             pendingURL = nil
         } else {
-            // Redirect to safe page
-            urlInput = "khanacademy.org"
-            currentURL = URL(string: "https://www.khanacademy.org")
+            // Redirect to previous safe page
+            if let safeURL = lastSafeURL {
+                urlInput = safeURL.host ?? safeURL.absoluteString
+                currentURL = safeURL
+            } else {
+                urlInput = "google.com"
+                currentURL = URL(string: "https://www.google.com")
+            }
             pendingURL = nil
         }
     }
@@ -492,16 +561,36 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     /// Process unified decision response
     private func processUnifiedDecision(normalizedURL: String, decision: UnifiedDecisionResponse) async {
         let ageBand = appState.activeProfile.ageGroup.toAgeBand()
-        guard let ageAction = decision.ageActions[ageBand.rawValue] else {
-            // Fallback: allow
-            debugLogLine("[DEBUG-SCAN] No action found for age band \(ageBand.rawValue), allowing by default")
+
+        // Look up age action with fallback key formats
+        // AgeBand raw values use underscores ("10_13") but server may use hyphens ("10-13") or other formats
+        let ageAction: AgeAction? = resolveAgeAction(ageBand: ageBand, from: decision.ageActions)
+
+        guard let ageAction = ageAction else {
+            // Fallback: use most restrictive action from any age band
+            debugLogLine("[DEBUG-SCAN] No action found for age band \(ageBand.rawValue), checking fallback")
+            if let fallback = getMostRestrictiveUnifiedAction(from: decision.ageActions) {
+                debugLogLine("[DEBUG-SCAN] Using most restrictive fallback: \(fallback.action.rawValue)")
+                // Continue processing with fallback action
+                await processUnifiedWithAction(normalizedURL: normalizedURL, decision: decision, ageAction: fallback)
+                return
+            }
+            debugLogLine("[DEBUG-SCAN] No actions available at all, allowing by default")
             loading = false
             if let url = URL(string: normalizedURL) {
+                lastSafeURL = url
                 currentURL = url
             }
             return
         }
         
+        await processUnifiedWithAction(normalizedURL: normalizedURL, decision: decision, ageAction: ageAction)
+    }
+
+    /// Shared processing for unified decisions once the age action is resolved
+    private func processUnifiedWithAction(normalizedURL: String, decision: UnifiedDecisionResponse, ageAction: AgeAction) async {
+        let ageBand = appState.activeProfile.ageGroup.toAgeBand()
+
         debugLogLine("[DEBUG-SCAN] Action determined: \(ageAction.action.rawValue) (score: \(ageAction.score))")
 
         // Determine category from major categories
@@ -509,9 +598,9 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             category = ContentCategory(label: firstMajor.name)
             debugLogLine("[DEBUG-SCAN] Category: \(firstMajor.name) (probability: \(firstMajor.probability))")
         }
-        
+
         blockReason = ageAction.reason ?? "Content filtered for safety"
-        
+
         // Log to history with categorization
         if let url = URL(string: normalizedURL) {
             historyService.logUnifiedDecision(
@@ -520,7 +609,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 ageBand: ageBand
             )
         }
-        
+
         // Extract subcategory for emoji system
         if let firstSub = decision.subcategories.first {
             currentSubcategory = firstSub.name
@@ -546,6 +635,56 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             }
         }
     }
+
+    /// Resolve age action from unified response, trying multiple key formats
+    private func resolveAgeAction(ageBand: AgeBand, from ageActions: [String: AgeAction]) -> AgeAction? {
+        // Try exact match with enum raw value (e.g., "10_13")
+        if let action = ageActions[ageBand.rawValue] {
+            debugLogLine("[DEBUG-SCAN] Exact ageBand match: '\(ageBand.rawValue)'")
+            return action
+        }
+
+        // Try hyphen format (e.g., "10-13") — server commonly uses this
+        let hyphenKey = ageBand.rawValue.replacingOccurrences(of: "_", with: "-")
+        if let action = ageActions[hyphenKey] {
+            debugLogLine("[DEBUG-SCAN] Hyphen key match: '\(hyphenKey)'")
+            return action
+        }
+
+        // Try server legacy-style keys (e.g., "<10", "10-13", "13-16", "16+")
+        let legacyKey: String
+        switch ageBand {
+        case .below10: legacyKey = "<10"
+        case .age10_13: legacyKey = "10-13"
+        case .age13_16: legacyKey = "13-16"
+        case .age16_18: legacyKey = "16+"
+        }
+        if let action = ageActions[legacyKey] {
+            debugLogLine("[DEBUG-SCAN] Legacy key match: '\(legacyKey)'")
+            return action
+        }
+
+        // Try partial match as last resort
+        for (key, value) in ageActions {
+            let normalizedKey = key.replacingOccurrences(of: "-", with: "_")
+            if normalizedKey == ageBand.rawValue {
+                debugLogLine("[DEBUG-SCAN] Normalized key match: '\(key)'")
+                return value
+            }
+        }
+
+        debugLogLine("[DEBUG-SCAN] No match for ageBand '\(ageBand.rawValue)' in keys: \(Array(ageActions.keys))")
+        return nil
+    }
+
+    /// Get the most restrictive action from any age band (fallback)
+    private func getMostRestrictiveUnifiedAction(from ageActions: [String: AgeAction]) -> AgeAction? {
+        guard !ageActions.isEmpty else { return nil }
+        let allActions = Array(ageActions.values)
+        if let block = allActions.first(where: { $0.action == .block }) { return block }
+        if let gate = allActions.first(where: { $0.action == .gate }) { return gate }
+        return allActions.first
+    }
     
     /// Handle action from unified decision
     private func handleUnifiedAction(_ action: Action, decision: UnifiedDecisionResponse) {
@@ -567,6 +706,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             showBlocked = false
             showKomalCheckIn = false
             loading = false
+            gateAvatarIndex = Int.random(in: 1...11)
             showGate = true
 
         case .allow:
@@ -574,6 +714,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             showGate = false
             showBlocked = false
             if let url = URL(string: decision.url) {
+                lastSafeURL = url
                 currentURL = url
                 loading = true // WebView will set to false when done
 
@@ -794,6 +935,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             showBlocked = false
             showKomalCheckIn = false
             loading = false
+            gateAvatarIndex = Int.random(in: 1...11)
             showGate = true
 
         case .allow:
@@ -801,6 +943,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             showGate = false
             showBlocked = false
             if let url = URL(string: result.url) {
+                lastSafeURL = url
                 currentURL = url
                 // Log allowed event for history tracking
                 historyService.logEvent(url: url, type: .allowed, category: categoryString, action: .allow)
@@ -827,7 +970,9 @@ final class KomalSafetyScannerViewModel: ObservableObject {
 
     func handleEmojiResponse(emoji: String, forDocumentId documentId: String?) {
         showEmojiCheckIn = false
-        showBlockedEmojiPopup = false
+        // Note: Do NOT set showBlockedEmojiPopup = false here.
+        // The BlockedEmojiPopup has its own countdown + voice chat flow.
+        // It dismisses itself via onDismiss callback when countdown finishes.
         guard let docId = documentId else { return }
         Task {
             await appHistoryService.updateEmojiResponse(documentId: docId, emoji: emoji)

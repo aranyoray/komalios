@@ -3,7 +3,7 @@ import SwiftUI
 
 struct EmojiCheckInBubble: View {
     let onEmojiSelected: (String) -> Void
-    @State private var isExpanded = false
+    @State private var isExpanded = true
     @State private var selectedAvatar: String
 
     private let emojis = ["\u{1F60A}", "\u{1F914}", "\u{1F61F}", "\u{1F622}", "\u{1F44D}"]
