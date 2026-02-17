@@ -27,6 +27,7 @@ enum ScreenTimeGoal: String, CaseIterable {
 struct PostAuthOnboardingView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var pathManager: PathManager
+    @EnvironmentObject var lang: LanguageManager
     @State private var currentPage = 0
     @State private var surveyData = ChildSurveyData()
     @State private var preferences: ContentFilterPreferences = ContentFilterPreferences()
@@ -46,10 +47,17 @@ struct PostAuthOnboardingView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Progress bar
+                // Language selector + Progress bar
+                HStack {
+                    Spacer()
+                    LanguageSelectorView()
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+
                 SurveyProgressBar(current: currentPage, total: totalPages)
                     .padding(.horizontal, 24)
-                    .padding(.top, 16)
+                    .padding(.top, 8)
 
                 // Page content
                 TabView(selection: $currentPage) {
@@ -87,11 +95,11 @@ struct PostAuthOnboardingView: View {
                     }
                     
                     VStack(spacing: 8) {
-                        Text("Child Safety Assessment")
+                        Text(lang.localized("onboarding.welcome.title"))
                             .font(.system(size: 26, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
-                        
-                        Text("Evidence-based digital wellbeing profile")
+
+                        Text(lang.localized("onboarding.welcome.subtitle"))
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -101,22 +109,22 @@ struct PostAuthOnboardingView: View {
                 VStack(spacing: 16) {
                     InfoCard(
                         icon: "brain.head.profile",
-                        title: "Developmental Psychology",
-                        description: "Settings tailored to cognitive development stages as defined by child psychology research.",
+                        title: lang.localized("onboarding.welcome.card1.title"),
+                        description: lang.localized("onboarding.welcome.card1.desc"),
                         color: KomalColors.lavenderPurple
                     )
-                    
+
                     InfoCard(
                         icon: "chart.line.uptrend.xyaxis",
-                        title: "Behavioral Analysis",
-                        description: "Understanding browsing patterns to create personalized safety boundaries.",
+                        title: lang.localized("onboarding.welcome.card2.title"),
+                        description: lang.localized("onboarding.welcome.card2.desc"),
                         color: KomalColors.pearlAqua
                     )
-                    
+
                     InfoCard(
                         icon: "shield.lefthalf.filled",
-                        title: "Proactive Protection",
-                        description: "Content filtering based on identified risk factors and preferences.",
+                        title: lang.localized("onboarding.welcome.card3.title"),
+                        description: lang.localized("onboarding.welcome.card3.desc"),
                         color: KomalColors.bubblegumPink
                     )
                 }
@@ -126,7 +134,7 @@ struct PostAuthOnboardingView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "clock")
                         .font(.system(size: 14))
-                    Text("This assessment takes approximately 3-4 minutes")
+                    Text(lang.localized("onboarding.welcome.time_estimate"))
                         .font(.system(size: 13, weight: .medium))
                 }
                 .foregroundColor(KomalColors.textSecondary)
@@ -136,7 +144,7 @@ struct PostAuthOnboardingView: View {
                 
                 // Start button
                 Button(action: { withAnimation { currentPage = 1 } }) {
-                    Text("Begin Assessment")
+                    Text(lang.localized("onboarding.welcome.begin"))
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -158,19 +166,19 @@ struct PostAuthOnboardingView: View {
                 VStack(spacing: 28) {
                     // Header
                     SurveyHeader(
-                        step: "1 of 6",
-                        title: "Basic Information",
-                        subtitle: "Help us understand who we're protecting"
+                        step: lang.localized("onboarding.info.step"),
+                        title: lang.localized("onboarding.info.title"),
+                        subtitle: lang.localized("onboarding.info.subtitle")
                     )
                     
                     VStack(spacing: 24) {
                         // Name input
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Child's First Name")
+                            Text(lang.localized("onboarding.info.name_label"))
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
-                            
-                            TextField("Enter name", text: $surveyData.name)
+
+                            TextField(lang.localized("onboarding.info.name_placeholder"), text: $surveyData.name)
                                 .font(.system(size: 16, weight: .medium))
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 14)
@@ -184,11 +192,11 @@ struct PostAuthOnboardingView: View {
                         
                         // Age group
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Age Group")
+                            Text(lang.localized("onboarding.info.age_label"))
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
-                            
-                            Text("Content restrictions are calibrated based on developmental milestones")
+
+                            Text(lang.localized("onboarding.info.age_desc"))
                                 .font(.system(size: 12, weight: .regular))
                                 .foregroundColor(KomalColors.textSecondary)
                             
@@ -205,7 +213,7 @@ struct PostAuthOnboardingView: View {
                         
                         // Research note
                         ResearchNote(
-                            text: "Research shows that age-appropriate content boundaries support healthy cognitive development and reduce anxiety in children."
+                            text: lang.localized("onboarding.info.research_note")
                         )
                     }
                     .padding(.horizontal, 24)
@@ -231,8 +239,6 @@ struct PostAuthOnboardingView: View {
     
     private var websitesScreen: some View {
         let websites = [
-            ("YouTube Kids", "youtube_kids"),
-            ("YouTube", "youtube"),
             ("Google", "google"),
             ("Roblox", "roblox"),
             ("Minecraft", "minecraft"),
@@ -252,12 +258,12 @@ struct PostAuthOnboardingView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     SurveyHeader(
-                        step: "2 of 6",
-                        title: "Favorite Websites",
-                        subtitle: "Select up to 5 websites your child visits most"
+                        step: lang.localized("onboarding.websites.step"),
+                        title: lang.localized("onboarding.websites.title"),
+                        subtitle: lang.localized("onboarding.websites.subtitle")
                     )
-                    
-                    Text("Understanding browsing habits helps us identify trusted sources and personalize protection.")
+
+                    Text(lang.localized("onboarding.websites.desc"))
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(KomalColors.textSecondary)
                         .padding(.horizontal, 24)
@@ -285,7 +291,7 @@ struct PostAuthOnboardingView: View {
                     .padding(.horizontal, 24)
                     
                     // Selection count
-                    Text("\(surveyData.favoriteWebsites.count)/5 selected")
+                    Text(lang.localized("common.selected_count", surveyData.favoriteWebsites.count, 5))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(surveyData.favoriteWebsites.count == 5 ? KomalColors.pearlAqua : KomalColors.textSecondary)
                 }
@@ -305,36 +311,36 @@ struct PostAuthOnboardingView: View {
     
     private var interestsScreen: some View {
         let interests = [
-            ("Gaming", "gamecontroller.fill"),
-            ("Animals", "pawprint.fill"),
-            ("Science", "atom"),
-            ("Art & Drawing", "paintpalette.fill"),
-            ("Music", "music.note"),
-            ("Sports", "sportscourt.fill"),
-            ("Coding", "chevron.left.forwardslash.chevron.right"),
-            ("Reading", "book.fill"),
-            ("Cooking", "fork.knife"),
-            ("Nature", "leaf.fill"),
-            ("Space", "moon.stars.fill"),
-            ("History", "building.columns.fill"),
-            ("Movies", "film.fill"),
-            ("Crafts", "scissors"),
-            ("Dinosaurs", "fossil.shell.fill"),
-            ("Vehicles", "car.fill"),
-            ("Fashion", "tshirt.fill"),
-            ("Dance", "figure.dance")
+            (lang.localized("onboarding.interest.gaming"), "gamecontroller.fill"),
+            (lang.localized("onboarding.interest.animals"), "pawprint.fill"),
+            (lang.localized("onboarding.interest.science"), "atom"),
+            (lang.localized("onboarding.interest.art"), "paintpalette.fill"),
+            (lang.localized("onboarding.interest.music"), "music.note"),
+            (lang.localized("onboarding.interest.sports"), "sportscourt.fill"),
+            (lang.localized("onboarding.interest.coding"), "chevron.left.forwardslash.chevron.right"),
+            (lang.localized("onboarding.interest.reading"), "book.fill"),
+            (lang.localized("onboarding.interest.cooking"), "fork.knife"),
+            (lang.localized("onboarding.interest.nature"), "leaf.fill"),
+            (lang.localized("onboarding.interest.space"), "moon.stars.fill"),
+            (lang.localized("onboarding.interest.history"), "building.columns.fill"),
+            (lang.localized("onboarding.interest.movies"), "film.fill"),
+            (lang.localized("onboarding.interest.crafts"), "scissors"),
+            (lang.localized("onboarding.interest.dinosaurs"), "fossil.shell.fill"),
+            (lang.localized("onboarding.interest.vehicles"), "car.fill"),
+            (lang.localized("onboarding.interest.fashion"), "tshirt.fill"),
+            (lang.localized("onboarding.interest.dance"), "figure.dance")
         ]
         
         return VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 24) {
                     SurveyHeader(
-                        step: "3 of 6",
-                        title: "Topics of Interest",
-                        subtitle: "What does your child enjoy learning about?"
+                        step: lang.localized("onboarding.interests.step"),
+                        title: lang.localized("onboarding.interests.title"),
+                        subtitle: lang.localized("onboarding.interests.subtitle")
                     )
-                    
-                    Text("Select 3-5 topics. This helps us understand what content to prioritize and protect.")
+
+                    Text(lang.localized("onboarding.interests.desc"))
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(KomalColors.textSecondary)
                         .padding(.horizontal, 24)
@@ -361,7 +367,7 @@ struct PostAuthOnboardingView: View {
                     }
                     .padding(.horizontal, 24)
                     
-                    Text("\(surveyData.interests.count)/5 selected")
+                    Text(lang.localized("common.selected_count", surveyData.interests.count, 5))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(surveyData.interests.count >= 3 ? KomalColors.pearlAqua : KomalColors.textSecondary)
                 }
@@ -381,30 +387,30 @@ struct PostAuthOnboardingView: View {
     
     private var likesScreen: some View {
         let likeOptions = [
-            "Watching videos",
-            "Playing games",
-            "Chatting with friends",
-            "Learning new things",
-            "Creative projects",
-            "Exploring websites",
-            "Listening to music",
-            "Virtual worlds",
-            "Puzzles & challenges",
-            "Funny content",
-            "Stories & books",
-            "Making videos"
+            lang.localized("onboarding.like.watching_videos"),
+            lang.localized("onboarding.like.playing_games"),
+            lang.localized("onboarding.like.chatting"),
+            lang.localized("onboarding.like.learning"),
+            lang.localized("onboarding.like.creative"),
+            lang.localized("onboarding.like.exploring"),
+            lang.localized("onboarding.like.music"),
+            lang.localized("onboarding.like.virtual_worlds"),
+            lang.localized("onboarding.like.puzzles"),
+            lang.localized("onboarding.like.funny"),
+            lang.localized("onboarding.like.stories"),
+            lang.localized("onboarding.like.making_videos")
         ]
         
         return VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 24) {
                     SurveyHeader(
-                        step: "4 of 6",
-                        title: "What They Enjoy Online",
-                        subtitle: "Understanding positive online experiences"
+                        step: lang.localized("onboarding.likes.step"),
+                        title: lang.localized("onboarding.likes.title"),
+                        subtitle: lang.localized("onboarding.likes.subtitle")
                     )
-                    
-                    Text("Select activities your child enjoys. This helps us ensure they have access to enriching content.")
+
+                    Text(lang.localized("onboarding.likes.desc"))
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(KomalColors.textSecondary)
                         .padding(.horizontal, 24)
@@ -427,11 +433,11 @@ struct PostAuthOnboardingView: View {
                     
                     // Custom input
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Other (optional)")
+                        Text(lang.localized("onboarding.likes.other"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
-                        
-                        TextField("Add something else they enjoy...", text: $surveyData.customLike)
+
+                        TextField(lang.localized("onboarding.likes.other_placeholder"), text: $surveyData.customLike)
                             .font(.system(size: 15))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 12)
@@ -460,30 +466,30 @@ struct PostAuthOnboardingView: View {
     
     private var dislikesScreen: some View {
         let dislikeOptions = [
-            "Scary content",
-            "Loud noises/jumpscares",
-            "Mean comments",
-            "Strangers messaging",
-            "Violent games",
-            "Sad stories",
-            "Confusing ads",
-            "Too much reading",
-            "Timed challenges",
-            "Losing in games",
-            "Pop-up videos",
-            "Being rushed"
+            lang.localized("onboarding.dislike.scary"),
+            lang.localized("onboarding.dislike.loud"),
+            lang.localized("onboarding.dislike.mean"),
+            lang.localized("onboarding.dislike.strangers"),
+            lang.localized("onboarding.dislike.violent"),
+            lang.localized("onboarding.dislike.sad"),
+            lang.localized("onboarding.dislike.ads"),
+            lang.localized("onboarding.dislike.reading"),
+            lang.localized("onboarding.dislike.timed"),
+            lang.localized("onboarding.dislike.losing"),
+            lang.localized("onboarding.dislike.popups"),
+            lang.localized("onboarding.dislike.rushed")
         ]
         
         return VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 24) {
                     SurveyHeader(
-                        step: "5 of 6",
-                        title: "What Bothers Them",
-                        subtitle: "Identifying triggers and discomforts"
+                        step: lang.localized("onboarding.dislikes.step"),
+                        title: lang.localized("onboarding.dislikes.title"),
+                        subtitle: lang.localized("onboarding.dislikes.subtitle")
                     )
-                    
-                    Text("Select things that upset or concern your child online. This helps us filter potentially distressing content.")
+
+                    Text(lang.localized("onboarding.dislikes.desc"))
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(KomalColors.textSecondary)
                         .padding(.horizontal, 24)
@@ -507,11 +513,11 @@ struct PostAuthOnboardingView: View {
                     
                     // Custom input
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Other concerns (optional)")
+                        Text(lang.localized("onboarding.dislikes.other"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
-                        
-                        TextField("Add other things that bother them...", text: $surveyData.customDislike)
+
+                        TextField(lang.localized("onboarding.dislikes.other_placeholder"), text: $surveyData.customDislike)
                             .font(.system(size: 15))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 12)
@@ -525,7 +531,7 @@ struct PostAuthOnboardingView: View {
                     .padding(.horizontal, 24)
                     
                     ResearchNote(
-                        text: "Understanding what distresses children online allows us to proactively filter content before exposure, reducing anxiety and negative experiences."
+                        text: lang.localized("onboarding.dislikes.research_note")
                     )
                     .padding(.horizontal, 24)
                 }
@@ -545,26 +551,26 @@ struct PostAuthOnboardingView: View {
     
     private var parentConcernsScreen: some View {
         let concerns = [
-            ("Cyberbullying", "exclamationmark.bubble.fill", "Harassment, mean messages, exclusion"),
-            ("Inappropriate Content", "eye.slash.fill", "Violence, mature themes, explicit material"),
-            ("Online Predators", "person.fill.questionmark", "Strangers, grooming, personal info requests"),
-            ("Screen Addiction", "hourglass", "Excessive use, difficulty stopping"),
-            ("Privacy Risks", "lock.open.fill", "Data collection, location sharing"),
-            ("Misinformation", "xmark.circle.fill", "Fake news, conspiracy theories"),
-            ("Financial Scams", "creditcard.fill", "In-app purchases, phishing"),
-            ("Mental Health", "heart.fill", "Anxiety, comparison, FOMO")
+            (lang.localized("onboarding.concern.cyberbullying"), "exclamationmark.bubble.fill", lang.localized("onboarding.concern.cyberbullying.desc")),
+            (lang.localized("onboarding.concern.inappropriate"), "eye.slash.fill", lang.localized("onboarding.concern.inappropriate.desc")),
+            (lang.localized("onboarding.concern.predators"), "person.fill.questionmark", lang.localized("onboarding.concern.predators.desc")),
+            (lang.localized("onboarding.concern.addiction"), "hourglass", lang.localized("onboarding.concern.addiction.desc")),
+            (lang.localized("onboarding.concern.privacy"), "lock.open.fill", lang.localized("onboarding.concern.privacy.desc")),
+            (lang.localized("onboarding.concern.misinfo"), "xmark.circle.fill", lang.localized("onboarding.concern.misinfo.desc")),
+            (lang.localized("onboarding.concern.scams"), "creditcard.fill", lang.localized("onboarding.concern.scams.desc")),
+            (lang.localized("onboarding.concern.mental"), "heart.fill", lang.localized("onboarding.concern.mental.desc"))
         ]
         
         return VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 24) {
                     SurveyHeader(
-                        step: "6 of 8",
-                        title: "Your Concerns",
-                        subtitle: "What worries you most about your child online?"
+                        step: lang.localized("onboarding.concerns.step"),
+                        title: lang.localized("onboarding.concerns.title"),
+                        subtitle: lang.localized("onboarding.concerns.subtitle")
                     )
-                    
-                    Text("Select your top concerns. We'll prioritize protection in these areas.")
+
+                    Text(lang.localized("onboarding.concerns.desc"))
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(KomalColors.textSecondary)
                         .padding(.horizontal, 24)
@@ -611,12 +617,12 @@ struct PostAuthOnboardingView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     SurveyHeader(
-                        step: "7 of 8",
-                        title: "Content Filters",
-                        subtitle: "Review and customize content filtering"
+                        step: lang.localized("onboarding.filters.step"),
+                        title: lang.localized("onboarding.filters.title"),
+                        subtitle: lang.localized("onboarding.filters.subtitle")
                     )
 
-                    Text("These defaults are based on your child's age and your concerns. Adjust any setting below.")
+                    Text(lang.localized("onboarding.filters.desc"))
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(KomalColors.textSecondary)
                         .padding(.horizontal, 24)
@@ -645,23 +651,23 @@ struct PostAuthOnboardingView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     SurveyHeader(
-                        step: "8 of 8",
-                        title: "Set Parent PIN",
-                        subtitle: "Create a PIN to protect parent settings"
+                        step: lang.localized("onboarding.pin.step"),
+                        title: lang.localized("onboarding.pin.title"),
+                        subtitle: lang.localized("onboarding.pin.subtitle")
                     )
 
-                    Text("This PIN will be required to access parent mode and approve gated content.")
+                    Text(lang.localized("onboarding.pin.desc"))
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(KomalColors.textSecondary)
                         .padding(.horizontal, 24)
 
                     VStack(spacing: 20) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Enter PIN")
+                            Text(lang.localized("onboarding.pin.enter"))
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
 
-                            SecureField("4-digit PIN", text: $pinEntry)
+                            SecureField(lang.localized("onboarding.pin.placeholder"), text: $pinEntry)
                                 .keyboardType(.numberPad)
                                 .font(.system(size: 18, weight: .medium))
                                 .padding(.horizontal, 16)
@@ -672,17 +678,17 @@ struct PostAuthOnboardingView: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                                 )
-                                .onChange(of: pinEntry) { newValue in
+                                .onChange(of: pinEntry) { _, newValue in
                                     if newValue.count > 4 { pinEntry = String(newValue.prefix(4)) }
                                 }
                         }
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Confirm PIN")
+                            Text(lang.localized("onboarding.pin.confirm"))
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
 
-                            SecureField("Confirm PIN", text: $pinConfirm)
+                            SecureField(lang.localized("onboarding.pin.confirm_placeholder"), text: $pinConfirm)
                                 .keyboardType(.numberPad)
                                 .font(.system(size: 18, weight: .medium))
                                 .padding(.horizontal, 16)
@@ -693,12 +699,12 @@ struct PostAuthOnboardingView: View {
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(pinMismatchError ? Color.red : Color.gray.opacity(0.2), lineWidth: pinMismatchError ? 2 : 1)
                                 )
-                                .onChange(of: pinConfirm) { newValue in
+                                .onChange(of: pinConfirm) { _, newValue in
                                     if newValue.count > 4 { pinConfirm = String(newValue.prefix(4)) }
                                 }
 
                             if pinMismatchError {
-                                Text("PINs do not match. Please try again.")
+                                Text(lang.localized("onboarding.pin.mismatch"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.red)
                             }
@@ -712,10 +718,10 @@ struct PostAuthOnboardingView: View {
                                     .foregroundColor(KomalColors.lavenderPurple)
 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Enable \(BiometricAuthService.biometricName)")
+                                    Text(lang.localized("onboarding.pin.enable_biometric", BiometricAuthService.biometricName))
                                         .font(.system(size: 15, weight: .semibold, design: .rounded))
                                         .foregroundColor(KomalColors.textPrimary)
-                                    Text("Use \(BiometricAuthService.biometricName) instead of PIN")
+                                    Text(lang.localized("onboarding.pin.use_biometric", BiometricAuthService.biometricName))
                                         .font(.system(size: 12))
                                         .foregroundColor(KomalColors.textSecondary)
                                 }
@@ -738,7 +744,7 @@ struct PostAuthOnboardingView: View {
                     .padding(.horizontal, 24)
 
                     ResearchNote(
-                        text: "A parent PIN ensures only authorized adults can modify safety settings and approve gated content."
+                        text: lang.localized("onboarding.pin.research_note")
                     )
                     .padding(.horizontal, 24)
                 }
@@ -784,32 +790,32 @@ struct PostAuthOnboardingView: View {
                 }
                 
                 VStack(spacing: 8) {
-                    Text("Profile Complete")
+                    Text(lang.localized("onboarding.complete.title"))
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
-                    
-                    Text("\(surveyData.name)'s safety profile is ready")
+
+                    Text(lang.localized("onboarding.complete.subtitle", surveyData.name))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
                 
                 // Summary card
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Assessment Summary")
+                    Text(lang.localized("onboarding.complete.summary"))
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(KomalColors.textSecondary)
-                    
-                    SummaryItem(label: "Name", value: surveyData.name)
-                    SummaryItem(label: "Age Group", value: surveyData.ageGroup.rawValue)
-                    SummaryItem(label: "Interests", value: surveyData.interests.prefix(3).joined(separator: ", "))
-                    SummaryItem(label: "Key Concerns", value: surveyData.parentConcerns.prefix(2).joined(separator: ", "))
+
+                    SummaryItem(label: lang.localized("onboarding.complete.name"), value: surveyData.name)
+                    SummaryItem(label: lang.localized("onboarding.complete.age_group"), value: surveyData.ageGroup.rawValue)
+                    SummaryItem(label: lang.localized("onboarding.complete.interests"), value: surveyData.interests.prefix(3).joined(separator: ", "))
+                    SummaryItem(label: lang.localized("onboarding.complete.concerns"), value: surveyData.parentConcerns.prefix(2).joined(separator: ", "))
                     
                     Divider()
                     
                     HStack {
                         Image(systemName: "info.circle.fill")
                             .foregroundColor(KomalColors.lavenderPurple)
-                        Text("Settings can be adjusted anytime in the app")
+                        Text(lang.localized("onboarding.complete.adjust_note"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -839,7 +845,7 @@ struct PostAuthOnboardingView: View {
                     pathManager.popToRoot()
                     pathManager.push(Routes.rootView)
                 }) {
-                    Text("Start Using Komal")
+                    Text(lang.localized("onboarding.complete.start"))
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -850,7 +856,7 @@ struct PostAuthOnboardingView: View {
                 .padding(.horizontal, 24)
                 
                 Button(action: { withAnimation { currentPage = 8 } }) {
-                    Text("Review Answers")
+                    Text(lang.localized("onboarding.complete.review"))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -921,7 +927,7 @@ struct SurveyHeader: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            Text("STEP \(step)")
+            Text("common.step_of".localized(step))
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(KomalColors.lavenderPurple)
                 .tracking(1.5)
@@ -953,7 +959,7 @@ struct SurveyNavigation: View {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 14, weight: .semibold))
-                        Text("Back")
+                        Text("common.back".localized)
                             .font(.system(size: 16, weight: .medium))
                     }
                     .foregroundColor(KomalColors.textSecondary)
@@ -970,7 +976,7 @@ struct SurveyNavigation: View {
             
             Button(action: onNext) {
                 HStack(spacing: 6) {
-                    Text("Continue")
+                    Text("common.continue".localized)
                         .font(.system(size: 16, weight: .semibold))
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))
@@ -1048,11 +1054,11 @@ struct AgeGroupButton: View {
     
     private var ageDescription: String {
         switch group {
-        case .under10: return "Early childhood - Maximum protection"
-        case .tenToThirteen: return "Pre-teen - Guided exploration"
-        case .thirteenToSixteen: return "Teen - Balanced boundaries"
-        case .sixteenToEighteen: return "Late teen - Age-appropriate freedom"
-        case .eighteenPlus: return "Adult - Full access"
+        case .under10: return "onboarding.age.under10".localized
+        case .tenToThirteen: return "onboarding.age.10to13".localized
+        case .thirteenToSixteen: return "onboarding.age.13to16".localized
+        case .sixteenToEighteen: return "onboarding.age.16to18".localized
+        case .eighteenPlus: return "onboarding.age.18plus".localized
         }
     }
     

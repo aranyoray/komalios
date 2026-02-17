@@ -30,16 +30,15 @@ struct SplashScreenView: View {
             
             VStack(spacing: 24) {
                 // App Icon/Logo
-                ZStack {
-                    Circle()
-                        .fill(KomalColors.white)
-                        .frame(width: 140, height: 140)
-                        .shadow(color: Color.black.opacity(0.1), radius: 20, y: 10)
-                    
-                    Image(systemName: "shield.checkered")
-                        .font(.system(size: 70, weight: .semibold))
-                        .foregroundColor(KomalColors.bubblegumPink)
+                Group {
+                    if let uiImage = UIImage(named: "komaliconnobg") {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 140, height: 140)
+                    }
                 }
+                .shadow(color: Color.black.opacity(0.1), radius: 20, y: 10)
                 .scaleEffect(scale)
                 .opacity(opacity)
                 

@@ -79,6 +79,7 @@ struct RikiCheckInView: View {
 
 struct CharacterSelectionView: View {
     let onSelect: (RikiCharacter) -> Void
+    private let memoryService = ConversationMemoryService.shared
 
     private let columns = [
         GridItem(.flexible(), spacing: 10),
@@ -104,7 +105,10 @@ struct CharacterSelectionView: View {
             ScrollView(showsIndicators: false) {
                 LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(RikiCharacter.allCharacters) { character in
-                        CharacterCard(character: character) {
+                        CharacterCard(
+                            character: character,
+                            lastTalked: memoryService.lastConversationTime(characterId: character.id)
+                        ) {
                             onSelect(character)
                         }
                     }
@@ -120,10 +124,18 @@ struct CharacterSelectionView: View {
 
 struct CharacterCard: View {
     let character: RikiCharacter
+    var lastTalked: Date? = nil
     let onTap: () -> Void
 
     // Grey color matching the image backgrounds (#86868a)
     private let cardBackground = Color(red: 0x86/255, green: 0x86/255, blue: 0x8a/255)
+
+    private var lastTalkedText: String? {
+        guard let date = lastTalked else { return nil }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
 
     var body: some View {
         Button(action: onTap) {
@@ -145,6 +157,13 @@ struct CharacterCard: View {
                 Text(character.name)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
+
+                // Last talked indicator
+                if let timeText = lastTalkedText {
+                    Text(timeText)
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.7))
+                }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
@@ -176,12 +195,14 @@ struct CharacterChatView: View {
     @State private var isLoading: Bool = false
     @State private var isListening: Bool = false
     @State private var silenceTimer: Timer?
+    @State private var conversationContext: String?
     @FocusState private var isInputFocused: Bool
 
     @StateObject private var speechRecognizer = SpeechRecognizer()
     @StateObject private var audioPlayback = AudioPlaybackManager()
 
     private let geminiService = GeminiChatService()
+    private let memoryService = ConversationMemoryService.shared
 
     private var lastCharacterMessageId: UUID? {
         messages.last(where: { !$0.isFromUser })?.id
@@ -214,12 +235,12 @@ struct CharacterChatView: View {
                     .padding(.bottom, 8)
                     .id("bottom")
                 }
-                .onChange(of: messages.count) { _ in
+                .onChange(of: messages.count) {
                     withAnimation {
                         proxy.scrollTo("bottom", anchor: .bottom)
                     }
                 }
-                .onChange(of: isLoading) { _ in
+                .onChange(of: isLoading) {
                     withAnimation {
                         proxy.scrollTo("bottom", anchor: .bottom)
                     }
@@ -230,20 +251,39 @@ struct CharacterChatView: View {
             inputArea
         }
         .onAppear {
-            // Add greeting message
+            // Start memory session
+            memoryService.startSession(characterId: character.id, characterName: character.name)
+
+            // Build conversation context from past sessions
+            conversationContext = memoryService.buildContextSummary(characterId: character.id)
+
+            // Build personalized greeting
+            let greeting = memoryService.buildContextGreeting(
+                characterId: character.id,
+                characterName: character.name,
+                defaultGreeting: character.greeting
+            )
+
             messages.append(RikiChatMessage(
                 id: UUID(),
-                text: character.greeting,
+                text: greeting,
                 isFromUser: false
             ))
+
+            // Record chat activity
+            GrowthTrackingService.shared.recordActivity(type: .chat)
+            GrowthTrackingService.shared.recordCharacterUsed(character.id)
+
             // Speak the greeting via TTS
             Task {
-                await audioPlayback.speak(text: character.greeting, characterName: character.name)
+                await audioPlayback.speak(text: greeting, characterName: character.name)
             }
         }
         .onDisappear {
             silenceTimer?.invalidate()
             silenceTimer = nil
+            // End and persist the session
+            memoryService.endCurrentSession(characterId: character.id)
         }
         .onReceive(speechRecognizer.$transcript) { newValue in
             if !newValue.isEmpty {
@@ -412,6 +452,13 @@ struct CharacterChatView: View {
         withAnimation {
             messages.append(userMessage)
         }
+
+        // Persist user message
+        let persistedUserMsg = PersistedChatMessage(
+            text: text, isFromUser: true, characterId: character.id
+        )
+        memoryService.saveMessage(persistedUserMsg)
+
         inputText = ""
         isInputFocused = false
         isLoading = true
@@ -430,7 +477,8 @@ struct CharacterChatView: View {
                     userMessage: text,
                     conversationHistory: history,
                     characterName: character.name,
-                    characterPersonality: character.personality
+                    characterPersonality: character.personality,
+                    conversationContext: conversationContext
                 )
 
                 await MainActor.run {
@@ -439,6 +487,12 @@ struct CharacterChatView: View {
                     withAnimation {
                         messages.append(responseMessage)
                     }
+
+                    // Persist model message
+                    let persistedModelMsg = PersistedChatMessage(
+                        text: response, isFromUser: false, characterId: character.id
+                    )
+                    memoryService.saveMessage(persistedModelMsg)
                 }
 
                 // Speak the response via TTS

@@ -39,7 +39,7 @@ enum KomalInterventionTrigger: Equatable {
 }
 
 final class BrowserState: ObservableObject {
-    @Published var urlString = "https://www.khanacademy.org"
+    @Published var urlString = "https://www.google.com"
     @Published var currentURL: URL?
     @Published var category: ContentCategory = .unknown
     @Published var blockReason: String = ""
@@ -61,30 +61,43 @@ final class BrowserState: ObservableObject {
         // Explicit adult sites
         "pornhub", "xvideos", "xnxx", "redtube", "brazzers", "onlyfans", "hentai",
         "xhamster", "youporn", "tube8", "spankbang", "chaturbate",
-        
+
         // Explicit terms (unlikely in legitimate URLs)
         "xxx", "nsfw", "milf", "blowjob", "handjob", "orgasm",
         "stripper", "prostitut", "hooker", "slut", "whore",
-        
+
         // Violence extremes
         "beheading", "dismember", "decapitat", "gore",
-        
+
         // Hate groups
         "nazi", "kkk", "white supremac"
     ]
-    
+
     // These keywords only trigger on search queries (not URLs)
     // because they can appear in legitimate URLs
     static let searchOnlyKeywords: Set<String> = [
-        // Sexual - common words that might be in legitimate URLs
-        "porn", "nude", "naked", "boobs", "tits", "pussy", "dick",
-        "penis", "vagina", "erotic", "sexy", "horny",
-        
-        // Violence terms that might be in news/education
+        // Sexual / Adult content
+        "porn", "pornography", "pornographic",
+        "sex", "sexual", "sexually",
+        "nude", "nudes", "nudity", "naked",
+        "adult content", "adult video", "adult film",
+        "boobs", "tits", "pussy", "dick", "penis", "vagina",
+        "erotic", "erotica", "sexy", "horny",
+        "fetish", "kink", "bdsm", "bondage",
+        "escort", "cam girl", "cam boy",
+        "r rated", "x rated", "18+",
+
+        // Violence terms
         "murder", "suicide", "self harm", "torture",
-        
-        // Drug terms that might be in pharmacy/news
-        "weed", "marijuana", "cannabis", "cocaine", "heroin", "meth"
+        "violence", "violent", "kill", "killing",
+        "weapon", "weapons", "gun", "guns",
+
+        // Drug terms
+        "weed", "marijuana", "cannabis", "cocaine", "heroin", "meth",
+        "drug", "drugs",
+
+        // Gambling
+        "gambling", "casino", "poker", "betting"
     ]
     
     // MARK: - Search Query Extraction
@@ -113,12 +126,7 @@ final class BrowserState: ObservableObject {
         if host.contains("duckduckgo") {
             return queryItems.first(where: { $0.name == "q" })?.value
         }
-        
-        // YouTube
-        if host.contains("youtube") {
-            return queryItems.first(where: { $0.name == "search_query" })?.value
-        }
-        
+
         return nil
     }
     

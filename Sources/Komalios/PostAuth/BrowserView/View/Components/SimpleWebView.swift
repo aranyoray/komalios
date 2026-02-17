@@ -10,41 +10,88 @@ import SwiftUI
 #if os(iOS)
 @preconcurrency import WebKit
 
+// MARK: - Safari Browser Navigator
+/// Observes WKWebView state for Safari-style navigation controls
+@MainActor
+class SafariBrowserNavigator: ObservableObject {
+    @Published var canGoBack = false
+    @Published var canGoForward = false
+    @Published var currentDisplayURL: URL?
+    @Published var pageTitle: String?
+    @Published var estimatedProgress: Double = 0
+
+    private var observations: [NSKeyValueObservation] = []
+
+    weak var webView: WKWebView? {
+        didSet {
+            observations.removeAll()
+            guard let webView else { return }
+            observations.append(webView.observe(\.canGoBack, options: [.initial, .new]) { [weak self] wv, _ in
+                DispatchQueue.main.async { self?.canGoBack = wv.canGoBack }
+            })
+            observations.append(webView.observe(\.canGoForward, options: [.initial, .new]) { [weak self] wv, _ in
+                DispatchQueue.main.async { self?.canGoForward = wv.canGoForward }
+            })
+            observations.append(webView.observe(\.url, options: [.initial, .new]) { [weak self] wv, _ in
+                DispatchQueue.main.async { self?.currentDisplayURL = wv.url }
+            })
+            observations.append(webView.observe(\.title, options: [.initial, .new]) { [weak self] wv, _ in
+                DispatchQueue.main.async { self?.pageTitle = wv.title }
+            })
+            observations.append(webView.observe(\.estimatedProgress, options: [.initial, .new]) { [weak self] wv, _ in
+                DispatchQueue.main.async { self?.estimatedProgress = wv.estimatedProgress }
+            })
+        }
+    }
+
+    func goBack() { webView?.goBack() }
+    func goForward() { webView?.goForward() }
+    func reload() { webView?.reload() }
+    func stopLoading() { webView?.stopLoading() }
+}
+
 struct SimpleWebView: UIViewRepresentable {
     let url: URL
     @Binding var loading: Bool
     var contentFilterPreferences: ContentFilterPreferences
     var parentSettings: ParentSettings
-    var onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?  // Callback for intervention
-    
+    var onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?
+    var onPageFinished: ((URL, String?) -> Void)?
+    var navigator: SafariBrowserNavigator?
+
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.defaultWebpagePreferences.preferredContentMode = .mobile
-        
+
         // DIGITAL GUARDIAN: Add content controller for JavaScript injection
         let contentController = config.userContentController
         EngagementTracker.shared.configureMessageHandlers(for: contentController, handler: context.coordinator)
-        
+
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsLinkPreview = false
         context.coordinator.targetURL = url
         context.coordinator.webView = webView
+        navigator?.webView = webView
         webView.load(URLRequest(url: url))
         return webView
     }
-    
+
     func updateUIView(_ uiView: WKWebView, context: Context) {
+        // Keep navigator reference in sync
+        if navigator?.webView !== uiView {
+            navigator?.webView = uiView
+        }
+
         // Only reload if URL actually changed
         let currentURLString = uiView.url?.absoluteString ?? ""
         let targetURLString = url.absoluteString
-        
+
         // Check if URL changed and we're not already loading this URL
         if currentURLString != targetURLString && context.coordinator.targetURL?.absoluteString != targetURLString {
             context.coordinator.targetURL = url
-            // Don't set isLoading here - let the navigation delegate handle it
             uiView.load(URLRequest(url: url))
         }
     }
@@ -54,7 +101,8 @@ struct SimpleWebView: UIViewRepresentable {
             loading: $loading,
             contentFilterPreferences: contentFilterPreferences,
             parentSettings: parentSettings,
-            onInappropriateContent: onInappropriateContent
+            onInappropriateContent: onInappropriateContent,
+            onPageFinished: onPageFinished
         )
     }
     
@@ -67,21 +115,24 @@ struct SimpleWebView: UIViewRepresentable {
         private let engagementTracker = EngagementTracker.shared
         private let imageFilterService = ImageFilterService.shared
         var onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?
-        
+        var onPageFinished: ((URL, String?) -> Void)?
+
         // Store preferences and settings
         private var contentFilterPreferences: ContentFilterPreferences
         private var parentSettings: ParentSettings
-        
+
         init(
             loading: Binding<Bool>,
             contentFilterPreferences: ContentFilterPreferences,
             parentSettings: ParentSettings,
-            onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?
+            onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?,
+            onPageFinished: ((URL, String?) -> Void)?
         ) {
             _loading = loading
             self.contentFilterPreferences = contentFilterPreferences
             self.parentSettings = parentSettings
             self.onInappropriateContent = onInappropriateContent
+            self.onPageFinished = onPageFinished
         }
         
         // MARK: - WKScriptMessageHandler
@@ -255,7 +306,6 @@ struct SimpleWebView: UIViewRepresentable {
         
         // Social media and video platforms that are not appropriate for children
         private let blockedPlatforms: Set<String> = [
-            "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be",
             "tiktok.com", "www.tiktok.com",
             "instagram.com", "www.instagram.com",
             "twitter.com", "www.twitter.com", "x.com", "www.x.com",
@@ -263,7 +313,9 @@ struct SimpleWebView: UIViewRepresentable {
             "reddit.com", "www.reddit.com", "old.reddit.com",
             "snapchat.com", "www.snapchat.com",
             "discord.com", "www.discord.com",
-            "twitch.tv", "www.twitch.tv"
+            "twitch.tv", "www.twitch.tv",
+            "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "www.youtu.be",
+            "youtubei.googleapis.com"
         ]
 
         private func isBlockedPlatform(_ url: URL) -> Bool {
@@ -273,6 +325,12 @@ struct SimpleWebView: UIViewRepresentable {
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             guard let url = navigationAction.request.url else {
+                decisionHandler(.allow)
+                return
+            }
+
+            // Allow back/forward navigation without rewrites or redirects
+            if navigationAction.navigationType == .backForward {
                 decisionHandler(.allow)
                 return
             }
@@ -314,24 +372,24 @@ struct SimpleWebView: UIViewRepresentable {
                 decisionHandler(.cancel)
                 return
             }
-            
+
             // Enable safe search on supported engines
             if let rewritten = rewriteForSafeSearch(url: url), rewritten != url {
                 webView.load(URLRequest(url: rewritten))
                 decisionHandler(.cancel)
                 return
             }
-            
+
             // Handle new window requests
             if navigationAction.targetFrame == nil {
                 webView.load(URLRequest(url: url))
                 decisionHandler(.cancel)
                 return
             }
-            
+
             decisionHandler(.allow)
         }
-        
+
         private func rewriteForSafeSearch(url: URL) -> URL? {
             guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
             let host = components.host?.lowercased() ?? ""
@@ -345,12 +403,7 @@ struct SimpleWebView: UIViewRepresentable {
                 components.queryItems = upsertQueryItem(name: "adlt", value: "strict", items: components.queryItems)
                 return components.url
             }
-            
-            if host.contains("youtube.com") {
-                components.queryItems = upsertQueryItem(name: "safe", value: "active", items: components.queryItems)
-                return components.url
-            }
-            
+
             if host.contains("duckduckgo.com") {
                 components.queryItems = upsertQueryItem(name: "kp", value: "1", items: components.queryItems)
                 return components.url
@@ -390,19 +443,22 @@ struct SimpleWebView: UIViewRepresentable {
                 print("⚠️ Ignoring didFinish for old navigation")
                 return
             }
-            
+
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.currentNavigation = nil
                 self.loading = false
                 print("🌐 WebView finished loading - setting loading to false")
-                
+
                 // Log page load event for history tracking
                 if let url = webView.url {
                     self.historyService.logPageLoad(url: url, title: webView.title)
-                    
+
                     // Start engagement tracking
                     self.engagementTracker.startEngagement(url: url, pageTitle: webView.title)
+
+                    // Notify parent about page finish for emoji check-in tracking
+                    self.onPageFinished?(url, webView.title)
                 }
             }
         }
@@ -414,12 +470,12 @@ struct SimpleWebView: UIViewRepresentable {
                 print("⚠️ Navigation cancelled (ignoring)")
                 return
             }
-            
+
             // Only process if this is the navigation we're tracking
             guard currentNavigation == navigation else {
                 return
             }
-            
+
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.currentNavigation = nil
@@ -427,7 +483,7 @@ struct SimpleWebView: UIViewRepresentable {
                 print("❌ WebView failed to load - setting loading to false: \(error.localizedDescription)")
             }
         }
-        
+
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             let nsError = error as NSError
             // Ignore cancelled errors (-999) as they're usually from navigation being cancelled
@@ -435,12 +491,12 @@ struct SimpleWebView: UIViewRepresentable {
                 print("⚠️ Provisional navigation cancelled (ignoring)")
                 return
             }
-            
+
             // Only process if this is the navigation we're tracking
             guard currentNavigation == navigation else {
                 return
             }
-            
+
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.currentNavigation = nil

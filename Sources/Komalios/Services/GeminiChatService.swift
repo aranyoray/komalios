@@ -96,11 +96,13 @@ actor GeminiChatService {
         userMessage: String,
         conversationHistory: [Message],
         characterName: String,
-        characterPersonality: String
+        characterPersonality: String,
+        conversationContext: String? = nil
     ) async throws -> String {
         let systemPrompt = buildSystemPrompt(
             characterName: characterName,
-            characterPersonality: characterPersonality
+            characterPersonality: characterPersonality,
+            conversationContext: conversationContext
         )
 
         // Build contents array from conversation history
@@ -237,10 +239,303 @@ actor GeminiChatService {
         return text
     }
 
+    // MARK: - History Batch Summarization
+
+    /// Summarize a batch of browsing events into a topic label, emoji, analysis, and browsing intent
+    func summarizeHistoryBatch(eventData: [[String: String]]) async throws -> (topicLabel: String, analysis: String, intent: String?, suggestedEmoji: String?) {
+        let jsonData = try JSONSerialization.data(withJSONObject: eventData, options: .prettyPrinted)
+        let jsonString = String(data: jsonData, encoding: .utf8) ?? "[]"
+
+        let prompt = """
+        Analyze this batch of a child's browsing events and provide a summary.
+        Return ONLY valid JSON with this structure (no markdown):
+        {"topicLabel":"3-5 word topic name","emoji":"Single topic emoji","analysis":"2-3 line parent-friendly description","intent":"One sentence describing the child's likely browsing goal"}
+
+        Rules:
+        - topicLabel: Must be 3-5 words. Describe the TOPIC concisely. Example: "Solar System Planets"
+        - emoji: A single emoji that best represents this topic. Example: "🪐"
+        - analysis: 2-3 lines. Be specific about content viewed. Mention categories or domains if relevant.
+        - intent: Exactly 1 sentence about what the child was trying to accomplish.
+
+        Browsing events:
+        \(jsonString)
+        """
+
+        let contents = [Content(role: "user", parts: [Part(text: prompt)])]
+
+        let systemPrompt = """
+        You are a child safety analyst helping parents understand their child's browsing activity.
+        Provide concise, informative summaries. Be factual and neutral.
+        Return ONLY valid JSON, no markdown formatting or code blocks.
+        """
+
+        let request = GeminiRequest(
+            contents: contents,
+            systemInstruction: SystemInstruction(parts: [Part(text: systemPrompt)]),
+            generationConfig: GenerationConfig(
+                temperature: 0.3,
+                topP: 0.9,
+                topK: 40,
+                maxOutputTokens: 512
+            ),
+            safetySettings: nil
+        )
+
+        let url = URL(string: "\(baseURL)/\(model):generateContent?key=\(apiKey)")!
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.timeoutInterval = 30
+
+        let encoder = JSONEncoder()
+        urlRequest.httpBody = try encoder.encode(request)
+
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw GeminiChatError.invalidResponse
+        }
+
+        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+
+        guard let text = geminiResponse.candidates?.first?.content?.parts?.first?.text else {
+            throw GeminiChatError.noContent
+        }
+
+        // Parse JSON response
+        let cleaned = text.replacingOccurrences(of: "```json", with: "").replacingOccurrences(of: "```", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let jsonResponseData = cleaned.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: jsonResponseData) as? [String: Any] else {
+            return (topicLabel: "Browsing Session", analysis: text, intent: nil, suggestedEmoji: nil)
+        }
+
+        return (
+            topicLabel: json["topicLabel"] as? String ?? "Browsing Session",
+            analysis: json["analysis"] as? String ?? "",
+            intent: json["intent"] as? String,
+            suggestedEmoji: json["emoji"] as? String
+        )
+    }
+
     // MARK: - Private Methods
 
-    private func buildSystemPrompt(characterName: String, characterPersonality: String) -> String {
-        return """
+    // MARK: - Retention Feature Methods
+
+    /// Summarize a conversation session into a brief paragraph
+    func summarizeSession(_ messages: [PersistedChatMessage], characterName: String) async throws -> String {
+        let transcript = messages.map { ($0.isFromUser ? "Child" : characterName) + ": " + $0.text }.joined(separator: "\n")
+
+        let prompt = """
+        Summarize this conversation between a child and \(characterName) in 2-3 sentences.
+        Focus on what the child talked about, how they seemed to feel, and any key topics.
+        Be concise and factual. Do not include any personally identifying information.
+
+        Conversation:
+        \(transcript)
+        """
+
+        return try await sendSimplePrompt(prompt, systemPrompt: "You are a child conversation summarizer. Return only the summary, no formatting.")
+    }
+
+    /// Generate a growth insight for weekly snapshot
+    func generateGrowthInsight(moodData: String, chatTopics: String, streak: Int) async throws -> String {
+        let prompt = """
+        Generate a brief, warm, encouraging growth insight (2-3 sentences) for a child's weekly wellness report.
+        Mood data: \(moodData)
+        Chat topics: \(chatTopics)
+        Current streak: \(streak) days
+        Be positive and age-appropriate. Focus on growth and effort, not performance.
+        """
+
+        return try await sendSimplePrompt(prompt, systemPrompt: "You are a child wellness advisor. Be warm, encouraging, and age-appropriate. Return only the insight text.")
+    }
+
+    /// Generate a curiosity question for a character to ask
+    func generateCuriosityQuestion(characterName: String, characterPersonality: String, childInterests: [String], recentTopics: [String]) async throws -> String {
+        let interests = childInterests.isEmpty ? "unknown" : childInterests.joined(separator: ", ")
+        let topics = recentTopics.isEmpty ? "general topics" : recentTopics.joined(separator: ", ")
+
+        let prompt = """
+        As \(characterName) (\(characterPersonality)), generate a single fun, curious question to ask a child.
+        The child is interested in: \(interests)
+        Recent chat topics: \(topics)
+        Make it engaging, age-appropriate, and something that sparks conversation.
+        Return ONLY the question, nothing else.
+        """
+
+        return try await sendSimplePrompt(prompt, systemPrompt: "You are \(characterName). Return only one fun question.")
+    }
+
+    /// Simple prompt helper for internal AI calls (internal access for memory tiering + reflection deepening)
+    func sendSimplePrompt(_ prompt: String, systemPrompt: String) async throws -> String {
+        let contents = [Content(role: "user", parts: [Part(text: prompt)])]
+
+        let request = GeminiRequest(
+            contents: contents,
+            systemInstruction: SystemInstruction(parts: [Part(text: systemPrompt)]),
+            generationConfig: GenerationConfig(
+                temperature: 0.7,
+                topP: 0.9,
+                topK: 40,
+                maxOutputTokens: 256
+            ),
+            safetySettings: nil
+        )
+
+        let url = URL(string: "\(baseURL)/\(model):generateContent?key=\(apiKey)")!
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.timeoutInterval = 30
+
+        let encoder = JSONEncoder()
+        urlRequest.httpBody = try encoder.encode(request)
+
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw GeminiChatError.invalidResponse
+        }
+
+        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+
+        guard let text = geminiResponse.candidates?.first?.content?.parts?.first?.text else {
+            throw GeminiChatError.noContent
+        }
+
+        return text
+    }
+
+    // MARK: - Reflection Deepening Methods
+
+    /// Generate a follow-up question for reflection deepening
+    func generateReflectionFollowUp(question: String, response: String, ageGroup: AgeGroup) async throws -> String {
+        let ageContext: String
+        switch ageGroup {
+        case .under10:
+            ageContext = "The child is under 10. Use very simple, playful language. Keep the follow-up to 1 short sentence."
+        case .tenToThirteen:
+            ageContext = "The child is 10-13. Use friendly, curious language. Keep follow-up to 1-2 sentences."
+        case .thirteenToSixteen:
+            ageContext = "The child is a teen (13-16). Use thoughtful, respectful language. Can be a bit deeper."
+        case .sixteenToEighteen:
+            ageContext = "The child is an older teen (16-18). Use mature, reflective language. Encourage critical thinking."
+        case .eighteenPlus:
+            ageContext = "Use mature, reflective language."
+        }
+
+        let prompt = """
+        A child just answered a reflection question. Generate ONE follow-up question to deepen their thinking.
+        Original question: \(question)
+        Child's answer: \(response)
+        \(ageContext)
+        Follow-up types to consider: "Why do you think that?", "Would you handle it differently next time?", "What if we flipped the story?"
+        Return ONLY the follow-up question, nothing else.
+        """
+
+        return try await sendSimplePrompt(prompt, systemPrompt: "You are a warm, thoughtful reflection guide for children. Be curious and encouraging. Return only the question.")
+    }
+
+    /// Generate a social imagination scenario
+    func generateScenario(topic: String, ageGroup: AgeGroup) async throws -> String {
+        let ageContext: String
+        switch ageGroup {
+        case .under10:
+            ageContext = "For a child under 10. Very simple, fun scenario. 2-3 sentences max."
+        case .tenToThirteen:
+            ageContext = "For a child aged 10-13. Relatable school/friendship scenario. 3-4 sentences."
+        default:
+            ageContext = "For a teenager. Thought-provoking social scenario. 3-4 sentences."
+        }
+
+        let prompt = """
+        Create a brief social-emotional scenario about: \(topic)
+        \(ageContext)
+        The scenario should end with a question that invites the child to think about what they would do.
+        Return ONLY the scenario text.
+        """
+
+        return try await sendSimplePrompt(prompt, systemPrompt: "You are a social-emotional learning guide. Create age-appropriate scenarios. Return only the scenario text.")
+    }
+
+    // MARK: - Parent Dashboard Methods
+
+    /// Generate a conversation starter for parents based on child's recent activity
+    func generateConversationStarter(childTopics: [String], recentMoods: [String], ageGroup: AgeGroup) async throws -> String {
+        let topics = childTopics.isEmpty ? "general activities" : childTopics.prefix(5).joined(separator: ", ")
+        let moods = recentMoods.isEmpty ? "mixed" : recentMoods.prefix(3).joined(separator: ", ")
+
+        let prompt = """
+        Generate ONE conversation starter for a parent to use with their child at dinner or bedtime.
+        Child's recent interests/topics: \(topics)
+        Child's recent moods: \(moods)
+        Child's age group: \(ageGroup.rawValue)
+
+        The starter should:
+        - Be warm and open-ended
+        - Reference what the child has been interested in
+        - Not feel like an interrogation
+        - Be 1-2 sentences max
+
+        Return ONLY the conversation starter.
+        """
+
+        return try await sendSimplePrompt(prompt, systemPrompt: "You are a parenting communication advisor. Generate warm, natural conversation starters. Return only the starter text.")
+    }
+
+    /// Generate a daily parent insight from weekly data
+    func generateDailyParentInsight(weeklyData: String) async throws -> String {
+        let prompt = """
+        Generate ONE brief daily insight for a parent about their child's digital wellness.
+        Weekly data: \(weeklyData)
+
+        The insight should:
+        - Be positive and encouraging
+        - Highlight a specific pattern or achievement
+        - Be 2-3 sentences max
+        - Not be alarmist
+
+        Return ONLY the insight text.
+        """
+
+        return try await sendSimplePrompt(prompt, systemPrompt: "You are a child wellness advisor helping parents. Be warm, factual, and encouraging. Return only the insight text.")
+    }
+
+    /// Generate a free-chat response for reflection mode
+    func generateFreeChatResponse(userMessage: String, conversationHistory: [ReflectionChatMessage], ageGroup: AgeGroup) async throws -> String {
+        let ageContext: String
+        switch ageGroup {
+        case .under10:
+            ageContext = "The child is under 10. Be very warm, simple, and encouraging. Use short sentences."
+        case .tenToThirteen:
+            ageContext = "The child is 10-13. Be friendly and curious. Ask follow-up questions."
+        default:
+            ageContext = "The child is a teenager. Be respectful and thoughtful. Encourage deeper thinking."
+        }
+
+        let historyText = conversationHistory.suffix(6).map {
+            ($0.isFromUser ? "Child" : "Guide") + ": " + $0.text
+        }.joined(separator: "\n")
+
+        let prompt = """
+        You are a warm, caring reflection guide. Continue this conversation naturally.
+        \(ageContext)
+
+        Conversation so far:
+        \(historyText)
+
+        Child just said: \(userMessage)
+
+        Respond in 1-3 sentences. Be empathetic, curious, and supportive. Ask a gentle follow-up question when appropriate.
+        """
+
+        return try await sendSimplePrompt(prompt, systemPrompt: "You are a warm reflection guide for children. Be empathetic, supportive, and curious. Never discuss inappropriate topics. Return only your response.")
+    }
+
+    // MARK: - Private Methods
+
+    private func buildSystemPrompt(characterName: String, characterPersonality: String, conversationContext: String? = nil) -> String {
+        var prompt = """
         You are \(characterName), a warm and caring companion in the Komal app. You are here to be a real friend — someone who listens, understands, and genuinely cares about the person you are talking to.
 
         Your personality: \(characterPersonality)
@@ -278,6 +573,12 @@ actor GeminiChatService {
         - NEVER generate code, technical bypass instructions, or anything that could be used to circumvent safety features.
         - NEVER discuss weapons, drugs, violence, self-harm, or anything harmful in any context.
         """
+
+        if let context = conversationContext {
+            prompt += "\n\n\(context)"
+        }
+
+        return prompt
     }
 }
 

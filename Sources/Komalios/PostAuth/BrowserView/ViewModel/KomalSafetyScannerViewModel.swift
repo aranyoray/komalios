@@ -12,6 +12,20 @@ import Combine
 import SwiftUI
 #endif
 
+// MARK: - Browser Tab Model
+struct BrowserTab: Identifiable {
+    let id = UUID()
+    var url: URL?
+    var title: String
+    var urlInput: String
+    var timestamp: Date = Date()
+
+    var displayDomain: String {
+        guard let host = url?.host else { return "New Tab" }
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    }
+}
+
 @MainActor
 final class KomalSafetyScannerViewModel: ObservableObject {
     // MARK: - Published Properties
@@ -21,14 +35,67 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     @Published var showGate = false
     @Published var showBlocked = false
     @Published var showKomalCheckIn = false
-    @Published var showKomalIntervention = false  // NEW: Caring intervention
-    @Published var interventionTrigger: KomalInterventionTrigger?  // NEW: What triggered it
+    @Published var showKomalIntervention = false
+    @Published var interventionTrigger: KomalInterventionTrigger?
     @Published var category: ContentCategory = .unknown
     @Published var blockReason: String = ""
     @Published var loading = false
     @Published var scanResult: ScanResponse?
     @Published var error: Error?
-    
+
+    // MARK: - Tab Management
+    @Published var tabs: [BrowserTab] = [
+        BrowserTab(url: URL(string: "https://www.google.com"), title: "Google", urlInput: "google.com")
+    ]
+    @Published var activeTabIndex: Int = 0
+
+    var tabCount: Int { tabs.count }
+
+    func switchToTab(at index: Int) {
+        guard index >= 0, index < tabs.count else { return }
+        // Save current tab state
+        saveCurrentTabState()
+        // Switch
+        activeTabIndex = index
+        let tab = tabs[index]
+        urlInput = tab.urlInput
+        currentURL = tab.url
+    }
+
+    func addNewTab() {
+        saveCurrentTabState()
+        let newTab = BrowserTab(url: nil, title: "New Tab", urlInput: "")
+        tabs.append(newTab)
+        activeTabIndex = tabs.count - 1
+        urlInput = ""
+        currentURL = nil
+    }
+
+    func closeTab(at index: Int) {
+        guard tabs.count > 1 else { return } // Keep at least 1 tab
+        tabs.remove(at: index)
+        // Adjust active index
+        if activeTabIndex >= tabs.count {
+            activeTabIndex = tabs.count - 1
+        } else if index < activeTabIndex {
+            activeTabIndex -= 1
+        } else if index == activeTabIndex {
+            activeTabIndex = min(activeTabIndex, tabs.count - 1)
+        }
+        let tab = tabs[activeTabIndex]
+        urlInput = tab.urlInput
+        currentURL = tab.url
+    }
+
+    func saveCurrentTabState() {
+        guard activeTabIndex >= 0, activeTabIndex < tabs.count else { return }
+        tabs[activeTabIndex].url = currentURL
+        tabs[activeTabIndex].urlInput = urlInput
+        if let host = currentURL?.host {
+            tabs[activeTabIndex].title = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+        }
+    }
+
     // MARK: - Dependencies
     private let networkService = ScanNetworkService()
     private let historyService = BrowsingHistoryService.shared
@@ -44,7 +111,18 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     @Published var lastLoggedDocumentId: String?
     @Published var gateAvatarIndex: Int = Int.random(in: 1...11)
     private var lastSafeURL: URL?
-    
+    private var lastCountedPageURL: URL? // Prevent counting the exact same URL reload
+
+    // MARK: - Blocked Emoji Popup Talk Feature
+    /// Counts how many times the blocked emoji popup has been shown.
+    /// The talk/voice-chat feature only appears every 4th popup.
+    private(set) var blockedEmojiPopupCount: Int = 0
+    var shouldShowTalkFeature: Bool { blockedEmojiPopupCount > 0 && blockedEmojiPopupCount % 4 == 0 }
+
+    /// Prevents the blocked popup from re-triggering immediately after dismiss.
+    /// Set to true when the popup is dismissed; cleared on the next user-initiated navigation.
+    private var blockedPopupRecentlyDismissed = false
+
     // MARK: - Unified Decision (new system)
     @Published var unifiedDecision: UnifiedDecisionResponse?
     
@@ -75,7 +153,6 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     
     // MARK: - Blocked Platforms (not appropriate for children)
     private let blockedPlatforms: Set<String> = [
-        "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be",
         "tiktok.com", "www.tiktok.com",
         "instagram.com", "www.instagram.com",
         "twitter.com", "www.twitter.com", "x.com", "www.x.com",
@@ -83,7 +160,9 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         "reddit.com", "www.reddit.com", "old.reddit.com",
         "snapchat.com", "www.snapchat.com",
         "discord.com", "www.discord.com",
-        "twitch.tv", "www.twitch.tv"
+        "twitch.tv", "www.twitch.tv",
+        "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "www.youtu.be",
+        "youtubei.googleapis.com"
     ]
 
     private func isBlockedPlatform(_ url: URL) -> Bool {
@@ -93,12 +172,6 @@ final class KomalSafetyScannerViewModel: ObservableObject {
 
     // MARK: - Search Tracking
     private var searchCount: Int = 0
-    private var nextCheckInAt: Int = 0 // Dynamic check-in interval (3-4 searches)
-    
-    private func updateNextCheckIn() {
-        // Randomize between 3 and 4 searches for natural feel
-        nextCheckInAt = searchCount + Int.random(in: 3...4)
-    }
     
     // MARK: - Initialization
     init(appState: AppState) {
@@ -132,7 +205,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             resetStates()
             self.currentURL = nil  // Ensure no URL loads
             self.interventionTrigger = looksLikeURL ? .urlKeyword(flaggedKeyword) : .searchQuery(flaggedKeyword)
-            self.showKomalIntervention = true
+            self.currentSubcategory = flaggedKeyword
+            self.triggerBlockedEmojiPopup()
             self.loading = false
             
             // Log for local + Firebase history
@@ -161,14 +235,9 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         
         // Increment search count
         searchCount += 1
-        
-        // Initialize next check-in on first search
-        if nextCheckInAt == 0 {
-            updateNextCheckIn()
-        }
-        
-        // Check if it's time for Komal check-in
-        let shouldCheckIn = searchCount >= nextCheckInAt
+
+        // Check if it's time for check-in (every 5 searches)
+        let shouldCheckIn = searchCount % 5 == 0
         
         // Normalize URL
         let normalizedURL = normalizeURL(urlInput)
@@ -199,7 +268,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 showKomalCheckIn = false
                 self.currentURL = nil
                 self.interventionTrigger = trigger
-                self.showKomalIntervention = true
+                self.currentSubcategory = trigger.searchTerm
+                self.triggerBlockedEmojiPopup()
                 self.loading = false
                 return
             }
@@ -228,7 +298,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
 
             self.currentURL = nil
             self.interventionTrigger = .urlKeyword(host)
-            self.showKomalIntervention = true
+            self.currentSubcategory = host
+            self.triggerBlockedEmojiPopup()
             self.loading = false
             return
         }
@@ -255,9 +326,11 @@ final class KomalSafetyScannerViewModel: ObservableObject {
 
             // Still show check-in if it's time
             if shouldCheckIn {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    self.showKomalCheckIn = true
-                    self.updateNextCheckIn()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                    guard let self = self else { return }
+                    guard !self.showGate, !self.showBlocked, !self.showBlockedEmojiPopup,
+                          !self.showKomalIntervention, !self.showEmojiCheckIn else { return }
+                    self.showEmojiCheckIn = true
                 }
             }
             return
@@ -284,9 +357,11 @@ final class KomalSafetyScannerViewModel: ObservableObject {
 
             // Show check-in after successful search (if it's time)
             if shouldCheckIn && !showBlocked && !showBlockedEmojiPopup && !showGate && !showKomalIntervention {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    self.showKomalCheckIn = true
-                    self.updateNextCheckIn()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                    guard let self = self else { return }
+                    guard !self.showGate, !self.showBlocked, !self.showBlockedEmojiPopup,
+                          !self.showKomalIntervention, !self.showEmojiCheckIn else { return }
+                    self.showEmojiCheckIn = true
                 }
             }
         } catch {
@@ -299,7 +374,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 let finalCheck = BrowserState.checkURL(url, parentSettings: appState.parentSettings)
                 if finalCheck.shouldIntervene, let trigger = finalCheck.trigger {
                     self.interventionTrigger = trigger
-                    self.showKomalIntervention = true
+                    self.currentSubcategory = trigger.searchTerm
+                    self.triggerBlockedEmojiPopup()
                     self.currentURL = nil
                     Task {
                         await appHistoryService.logEvent(
@@ -344,6 +420,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     func handleGateDismissed() {
         guard let url = pendingURL else { return }
         pendingURL = nil
+        blockedPopupRecentlyDismissed = false
         lastSafeURL = url
         urlInput = url.host ?? url.absoluteString
         // Small delay to let the sheet dismiss animation complete before loading WebView
@@ -385,12 +462,40 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         currentURL = nil
         pendingURL = nil
         error = nil
+        blockedPopupRecentlyDismissed = false
     }
     
+    /// Show the blocked emoji popup and increment the talk-feature counter.
+    /// All call sites should use this instead of setting showBlockedEmojiPopup directly.
+    /// If the popup was recently dismissed (same browsing context), silently redirect
+    /// to Google instead of looping the popup.
+    func triggerBlockedEmojiPopup() {
+        if blockedPopupRecentlyDismissed {
+            // Already collected emoji for this context — silently go to safe page
+            currentURL = URL(string: "https://www.google.com")
+            urlInput = "google.com"
+            pendingURL = nil
+            loading = false
+            return
+        }
+        blockedEmojiPopupCount += 1
+        showBlockedEmojiPopup = true
+    }
+
+    /// Clear lastSafeURL if it matches the given URL (prevents reload loop
+    /// when viewport monitoring flags the current page as inappropriate)
+    func clearLastSafeURLIfMatches(_ url: URL) {
+        if lastSafeURL == url {
+            lastSafeURL = nil
+        }
+    }
+
     /// Handle intervention dismissal - redirect to safe page
     func handleInterventionDismissed(allowContinue: Bool = false) {
         showKomalIntervention = false
+        showBlockedEmojiPopup = false
         interventionTrigger = nil
+        blockedPopupRecentlyDismissed = true
 
         if allowContinue, let url = pendingURL {
             currentURL = url
@@ -406,45 +511,6 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             }
             pendingURL = nil
         }
-    }
-    
-    /// Check if URL contains inappropriate keywords
-    private func containsInappropriateContent(_ urlString: String) -> Bool {
-        let lowercased = urlString.lowercased()
-        
-        // List of inappropriate keywords (can be expanded)
-        let inappropriateKeywords = [
-            "weed", "marijuana", "cannabis", "drug", "cocaine", "heroin",
-            "porn", "xxx", "adult", "sex", "nude", "naked",
-            "violence", "kill", "murder", "weapon", "gun",
-            "gambling", "casino", "bet", "poker"
-        ]
-        
-        // Check if any keyword appears in the URL
-        for keyword in inappropriateKeywords {
-            if lowercased.contains(keyword) {
-                return true
-            }
-        }
-        
-        // Also check against custom blocked keywords from settings
-        for blockedKeyword in appState.parentSettings.blockedKeywords {
-            if lowercased.contains(blockedKeyword.lowercased()) {
-                return true
-            }
-        }
-        
-        // Check against custom blocked hosts
-        if let host = URL(string: urlString)?.host {
-            let hostLower = host.lowercased()
-            for blockedHost in appState.parentSettings.blockedHosts {
-                if hostLower.contains(blockedHost.lowercased()) {
-                    return true
-                }
-            }
-        }
-        
-        return false
     }
     
     /// Check if URL is from a trusted kid-friendly domain
@@ -539,9 +605,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     private func detectPlatform(from urlString: String) -> String? {
         let lowercased = urlString.lowercased()
         
-        if lowercased.contains("youtube.com") || lowercased.contains("youtu.be") {
-            return "YouTube"
-        } else if lowercased.contains("tiktok.com") {
+        if lowercased.contains("tiktok.com") {
             return "TikTok"
         } else if lowercased.contains("instagram.com") {
             return "Instagram"
@@ -615,8 +679,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             currentSubcategory = firstSub.name
         }
 
-        // Handle action
-        handleUnifiedAction(ageAction.action, decision: decision)
+        // Handle action — use originalURL (normalizedURL) to prevent server-side redirects
+        handleUnifiedAction(ageAction.action, decision: decision, originalURL: normalizedURL)
 
         // Log to Firebase
         let searchQuery = urlInput
@@ -687,19 +751,23 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     }
     
     /// Handle action from unified decision
-    private func handleUnifiedAction(_ action: Action, decision: UnifiedDecisionResponse) {
+    /// Uses originalURL (the URL the app constructed) for navigation instead of the server-returned
+    /// decision.url, which may differ if the server resolved redirects.
+    private func handleUnifiedAction(_ action: Action, decision: UnifiedDecisionResponse, originalURL: String) {
         switch action {
         case .block:
             debugLogLine("[DEBUG-SCAN] BLOCK action for URL: \(decision.url)")
+            // Blocked content: no pendingURL — redirect back to source on dismiss
+            pendingURL = nil
             currentURL = nil
             showGate = false
             showKomalCheckIn = false
             loading = false
-            showBlockedEmojiPopup = true
+            triggerBlockedEmojiPopup()
 
         case .gate:
             debugLogLine("[DEBUG-SCAN] GATE action for URL: \(decision.url)")
-            if let url = URL(string: decision.url) {
+            if let url = URL(string: originalURL) {
                 pendingURL = url
             }
             currentURL = nil
@@ -710,28 +778,19 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             showGate = true
 
         case .allow:
-            debugLogLine("[DEBUG-SCAN] ALLOW action - Loading: \(decision.url)")
+            debugLogLine("[DEBUG-SCAN] ALLOW action - Loading: \(originalURL)")
             showGate = false
             showBlocked = false
-            if let url = URL(string: decision.url) {
+            if let url = URL(string: originalURL) {
                 lastSafeURL = url
                 currentURL = url
                 loading = true // WebView will set to false when done
-
-                // Emoji check-in tracking
-                pagesLoadedSinceLastEmoji += 1
-                if pagesLoadedSinceLastEmoji >= 5 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                        self?.showEmojiCheckIn = true
-                    }
-                    pagesLoadedSinceLastEmoji = 0
-                }
             } else {
                 loading = false
             }
         }
     }
-    
+
     private func processScanResult(normalizedURL: String) async {
         guard let result = scanResult else {
             loading = false
@@ -752,10 +811,10 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         
         // Determine action for user's age group
         guard let action = determineAction(for: ageGroupString, from: result) else {
-            // Fallback: allow by default
+            // Fallback: allow by default — use normalizedURL, not server URL
             debugLogLine("[DEBUG-SCAN] No action found, allowing by default")
             loading = false
-            if let url = URL(string: result.url) {
+            if let url = URL(string: normalizedURL) {
                 currentURL = url
             }
             return
@@ -777,8 +836,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             currentSubcategory = firstRisk.category
         }
 
-        // Handle action
-        handleAction(action, result: result)
+        // Handle action — use normalizedURL to prevent server-side redirects
+        handleAction(action, result: result, originalURL: normalizedURL)
 
         // Log to Firebase
         let searchQuery = urlInput
@@ -907,7 +966,8 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         return nil
     }
     
-    private func handleAction(_ action: Action, result: ScanResponse) {
+    /// Uses originalURL for navigation instead of result.url to prevent server-resolved redirects
+    private func handleAction(_ action: Action, result: ScanResponse, originalURL: String) {
         // Determine category string for logging
         let categoryString = result.childSafetyAnalysis.riskCategories.first?.category ?? category.label
 
@@ -918,15 +978,17 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             if let url = URL(string: result.url) {
                 historyService.logBlocked(url: url, category: categoryString, reason: blockReason)
             }
+            // Blocked content: no pendingURL — redirect back to source on dismiss
+            pendingURL = nil
             currentURL = nil
             showGate = false
             showKomalCheckIn = false
             loading = false
-            showBlockedEmojiPopup = true
+            triggerBlockedEmojiPopup()
 
         case .gate:
             debugLogLine("[DEBUG-SCAN] Legacy GATE for: \(result.url)")
-            if let url = URL(string: result.url) {
+            if let url = URL(string: originalURL) {
                 pendingURL = url
                 // Log gated event for history tracking
                 historyService.logGated(url: url, category: categoryString)
@@ -939,10 +1001,10 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             showGate = true
 
         case .allow:
-            debugLogLine("[DEBUG-SCAN] Legacy ALLOW - Loading: \(result.url)")
+            debugLogLine("[DEBUG-SCAN] Legacy ALLOW - Loading: \(originalURL)")
             showGate = false
             showBlocked = false
-            if let url = URL(string: result.url) {
+            if let url = URL(string: originalURL) {
                 lastSafeURL = url
                 currentURL = url
                 // Log allowed event for history tracking
@@ -951,17 +1013,33 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in
                     self?.loading = false
                 }
-
-                // Emoji check-in tracking
-                pagesLoadedSinceLastEmoji += 1
-                if pagesLoadedSinceLastEmoji >= 5 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                        self?.showEmojiCheckIn = true
-                    }
-                    pagesLoadedSinceLastEmoji = 0
-                }
             } else {
                 loading = false
+            }
+        }
+    }
+
+    // MARK: - Page Finish Tracking (Emoji Check-In Counter)
+
+    /// Called by SimpleWebView when any page finishes loading.
+    /// Counts page loads and triggers emoji check-in every 5 pages.
+    func handlePageFinished(url: URL, title: String?) {
+        // Skip exact same URL reload (e.g. pull-to-refresh)
+        if url == lastCountedPageURL { return }
+        lastCountedPageURL = url
+
+        pagesLoadedSinceLastEmoji += 1
+        print("📊 Page finished: \(url.host ?? "?") — pages since last emoji: \(pagesLoadedSinceLastEmoji)")
+
+        if pagesLoadedSinceLastEmoji >= 5 {
+            // Only show if no blocking overlays are active
+            guard !showGate, !showBlocked, !showBlockedEmojiPopup, !showKomalIntervention, !showEmojiCheckIn else { return }
+            pagesLoadedSinceLastEmoji = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                guard let self = self else { return }
+                guard !self.showGate, !self.showBlocked, !self.showBlockedEmojiPopup,
+                      !self.showKomalIntervention, !self.showEmojiCheckIn else { return }
+                self.showEmojiCheckIn = true
             }
         }
     }

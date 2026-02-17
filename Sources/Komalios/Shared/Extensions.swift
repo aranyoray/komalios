@@ -7,6 +7,21 @@
 
 import Foundation
 
+#if os(iOS)
+extension String {
+    /// Shorthand for localization using current language
+    var localized: String {
+        LanguageManager.shared.localized(self)
+    }
+
+    /// Localize with format arguments
+    func localized(_ args: CVarArg...) -> String {
+        let template = LanguageManager.shared.localized(self)
+        return String(format: template, arguments: args)
+    }
+}
+#endif
+
 extension AgeGroup {
     /// Convert AgeGroup to AgeBand for unified decision system
     func toAgeBand() -> AgeBand {

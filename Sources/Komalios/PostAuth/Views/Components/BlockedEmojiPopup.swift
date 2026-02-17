@@ -4,12 +4,12 @@ import SwiftUI
 struct BlockedEmojiPopup: View {
     let subcategory: String
     let characterName: String
+    let showTalkFeature: Bool
     let onDismiss: () -> Void
     let onEmojiSelected: (String) -> Void
 
     @State private var selectedEmoji: String?
     @State private var countdown = 3
-    @State private var showVoiceChat = false
     @State private var isListening = false
     @StateObject private var speechRecognizer = SpeechRecognizer()
     @StateObject private var audioPlayback = AudioPlaybackManager()
@@ -25,6 +25,25 @@ struct BlockedEmojiPopup: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.6).ignoresSafeArea().onTapGesture {}
+
+            // Top-right mute button (only when talk feature is active)
+            if showTalkFeature {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: { audioPlayback.isMuted.toggle() }) {
+                            Image(systemName: audioPlayback.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(audioPlayback.isMuted ? .white.opacity(0.5) : .white)
+                                .frame(width: 40, height: 40)
+                                .background(Circle().fill(Color.white.opacity(0.2)))
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.top, 16)
+                    }
+                    Spacer()
+                }
+            }
 
             VStack(spacing: 24) {
                 Spacer()
@@ -92,7 +111,7 @@ struct BlockedEmojiPopup: View {
         VStack(spacing: 16) {
             Text(selectedEmoji ?? "").font(.system(size: 48))
 
-            if showVoiceChat {
+            if showTalkFeature {
                 if let response = chatResponse {
                     Text(response)
                         .font(.system(size: 15, weight: .medium, design: .rounded))
@@ -101,37 +120,42 @@ struct BlockedEmojiPopup: View {
                 }
                 if isLoadingChat { ProgressView().tint(.white) }
 
-                Button(action: toggleListening) {
-                    Image(systemName: isListening ? "waveform" : "mic.fill")
-                        .font(.system(size: 24, weight: .semibold)).foregroundColor(.white)
-                        .frame(width: 60, height: 60)
-                        .background(Circle().fill(isListening ? KomalColors.bubblegumPink : KomalColors.lavenderPurple))
-                        .scaleEffect(isListening ? 1.15 : 1.0)
-                        .animation(KomalAnimations.spring, value: isListening)
-                }
-            } else {
-                Button(action: { showVoiceChat = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "mic.fill").font(.system(size: 16))
-                        Text("Talk to me about it").font(.system(size: 15, weight: .semibold, design: .rounded))
+                // Voice chat mic — only shown every 4th popup
+                VStack(spacing: 8) {
+                    Button(action: toggleListening) {
+                        Image(systemName: isListening ? "waveform" : "mic.fill")
+                            .font(.system(size: 24, weight: .semibold)).foregroundColor(.white)
+                            .frame(width: 60, height: 60)
+                            .background(Circle().fill(isListening ? KomalColors.bubblegumPink : KomalColors.lavenderPurple))
+                            .scaleEffect(isListening ? 1.15 : 1.0)
+                            .animation(KomalAnimations.spring, value: isListening)
                     }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 24).padding(.vertical, 12)
-                    .background(Capsule().fill(KomalColors.lavenderPurple))
-                }
-            }
 
-            Text("Going back in \(countdown)...")
-                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundColor(.white.opacity(0.7))
+                    Text(isListening ? "Listening..." : "Tap to talk to Komal")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+
+                Text("Going back in \(countdown)...")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.7))
+            }
         }
     }
 
     private func startCountdown() {
-        countdown = 3
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-            if countdown > 1 { countdown -= 1 }
-            else { timer.invalidate(); onDismiss() }
+        if showTalkFeature {
+            // Full countdown with talk feature
+            countdown = 3
+            Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+                if countdown > 1 { countdown -= 1 }
+                else { timer.invalidate(); onDismiss() }
+            }
+        } else {
+            // Quick dismiss — no talk, just show emoji briefly then go back
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                onDismiss()
+            }
         }
     }
 
@@ -171,10 +195,12 @@ struct BlockedEmojiPopup: View {
                 // Speak the response via TTS
                 await audioPlayback.speak(text: response, characterName: characterName)
             } catch {
+                let fallback = "I'm here for you. Let's go explore something fun together!"
                 await MainActor.run {
-                    chatResponse = "I'm here for you. Let's go explore something fun together!"
+                    chatResponse = fallback
                     isLoadingChat = false
                 }
+                await audioPlayback.speak(text: fallback, characterName: characterName)
             }
         }
     }

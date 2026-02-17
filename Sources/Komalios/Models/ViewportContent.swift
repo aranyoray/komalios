@@ -12,7 +12,7 @@ enum VisibleContentType: String, Codable, CaseIterable {
     case heading = "heading"           // h1, h2, h3, etc.
     case paragraph = "paragraph"       // p, article text
     case image = "image"               // img elements
-    case video = "video"               // video, iframe (youtube, etc)
+    case video = "video"               // video, iframe elements
     case link = "link"                 // a elements
     case button = "button"             // button, input[type=button]
     case form = "form"                 // form, input fields

@@ -16,7 +16,18 @@
       "Bash(git pull:*)",
       "Bash(git stash:*)",
       "Bash(swift build:*)",
-      "Bash(plutil:*)"
+      "Bash(plutil:*)",
+      "Bash(xcrun xctrace:*)",
+      "Bash(security find-identity:*)",
+      "Bash(osascript:*)",
+      "Bash(/Users/aranyoray/Documents/komalios/add_files_to_pbxproj.py:*)",
+      "Bash(pip3 install:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(wc:*)"
     ]
   }
 }

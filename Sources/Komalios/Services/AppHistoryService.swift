@@ -17,6 +17,7 @@ struct AppHistoryEvent: Identifiable {
     let ageGroup: String?
     let emojiResponse: String?
     let pageTitle: String?
+    let timezone: String?
 }
 
 actor AppHistoryService {
@@ -34,7 +35,7 @@ actor AppHistoryService {
         guard let user = Auth.auth().currentUser else { return nil }
         let deviceId = await UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
 
-        var data: [String: Any] = ["url": url, "action": action, "timestamp": Timestamp(), "uid": user.uid, "deviceId": deviceId]
+        var data: [String: Any] = ["url": url, "action": action, "timestamp": Timestamp(), "uid": user.uid, "deviceId": deviceId, "timezone": TimeZone.current.identifier]
         if let v = user.email { data["userEmail"] = v }
         if let v = searchQuery { data["searchQuery"] = v }
         if let v = category { data["category"] = v }
@@ -62,7 +63,8 @@ actor AppHistoryService {
                     action: action, category: d["category"] as? String, subcategory: d["subcategory"] as? String,
                     timestamp: ts.dateValue(), userEmail: d["userEmail"] as? String, uid: uid,
                     deviceId: d["deviceId"] as? String ?? "unknown", childName: d["childName"] as? String,
-                    ageGroup: d["ageGroup"] as? String, emojiResponse: d["emojiResponse"] as? String, pageTitle: d["pageTitle"] as? String)
+                    ageGroup: d["ageGroup"] as? String, emojiResponse: d["emojiResponse"] as? String, pageTitle: d["pageTitle"] as? String,
+                    timezone: d["timezone"] as? String)
             }
         } catch { return [] }
     }
@@ -70,7 +72,7 @@ actor AppHistoryService {
     func updateEmojiResponse(documentId: String, emoji: String) async {
         guard let user = Auth.auth().currentUser else { return }
         try? await db.collection("app-history").document(user.uid).collection("events")
-            .document(documentId).updateData(["emojiResponse": emoji] as [String: Any])
+            .document(documentId).updateData(["emojiResponse": emoji, "emojiTimestamp": Timestamp()] as [String: Any])
     }
 
     func updateAction(documentId: String, newAction: String) async {

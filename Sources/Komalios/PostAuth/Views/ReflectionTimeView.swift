@@ -13,11 +13,11 @@ struct ReflectionTimeView: View {
     @State private var userResponses: [String] = []
     @State private var currentResponse = ""
     @State private var showCompletion = false
-    
+
     private var isYoungerChild: Bool {
         appState.activeProfile.ageGroup == .under10 || appState.activeProfile.ageGroup == .tenToThirteen
     }
-    
+
     enum SessionType {
         case welcome
         case sel // Social-Emotional Learning (under 13)
@@ -25,7 +25,7 @@ struct ReflectionTimeView: View {
         case reflection // Guided reflection questions
         case freeChat // Open conversation
     }
-    
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -39,7 +39,7 @@ struct ReflectionTimeView: View {
                     endPoint: .bottom
                 )
                 .ignoresSafeArea()
-                
+
                 VStack(spacing: 0) {
                     // Timer bar
                     if timerActive {
@@ -47,7 +47,7 @@ struct ReflectionTimeView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 8)
                     }
-                    
+
                     // Content
                     switch currentSession {
                     case .welcome:
@@ -72,7 +72,7 @@ struct ReflectionTimeView: View {
                             .foregroundStyle(.gray.opacity(0.6))
                     }
                 }
-                
+
                 ToolbarItem(placement: .principal) {
                     Text("Reflection Time")
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
@@ -86,9 +86,9 @@ struct ReflectionTimeView: View {
             startTimer()
         }
     }
-    
+
     // MARK: - Timer
-    
+
     private func startTimer() {
         timerActive = true
         Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
@@ -100,35 +100,35 @@ struct ReflectionTimeView: View {
             }
         }
     }
-    
+
     // MARK: - Welcome View
-    
+
     private var welcomeView: some View {
         ScrollView {
             VStack(spacing: 24) {
                 Spacer().frame(height: 20)
-                
+
                 // Icon
                 ZStack {
                     Circle()
                         .fill(KomalColors.lavenderPurple.opacity(0.15))
                         .frame(width: 100, height: 100)
-                    
+
                     Image(systemName: "leaf.fill")
                         .font(.system(size: 44))
                         .foregroundColor(KomalColors.lavenderPurple)
                 }
-                
+
                 VStack(spacing: 8) {
                     Text("Welcome to Reflection Time")
                         .font(.system(size: 24, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
-                    
+
                     Text("15 minutes of mindful digital wellness")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
-                
+
                 // Session options
                 VStack(spacing: 12) {
                     if isYoungerChild {
@@ -141,7 +141,7 @@ struct ReflectionTimeView: View {
                             withAnimation { currentSession = .sel }
                         }
                     }
-                    
+
                     SessionOptionCard(
                         icon: "sparkles",
                         title: "Mindfulness Exercise",
@@ -150,7 +150,7 @@ struct ReflectionTimeView: View {
                     ) {
                         withAnimation { currentSession = .mindfulness }
                     }
-                    
+
                     SessionOptionCard(
                         icon: "text.bubble.fill",
                         title: "Guided Reflection",
@@ -159,7 +159,7 @@ struct ReflectionTimeView: View {
                     ) {
                         withAnimation { currentSession = .reflection }
                     }
-                    
+
                     SessionOptionCard(
                         icon: "bubble.left.and.bubble.right.fill",
                         title: "Free Chat",
@@ -170,32 +170,32 @@ struct ReflectionTimeView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                
+
                 Spacer()
             }
         }
     }
-    
+
     // MARK: - SEL Session View (Social-Emotional Learning)
-    
+
     private var selSessionView: some View {
         SELSessionView(onBack: { withAnimation { currentSession = .welcome } })
     }
-    
+
     // MARK: - Mindfulness View
-    
+
     private var mindfulnessView: some View {
         MindfulnessSessionView(onBack: { withAnimation { currentSession = .welcome } })
     }
-    
+
     // MARK: - Reflection View
-    
+
     private var reflectionView: some View {
         ReflectionSessionView(onBack: { withAnimation { currentSession = .welcome } })
     }
-    
+
     // MARK: - Free Chat View
-    
+
     private var freeChatView: some View {
         FreeChatSessionView(onBack: { withAnimation { currentSession = .welcome } })
     }
@@ -206,40 +206,40 @@ struct ReflectionTimeView: View {
 struct TimerBar: View {
     let timeRemaining: Int
     let totalTime: Int
-    
+
     private var progress: Double {
         Double(totalTime - timeRemaining) / Double(totalTime)
     }
-    
+
     private var timeString: String {
         let minutes = timeRemaining / 60
         let seconds = timeRemaining % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
-    
+
     var body: some View {
         VStack(spacing: 6) {
             HStack {
                 Image(systemName: "clock.fill")
                     .font(.system(size: 12))
                     .foregroundColor(KomalColors.lavenderPurple)
-                
+
                 Text(timeString)
                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
                     .foregroundColor(KomalColors.textPrimary)
-                
+
                 Spacer()
-                
+
                 Text("remaining")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
             }
-            
+
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.gray.opacity(0.15))
-                    
+
                     RoundedRectangle(cornerRadius: 4)
                         .fill(KomalColors.lavenderPurple)
                         .frame(width: geometry.size.width * progress)
@@ -261,7 +261,7 @@ struct SessionOptionCard: View {
     let description: String
     let color: Color
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 16) {
@@ -269,19 +269,19 @@ struct SessionOptionCard: View {
                     .font(.system(size: 28))
                     .foregroundColor(color)
                     .frame(width: 44)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
-                    
+
                     Text(description)
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(KomalColors.textSecondary)
                 }
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Color.gray.opacity(0.4))
@@ -301,8 +301,10 @@ struct SELSessionView: View {
     let onBack: () -> Void
     @State private var currentStep = 0
     @State private var selectedEmotion: String? = nil
+    @State private var selectedEmoji: String = ""
     @State private var emotionIntensity: Double = 5
-    
+    @State private var hasSavedMood = false
+
     private let emotions = [
         ("😊", "Happy", KomalColors.pearlAqua),
         ("😢", "Sad", Color.blue),
@@ -313,7 +315,7 @@ struct SELSessionView: View {
         ("😐", "Okay", Color.gray),
         ("🤔", "Confused", KomalColors.lavenderPurple)
     ]
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Back button
@@ -330,7 +332,7 @@ struct SELSessionView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-            
+
             ScrollView {
                 VStack(spacing: 28) {
                     // Header
@@ -338,14 +340,14 @@ struct SELSessionView: View {
                         Text("How Are You Feeling?")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
-                        
+
                         Text("It's okay to feel any emotion. Let's explore together.")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.top, 20)
-                    
+
                     // Emotion picker
                     LazyVGrid(columns: [
                         GridItem(.flexible()),
@@ -360,27 +362,33 @@ struct SELSessionView: View {
                                 color: emotion.2,
                                 isSelected: selectedEmotion == emotion.1
                             ) {
-                                withAnimation { selectedEmotion = emotion.1 }
+                                withAnimation {
+                                    selectedEmotion = emotion.1
+                                    selectedEmoji = emotion.0
+                                }
                             }
                         }
                     }
                     .padding(.horizontal, 20)
-                    
+
                     if selectedEmotion != nil {
                         // Intensity slider
                         VStack(spacing: 12) {
                             Text("How strong is this feeling?")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
-                            
+
                             HStack {
                                 Text("A little")
                                     .font(.system(size: 12))
                                     .foregroundColor(KomalColors.textSecondary)
-                                
+
                                 Slider(value: $emotionIntensity, in: 1...10, step: 1)
                                     .tint(KomalColors.lavenderPurple)
-                                
+                                    .onChange(of: emotionIntensity) { _ in
+                                        saveMoodIfNeeded()
+                                    }
+
                                 Text("A lot")
                                     .font(.system(size: 12))
                                     .foregroundColor(KomalColors.textSecondary)
@@ -390,13 +398,17 @@ struct SELSessionView: View {
                         .background(Color.white)
                         .cornerRadius(16)
                         .padding(.horizontal, 20)
-                        
+
+                        // Mood history mini view
+                        MoodHistoryMiniView()
+                            .padding(.horizontal, 20)
+
                         // Coping strategies
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Things that might help:")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
-                            
+
                             ForEach(getCopingStrategies(), id: \.self) { strategy in
                                 HStack(spacing: 12) {
                                     Image(systemName: "checkmark.circle.fill")
@@ -413,13 +425,27 @@ struct SELSessionView: View {
                         .cornerRadius(16)
                         .padding(.horizontal, 20)
                     }
-                    
+
                     Spacer().frame(height: 40)
                 }
             }
         }
     }
-    
+
+    private func saveMoodIfNeeded() {
+        guard let emotion = selectedEmotion, !hasSavedMood else { return }
+        hasSavedMood = true
+        let entry = MoodEntry(
+            emotion: emotion,
+            emoji: selectedEmoji,
+            intensity: Int(emotionIntensity),
+            context: .selSession
+        )
+        MoodTrackingService.shared.logMood(entry)
+        GrowthTrackingService.shared.recordActivity(type: .moodCheckIn)
+        GrowthTrackingService.shared.recordActivity(type: .reflection)
+    }
+
     private func getCopingStrategies() -> [String] {
         switch selectedEmotion {
         case "Sad":
@@ -444,13 +470,13 @@ struct EmotionButton: View {
     let color: Color
     let isSelected: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 6) {
                 Text(emoji)
                     .font(.system(size: 32))
-                
+
                 Text(label)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(isSelected ? color : KomalColors.textSecondary)
@@ -476,13 +502,13 @@ struct MindfulnessSessionView: View {
     @State private var breathPhase: BreathPhase = .inhale
     @State private var breathCount = 0
     @State private var isBreathing = false
-    
+
     enum BreathPhase: String {
         case inhale = "Breathe In"
         case hold = "Hold"
         case exhale = "Breathe Out"
     }
-    
+
     private let exercises = [
         MindfulnessExercise(
             title: "Box Breathing",
@@ -509,7 +535,7 @@ struct MindfulnessSessionView: View {
             steps: ["Think of someone who makes you happy", "Think of something you're good at", "Think of a place that makes you feel safe", "Think of a happy memory", "Smile and feel grateful"]
         )
     ]
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Back button
@@ -526,7 +552,7 @@ struct MindfulnessSessionView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-            
+
             ScrollView {
                 VStack(spacing: 24) {
                     // Header
@@ -534,13 +560,13 @@ struct MindfulnessSessionView: View {
                         Text("Mindfulness")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
-                        
+
                         Text("Take a moment to calm your mind")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
                     .padding(.top, 20)
-                    
+
                     // Exercise cards
                     ForEach(Array(exercises.enumerated()), id: \.1.title) { index, exercise in
                         ExerciseCard(
@@ -553,7 +579,7 @@ struct MindfulnessSessionView: View {
                         }
                     }
                     .padding(.horizontal, 20)
-                    
+
                     Spacer().frame(height: 40)
                 }
             }
@@ -573,7 +599,7 @@ struct ExerciseCard: View {
     let exercise: MindfulnessExercise
     let isExpanded: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         VStack(spacing: 0) {
             Button(action: onTap) {
@@ -582,19 +608,19 @@ struct ExerciseCard: View {
                         .font(.system(size: 24))
                         .foregroundColor(KomalColors.pearlAqua)
                         .frame(width: 32)
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         Text(exercise.title)
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
-                        
+
                         Text(exercise.description)
                             .font(.system(size: 12, weight: .regular))
                             .foregroundColor(KomalColors.textSecondary)
                     }
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(KomalColors.textSecondary)
@@ -602,7 +628,7 @@ struct ExerciseCard: View {
                 .padding(16)
             }
             .buttonStyle(.plain)
-            
+
             if isExpanded {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(Array(exercise.steps.enumerated()), id: \.0) { index, step in
@@ -613,7 +639,7 @@ struct ExerciseCard: View {
                                 .frame(width: 22, height: 22)
                                 .background(KomalColors.pearlAqua)
                                 .clipShape(Circle())
-                            
+
                             Text(step)
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(KomalColors.textPrimary)
@@ -630,14 +656,22 @@ struct ExerciseCard: View {
     }
 }
 
-// MARK: - Reflection Session
+// MARK: - Reflection Session (with AI follow-ups)
 
 struct ReflectionSessionView: View {
     let onBack: () -> Void
+    @EnvironmentObject private var appState: AppState
     @State private var currentQuestion = 0
     @State private var response = ""
     @State private var responses: [String] = []
-    
+    @State private var followUpQuestion: String? = nil
+    @State private var followUpResponse = ""
+    @State private var followUpDepth = 0
+    @State private var isGeneratingFollowUp = false
+    @State private var reflectionDepthScore: Double = 0
+
+    private let maxFollowUpDepth = 2
+
     private let questions = [
         ReflectionQuestion(question: "What was the best thing you saw online today?", prompt: "Share something that made you smile or feel good..."),
         ReflectionQuestion(question: "Did anything online make you feel uncomfortable?", prompt: "It's okay to talk about things that bothered you..."),
@@ -645,7 +679,7 @@ struct ReflectionSessionView: View {
         ReflectionQuestion(question: "How much time did you spend on screens today?", prompt: "Was it too much, just right, or not enough?"),
         ReflectionQuestion(question: "What would you like to do offline tomorrow?", prompt: "Think of fun activities away from screens...")
     ]
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Back button
@@ -659,14 +693,14 @@ struct ReflectionSessionView: View {
                     .foregroundColor(KomalColors.lavenderPurple)
                 }
                 Spacer()
-                
+
                 Text("\(currentQuestion + 1)/\(questions.count)")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(KomalColors.textSecondary)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-            
+
             ScrollView {
                 VStack(spacing: 24) {
                     // Progress dots
@@ -678,44 +712,48 @@ struct ReflectionSessionView: View {
                         }
                     }
                     .padding(.top, 20)
-                    
-                    // Question
-                    VStack(spacing: 12) {
-                        Text(questions[currentQuestion].question)
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundColor(KomalColors.textPrimary)
-                            .multilineTextAlignment(.center)
-                        
-                        Text(questions[currentQuestion].prompt)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(KomalColors.textSecondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, 20)
-                    
-                    // Response area
-                    TextEditor(text: $response)
-                        .font(.system(size: 16, weight: .medium))
-                        .frame(minHeight: 150)
-                        .padding(16)
-                        .background(Color.white)
-                        .cornerRadius(16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.gray.opacity(0.15), lineWidth: 1)
-                        )
+
+                    if let followUp = followUpQuestion {
+                        // AI Follow-up question
+                        VStack(spacing: 12) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(KomalColors.lavenderPurple)
+                                Text("Going deeper...")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(KomalColors.lavenderPurple)
+                            }
+
+                            Text(followUp)
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .foregroundColor(KomalColors.textPrimary)
+                                .multilineTextAlignment(.center)
+                        }
                         .padding(.horizontal, 20)
-                    
-                    // Navigation
-                    HStack(spacing: 12) {
-                        if currentQuestion > 0 {
+
+                        // Follow-up response area
+                        TextEditor(text: $followUpResponse)
+                            .font(.system(size: 16, weight: .medium))
+                            .frame(minHeight: 120)
+                            .padding(16)
+                            .background(Color.white)
+                            .cornerRadius(16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+                            )
+                            .padding(.horizontal, 20)
+
+                        // Follow-up navigation
+                        HStack(spacing: 12) {
                             Button(action: {
                                 withAnimation {
-                                    currentQuestion -= 1
-                                    response = responses.count > currentQuestion ? responses[currentQuestion] : ""
+                                    followUpQuestion = nil
+                                    followUpResponse = ""
                                 }
                             }) {
-                                Text("Previous")
+                                Text("Skip")
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(KomalColors.lavenderPurple)
                                     .frame(maxWidth: .infinity)
@@ -727,36 +765,165 @@ struct ReflectionSessionView: View {
                                             .stroke(KomalColors.lavenderPurple, lineWidth: 1)
                                     )
                             }
-                        }
-                        
-                        Button(action: {
-                            withAnimation {
-                                if responses.count > currentQuestion {
-                                    responses[currentQuestion] = response
-                                } else {
-                                    responses.append(response)
+
+                            Button(action: {
+                                withAnimation {
+                                    if !followUpResponse.trimmingCharacters(in: .whitespaces).isEmpty {
+                                        reflectionDepthScore += 1.0
+                                    }
+                                    followUpQuestion = nil
+                                    followUpResponse = ""
+                                    followUpDepth = 0
+                                    advanceToNextQuestion()
                                 }
-                                
-                                if currentQuestion < questions.count - 1 {
-                                    currentQuestion += 1
-                                    response = responses.count > currentQuestion ? responses[currentQuestion] : ""
+                            }) {
+                                Text("Continue")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(KomalColors.lavenderPurple)
+                                    .cornerRadius(12)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    } else {
+                        // Main question
+                        VStack(spacing: 12) {
+                            Text(questions[currentQuestion].question)
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .foregroundColor(KomalColors.textPrimary)
+                                .multilineTextAlignment(.center)
+
+                            Text(questions[currentQuestion].prompt)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(KomalColors.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.horizontal, 20)
+
+                        // Response area
+                        TextEditor(text: $response)
+                            .font(.system(size: 16, weight: .medium))
+                            .frame(minHeight: 150)
+                            .padding(16)
+                            .background(Color.white)
+                            .cornerRadius(16)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+                            )
+                            .padding(.horizontal, 20)
+
+                        // Loading indicator for follow-up generation
+                        if isGeneratingFollowUp {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                Text("Thinking of a follow-up...")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
+                        }
+
+                        // Navigation
+                        HStack(spacing: 12) {
+                            if currentQuestion > 0 {
+                                Button(action: {
+                                    withAnimation {
+                                        currentQuestion -= 1
+                                        response = responses.count > currentQuestion ? responses[currentQuestion] : ""
+                                    }
+                                }) {
+                                    Text("Previous")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(KomalColors.lavenderPurple)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(Color.white)
+                                        .cornerRadius(12)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(KomalColors.lavenderPurple, lineWidth: 1)
+                                        )
                                 }
                             }
-                        }) {
-                            Text(currentQuestion == questions.count - 1 ? "Done" : "Next")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(KomalColors.lavenderPurple)
-                                .cornerRadius(12)
+
+                            Button(action: {
+                                submitResponse()
+                            }) {
+                                Text(currentQuestion == questions.count - 1 ? "Done" : "Next")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(KomalColors.lavenderPurple)
+                                    .cornerRadius(12)
+                            }
+                            .disabled(isGeneratingFollowUp)
                         }
+                        .padding(.horizontal, 20)
                     }
-                    .padding(.horizontal, 20)
-                    
+
                     Spacer().frame(height: 40)
                 }
             }
+        }
+    }
+
+    private func submitResponse() {
+        // Save response
+        if responses.count > currentQuestion {
+            responses[currentQuestion] = response
+        } else {
+            responses.append(response)
+        }
+
+        reflectionDepthScore += 1.0
+
+        // Try to generate a follow-up if response is substantive and we haven't reached max depth
+        let trimmedResponse = response.trimmingCharacters(in: .whitespaces)
+        if trimmedResponse.count > 20 && followUpDepth < maxFollowUpDepth {
+            generateFollowUp(
+                question: questions[currentQuestion].question,
+                response: trimmedResponse
+            )
+        } else {
+            advanceToNextQuestion()
+        }
+    }
+
+    private func generateFollowUp(question: String, response: String) {
+        isGeneratingFollowUp = true
+        let ageGroup = appState.activeProfile.ageGroup
+
+        Task {
+            do {
+                let gemini = GeminiChatService()
+                let followUp = try await gemini.generateReflectionFollowUp(
+                    question: question,
+                    response: response,
+                    ageGroup: ageGroup
+                )
+                await MainActor.run {
+                    isGeneratingFollowUp = false
+                    followUpQuestion = followUp
+                    followUpDepth += 1
+                }
+            } catch {
+                await MainActor.run {
+                    isGeneratingFollowUp = false
+                    // If AI fails, just advance
+                    advanceToNextQuestion()
+                }
+            }
+        }
+    }
+
+    private func advanceToNextQuestion() {
+        if currentQuestion < questions.count - 1 {
+            currentQuestion += 1
+            response = responses.count > currentQuestion ? responses[currentQuestion] : ""
         }
     }
 }
@@ -766,21 +933,15 @@ struct ReflectionQuestion {
     let prompt: String
 }
 
-// MARK: - Free Chat Session
+// MARK: - Free Chat Session (Gemini-powered)
 
 struct FreeChatSessionView: View {
     let onBack: () -> Void
+    @EnvironmentObject private var appState: AppState
     @State private var messages: [ReflectionChatMessage] = []
     @State private var inputText = ""
-    
-    private let prompts = [
-        "What's on your mind today?",
-        "Tell me about something interesting that happened",
-        "Is there anything bothering you?",
-        "What made you happy recently?",
-        "What would you like to talk about?"
-    ]
-    
+    @State private var isGenerating = false
+
     var body: some View {
         VStack(spacing: 0) {
             // Back button
@@ -797,7 +958,7 @@ struct FreeChatSessionView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-            
+
             // Messages
             ScrollViewReader { proxy in
                 ScrollView {
@@ -805,19 +966,38 @@ struct FreeChatSessionView: View {
                         ForEach(messages) { message in
                             FreeChatBubble(message: message)
                         }
+
+                        if isGenerating {
+                            HStack {
+                                HStack(spacing: 6) {
+                                    ProgressView()
+                                        .scaleEffect(0.7)
+                                    Text("Thinking...")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(KomalColors.textSecondary)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .fill(Color.white)
+                                )
+                                Spacer(minLength: 60)
+                            }
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
                     .padding(.bottom, 8)
                     .id("bottom")
                 }
-                .onChange(of: messages.count) { _ in
+                .onChange(of: messages.count) {
                     withAnimation {
                         proxy.scrollTo("bottom", anchor: .bottom)
                     }
                 }
             }
-            
+
             // Input
             HStack(spacing: 12) {
                 TextField("Type your thoughts...", text: $inputText)
@@ -826,13 +1006,13 @@ struct FreeChatSessionView: View {
                     .padding(.vertical, 12)
                     .background(Color.white)
                     .cornerRadius(24)
-                
+
                 Button(action: sendMessage) {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 36))
-                        .foregroundColor(inputText.isEmpty ? Color.gray.opacity(0.3) : KomalColors.lavenderPurple)
+                        .foregroundColor(inputText.isEmpty || isGenerating ? Color.gray.opacity(0.3) : KomalColors.lavenderPurple)
                 }
-                .disabled(inputText.isEmpty)
+                .disabled(inputText.isEmpty || isGenerating)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -840,33 +1020,65 @@ struct FreeChatSessionView: View {
         }
         .onAppear {
             // Initial greeting
+            let greetings = [
+                "Hi! This is a safe space to share your thoughts. What's on your mind today?",
+                "Hey there! I'm here to listen. Tell me about something interesting that happened.",
+                "Welcome! You can talk about anything here. What would you like to chat about?"
+            ]
             messages.append(ReflectionChatMessage(
                 id: UUID(),
-                text: "Hi! This is a safe space to share your thoughts. \(prompts.randomElement() ?? "")",
+                text: greetings.randomElement() ?? "Hi! What's on your mind?",
                 isFromUser: false
             ))
         }
     }
-    
+
     private func sendMessage() {
         guard !inputText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        
+
         let userMessage = ReflectionChatMessage(id: UUID(), text: inputText, isFromUser: true)
         messages.append(userMessage)
+        let messageText = inputText
         inputText = ""
-        
-        // Supportive response
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            let responses = [
-                "Thank you for sharing that with me. How does that make you feel?",
-                "I hear you. That sounds really important to you.",
-                "It's great that you're talking about this. Tell me more?",
-                "I understand. It's okay to feel that way.",
-                "Thanks for trusting me with that. What else is on your mind?"
-            ]
-            let responseMessage = ReflectionChatMessage(id: UUID(), text: responses.randomElement() ?? "I'm listening.", isFromUser: false)
-            withAnimation {
-                messages.append(responseMessage)
+        isGenerating = true
+
+        let ageGroup = appState.activeProfile.ageGroup
+
+        Task {
+            do {
+                let gemini = GeminiChatService()
+                let response = try await gemini.generateFreeChatResponse(
+                    userMessage: messageText,
+                    conversationHistory: messages,
+                    ageGroup: ageGroup
+                )
+                await MainActor.run {
+                    isGenerating = false
+                    let responseMessage = ReflectionChatMessage(id: UUID(), text: response, isFromUser: false)
+                    withAnimation {
+                        messages.append(responseMessage)
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isGenerating = false
+                    // Fallback response
+                    let fallbackResponses = [
+                        "Thank you for sharing that with me. How does that make you feel?",
+                        "I hear you. That sounds really important to you.",
+                        "It's great that you're talking about this. Tell me more?",
+                        "I understand. It's okay to feel that way.",
+                        "Thanks for trusting me with that. What else is on your mind?"
+                    ]
+                    let responseMessage = ReflectionChatMessage(
+                        id: UUID(),
+                        text: fallbackResponses.randomElement() ?? "I'm listening.",
+                        isFromUser: false
+                    )
+                    withAnimation {
+                        messages.append(responseMessage)
+                    }
+                }
             }
         }
     }
@@ -881,11 +1093,11 @@ struct ReflectionChatMessage: Identifiable {
 
 struct FreeChatBubble: View {
     let message: ReflectionChatMessage
-    
+
     var body: some View {
         HStack {
             if message.isFromUser { Spacer(minLength: 60) }
-            
+
             Text(message.text)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(message.isFromUser ? .white : KomalColors.textPrimary)
@@ -895,7 +1107,7 @@ struct FreeChatBubble: View {
                     RoundedRectangle(cornerRadius: 18)
                         .fill(message.isFromUser ? KomalColors.lavenderPurple : Color.white)
                 )
-            
+
             if !message.isFromUser { Spacer(minLength: 60) }
         }
     }
@@ -905,38 +1117,38 @@ struct FreeChatBubble: View {
 
 struct CompletionView: View {
     let dismiss: DismissAction
-    
+
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            
+
             ZStack {
                 Circle()
                     .fill(KomalColors.pearlAqua.opacity(0.15))
                     .frame(width: 120, height: 120)
-                
+
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 60))
                     .foregroundColor(KomalColors.pearlAqua)
             }
-            
+
             VStack(spacing: 8) {
                 Text("Great Job!")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
-                
+
                 Text("You completed your Reflection Time")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
             }
-            
+
             Text("Taking time to reflect helps you understand yourself better and stay healthy online.")
                 .font(.system(size: 14, weight: .regular))
                 .foregroundColor(KomalColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
-            
+
             Spacer()
-            
+
             Button(action: { dismiss() }) {
                 Text("Done")
                     .font(.system(size: 17, weight: .semibold))
@@ -959,4 +1171,3 @@ struct CompletionView: View {
 }
 #endif
 #endif
-

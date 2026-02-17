@@ -6,10 +6,11 @@ struct EmojiCheckInBubble: View {
     @State private var isExpanded = true
     @State private var selectedAvatar: String
 
-    private let emojis = ["\u{1F60A}", "\u{1F914}", "\u{1F61F}", "\u{1F622}", "\u{1F44D}"]
+    private let emojis: [String]
 
-    init(onEmojiSelected: @escaping (String) -> Void) {
+    init(subcategory: String = "", onEmojiSelected: @escaping (String) -> Void) {
         self.onEmojiSelected = onEmojiSelected
+        self.emojis = EmojiMapper.emojisForSubcategory(subcategory)
         _selectedAvatar = State(initialValue: "animal\(Int.random(in: 1...11))")
     }
 
@@ -17,7 +18,7 @@ struct EmojiCheckInBubble: View {
         VStack(alignment: .trailing, spacing: 8) {
             if isExpanded {
                 VStack(spacing: 10) {
-                    Text("How are you feeling?")
+                    Text("How're you feeling exploring this?")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 

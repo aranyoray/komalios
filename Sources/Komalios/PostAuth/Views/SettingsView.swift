@@ -11,6 +11,7 @@ struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var authViewModel: AuthViewModel
     @EnvironmentObject var pathManager: PathManager
+    @EnvironmentObject var lang: LanguageManager
 
     var selectedTab: Binding<NavigationTab>?
     @State private var newBlockedKeyword = ""
@@ -32,6 +33,8 @@ struct SettingsView: View {
     
     @State private var attemptingBiometric = false
     @State private var showDigitalJourney = false
+    @State private var showParentInsights = false
+    @State private var showGrowthJourney = false
     
     private var isLoggedIn: Bool {
         Auth.auth().currentUser != nil || authViewModel.user != nil
@@ -52,7 +55,7 @@ struct SettingsView: View {
                     
                     // MARK: - Header
                     HStack {
-                        Text("Settings")
+                        Text(lang.localized("settings.title"))
                             .font(.system(size: 34, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                         Spacer()
@@ -63,9 +66,9 @@ struct SettingsView: View {
                     // MARK: - Account Mode
                     SettingsCard {
                         VStack(alignment: .leading, spacing: 16) {
-                            CardHeader(icon: "person.2.circle.fill", title: "Who's Using?", color: KomalColors.bubblegumPink)
-                            
-                            Text("Select who is currently using the device")
+                            CardHeader(icon: "person.2.circle.fill", title: lang.localized("settings.whos_using"), color: KomalColors.bubblegumPink)
+
+                            Text(lang.localized("settings.whos_using.desc"))
                                 .font(.system(size: 13, weight: .regular, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
 
@@ -73,8 +76,8 @@ struct SettingsView: View {
                                 // Child Mode Button
                                 AccountModeButton(
                                     icon: "face.smiling.fill",
-                                    title: "Child",
-                                    subtitle: "Safe browsing",
+                                    title: lang.localized("settings.child"),
+                                    subtitle: lang.localized("settings.child.subtitle"),
                                     color: KomalColors.pearlAqua,
                                     isSelected: appState.accountMode == .child
                                 ) {
@@ -86,8 +89,8 @@ struct SettingsView: View {
                                 // Parent Mode Button - requires PIN
                                 AccountModeButton(
                                     icon: "lock.shield.fill",
-                                    title: "Parent",
-                                    subtitle: "Full access",
+                                    title: lang.localized("settings.parent"),
+                                    subtitle: lang.localized("settings.parent.subtitle"),
                                     color: KomalColors.lavenderPurple,
                                     isSelected: appState.accountMode == .guest
                                 ) {
@@ -193,6 +196,12 @@ struct SettingsView: View {
             DigitalJourneyView()
                 .environmentObject(appState)
         }
+        .sheet(isPresented: $showParentInsights) {
+            ParentInsightsDashboardView()
+        }
+        .sheet(isPresented: $showGrowthJourney) {
+            GrowthJourneyView()
+        }
         .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
             Button("Cancel", role: .cancel) {
                 // User cancelled, do nothing
@@ -223,11 +232,13 @@ struct SettingsView: View {
                             .foregroundColor(KomalColors.pearlAqua)
                     }
                     
-                    Text("Hi \(appState.activeProfile.name.isEmpty ? "there" : appState.activeProfile.name)! 👋")
+                    Text(appState.activeProfile.name.isEmpty
+                         ? lang.localized("settings.child.greeting_default")
+                         : lang.localized("settings.child.greeting", appState.activeProfile.name))
                         .font(.system(size: 24, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
-                    
-                    Text("Komal is here to keep you safe while you explore!")
+
+                    Text(lang.localized("settings.child.safe_msg"))
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                         .multilineTextAlignment(.center)
@@ -239,9 +250,9 @@ struct SettingsView: View {
             // Fun action cards
             SettingsCard {
                 VStack(alignment: .leading, spacing: 16) {
-                    CardHeader(icon: "bubble.left.and.bubble.right.fill", title: "Feeling Chatty?", color: KomalColors.bubblegumPink)
-                    
-                    Text("Talk to Riki! Your friendly companion is always here to chat and help you out.")
+                    CardHeader(icon: "bubble.left.and.bubble.right.fill", title: lang.localized("settings.child.chatty"), color: KomalColors.bubblegumPink)
+
+                    Text(lang.localized("settings.child.chatty.desc"))
                         .font(.system(size: 14, weight: .regular, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                     
@@ -256,7 +267,7 @@ struct SettingsView: View {
                         HStack {
                             Image(systemName: "pawprint.fill")
                                 .font(.system(size: 18, weight: .semibold))
-                            Text("Go to Talk")
+                            Text(lang.localized("settings.child.go_talk"))
                                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -279,25 +290,76 @@ struct SettingsView: View {
             // Your profile (limited)
             SettingsCard {
                 VStack(alignment: .leading, spacing: 16) {
-                    CardHeader(icon: "star.fill", title: "Your Profile", color: KomalColors.pearlAqua)
-                    
+                    CardHeader(icon: "star.fill", title: lang.localized("settings.child.profile"), color: KomalColors.pearlAqua)
+
                     HStack(spacing: 12) {
                         Image(systemName: "person.circle.fill")
                             .font(.system(size: 40))
                             .foregroundColor(KomalColors.pearlAqua)
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(appState.activeProfile.name.isEmpty ? "Explorer" : appState.activeProfile.name)
+                            Text(appState.activeProfile.name.isEmpty ? lang.localized("settings.child.explorer") : appState.activeProfile.name)
                                 .font(.system(size: 18, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
-                            
-                            Text("Age: \(appState.activeProfile.ageGroup.rawValue)")
+
+                            Text(lang.localized("settings.child.age", appState.activeProfile.ageGroup.rawValue))
                                 .font(.system(size: 14, weight: .medium, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
                         }
-                        
+
                         Spacer()
                     }
+                }
+            }
+
+            // Growth Journey card
+            SettingsCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    CardHeader(icon: "flame.fill", title: lang.localized("settings.child.journey"), color: .orange)
+
+                    HStack(spacing: 16) {
+                        VStack(spacing: 4) {
+                            Text("\(GrowthTrackingService.shared.currentStreak)")
+                                .font(.system(size: 24, weight: .bold, design: .rounded))
+                                .foregroundColor(.orange)
+                            Text(lang.localized("settings.child.day_streak"))
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        VStack(spacing: 4) {
+                            Text("\(GrowthTrackingService.shared.getEarnedMilestones().count)")
+                                .font(.system(size: 24, weight: .bold, design: .rounded))
+                                .foregroundColor(KomalColors.bubblegumPink)
+                            Text(lang.localized("settings.child.milestones"))
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+
+                    Button(action: { showGrowthJourney = true }) {
+                        HStack {
+                            Image(systemName: "trophy.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                            Text(lang.localized("settings.child.view_journey"))
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(KomalColors.bubblegumPink)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 14)
+                        .background(KomalColors.bubblegumPink.opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(KomalColors.bubblegumPink.opacity(0.4), lineWidth: 1.5)
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -309,7 +371,7 @@ struct SettingsView: View {
             // Digital Journey
             SettingsCard {
                 VStack(alignment: .leading, spacing: 16) {
-                    CardHeader(icon: "book.fill", title: "Digital Journey", color: KomalColors.lavenderPurple)
+                    CardHeader(icon: "book.fill", title: lang.localized("settings.parent.digital_journey"), color: KomalColors.lavenderPurple)
 
                     Button(action: {
                         showDigitalJourney = true
@@ -321,10 +383,10 @@ struct SettingsView: View {
                                 .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("View Digital Journey")
+                                Text(lang.localized("settings.parent.view_journey"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text("See your child's browsing activity with AI insights")
+                                Text(lang.localized("settings.parent.journey_desc"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -337,6 +399,72 @@ struct SettingsView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                }
+            }
+
+            // Child Wellness
+            SettingsCard {
+                VStack(alignment: .leading, spacing: 16) {
+                    CardHeader(icon: "heart.text.square.fill", title: "Child Wellness", color: KomalColors.bubblegumPink)
+
+                    Button(action: { showParentInsights = true }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.system(size: 20))
+                                .foregroundColor(KomalColors.bubblegumPink)
+                                .frame(width: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Wellness Dashboard")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(KomalColors.textPrimary)
+                                Text("Mood trends, conversations, growth metrics")
+                                    .font(.caption)
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+
+                    ModernToggleRow(
+                        icon: "sunrise.fill",
+                        iconColor: .orange,
+                        title: "Morning Check-in",
+                        subtitle: "Daily morning mood anchor",
+                        isOn: Binding(
+                            get: { appState.retentionState.morningAnchorEnabled },
+                            set: {
+                                appState.retentionState.morningAnchorEnabled = $0
+                                appState.savePreferences()
+                                NotificationService.shared.updateSchedules(retentionState: appState.retentionState)
+                            }
+                        )
+                    )
+
+                    Divider()
+
+                    ModernToggleRow(
+                        icon: "moon.fill",
+                        iconColor: KomalColors.lavenderPurple,
+                        title: "Evening Wind-down",
+                        subtitle: "Daily evening reflection anchor",
+                        isOn: Binding(
+                            get: { appState.retentionState.eveningAnchorEnabled },
+                            set: {
+                                appState.retentionState.eveningAnchorEnabled = $0
+                                appState.savePreferences()
+                                NotificationService.shared.updateSchedules(retentionState: appState.retentionState)
+                            }
+                        )
+                    )
                 }
             }
 

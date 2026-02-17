@@ -12,10 +12,14 @@ struct BrowserView: View {
             GradientBackground()
 
             VStack(spacing: 8) {
-                AddressBar(urlString: $browserState.urlString) {
-                    // Just navigate - content filtering happens in WKNavigationDelegate
-                    browserState.currentURL = normalizedURL(from: browserState.urlString)
-                }
+                AddressBar(
+                    urlString: $browserState.urlString,
+                    onSubmit: {
+                        browserState.currentURL = normalizedURL(from: browserState.urlString)
+                    },
+                    displayURL: browserState.currentURL,
+                    isPageLoading: browserState.loading
+                )
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
 
@@ -60,25 +64,16 @@ struct BrowserView: View {
             PastTabsView(browserState: browserState)
         }
         .fullScreenCover(isPresented: $browserState.showKomalIntervention) {
-            if let trigger = browserState.interventionTrigger {
-                KomalInterventionView(
-                    trigger: trigger,
-                    onReflectionTime: {
-                        // Log the reflection and allow continuing with safe search
-                        print("🌸 Child completed reflection time")
-                        browserState.clearIntervention()
-                        // Redirect to a safe search or home
-                        browserState.currentURL = URL(string: "https://www.khanacademy.org")
-                    },
-                    onGoBack: {
-                        print("🌸 Child chose to go back")
-                        browserState.clearIntervention()
-                        // Go back to safe page
-                        browserState.currentURL = URL(string: "https://www.khanacademy.org")
-                    },
-                    onContinueAnyway: nil  // Don't allow continue for now
-                )
-            }
+            BlockedEmojiPopup(
+                subcategory: browserState.interventionTrigger?.searchTerm ?? "",
+                characterName: "Komal",
+                showTalkFeature: false,
+                onDismiss: {
+                    browserState.clearIntervention()
+                    browserState.currentURL = URL(string: "https://www.google.com")
+                },
+                onEmojiSelected: { _ in }
+            )
         }
     }
 
@@ -104,36 +99,139 @@ struct BrowserView: View {
     }
 }
 
+// MARK: - Chrome Omnibox
 struct AddressBar: View {
     @Binding var urlString: String
     var onSubmit: () -> Void
+    var displayURL: URL? = nil
+    var isPageLoading: Bool = false
+    var onReload: (() -> Void)? = nil
+    var onStopLoading: (() -> Void)? = nil
+
+    @State private var isEditing = false
+    @FocusState private var isFocused: Bool
+
+    private var displayDomain: String {
+        guard let url = displayURL, let host = url.host else {
+            return ""
+        }
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(KomalColors.pearlAqua)
-
-            TextField("Search or enter address", text: $urlString)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .textInputAutocapitalization(.never)
-                .keyboardType(.URL)
-                .foregroundColor(KomalColors.textPrimary)
-                .onSubmit(onSubmit)
-
-            Button(action: onSubmit) {
-                Image(systemName: "arrow.right.circle.fill")
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundColor(KomalColors.bubblegumPink)
-            }
+        if isEditing {
+            editingView
+        } else {
+            compactView
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Capsule().fill(KomalColors.white))
-        .overlay(
-            Capsule()
-                .stroke(KomalColors.bubblegumPink, lineWidth: 2)
-        )
+    }
+
+    // MARK: - Compact (Chrome omnibox — centered domain)
+    private var compactView: some View {
+        Button {
+            urlString = ""
+            isEditing = true
+        } label: {
+            HStack(spacing: 0) {
+                // Spacer to balance the trailing button and keep text centered
+                if displayURL != nil {
+                    Color.clear.frame(width: 28)
+                }
+
+                Spacer(minLength: 0)
+
+                // Center content
+                HStack(spacing: 6) {
+                    if displayURL != nil {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(Color(UIColor.secondaryLabel))
+                    } else {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(Color(UIColor.secondaryLabel))
+                    }
+
+                    Text(displayURL != nil ? displayDomain : "Search or type URL")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(displayURL != nil ? Color(UIColor.label) : Color(UIColor.placeholderText))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                // Trailing action
+                if displayURL != nil {
+                    if isPageLoading {
+                        Button(action: { onStopLoading?() }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(Color(UIColor.secondaryLabel))
+                                .frame(width: 28, height: 28)
+                        }
+                    } else {
+                        Button(action: { onReload?() }) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color(UIColor.secondaryLabel))
+                                .frame(width: 28, height: 28)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(Color(UIColor.tertiarySystemFill))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Editing (Chrome omnibox — expanded text field)
+    private var editingView: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(Color(UIColor.secondaryLabel))
+                    .font(.system(size: 14, weight: .medium))
+
+                TextField("Search or type URL", text: $urlString)
+                    .font(.system(size: 16))
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+                    .autocorrectionDisabled()
+                    .focused($isFocused)
+                    .onSubmit {
+                        isEditing = false
+                        onSubmit()
+                    }
+
+                if !urlString.isEmpty {
+                    Button(action: { urlString = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(Color(UIColor.tertiaryLabel))
+                            .font(.system(size: 16))
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(Color(UIColor.tertiarySystemFill))
+            )
+
+            Button("Cancel") {
+                isEditing = false
+                isFocused = false
+            }
+            .foregroundColor(.accentColor)
+            .font(.system(size: 16, weight: .medium))
+        }
+        .transition(.opacity)
+        .onAppear { isFocused = true }
     }
 }
 
@@ -420,9 +518,11 @@ struct WebView: UIViewRepresentable {
                 decisionHandler(.allow)
                 return
             }
-            
+
+            let isBackForward = navigationAction.navigationType == .backForward
+
             // Track navigation type from navigation action
-            if navigationAction.navigationType == .backForward {
+            if isBackForward {
                 if let backItem = webView.backForwardList.backItem, backItem.url == url {
                     pendingNavigationType = (isBack: true, isForward: false)
                 } else if let forwardItem = webView.backForwardList.forwardItem, forwardItem.url == url {
@@ -430,19 +530,25 @@ struct WebView: UIViewRepresentable {
                 }
             }
 
+            // Allow back/forward navigation without rewrites or redirects
+            if isBackForward {
+                decisionHandler(.allow)
+                return
+            }
+
             // DIGITAL GUARDIAN: Check for inappropriate content FIRST
             let contentCheck = BrowserState.checkURL(url, parentSettings: appState.parentSettings)
             if contentCheck.shouldIntervene, let trigger = contentCheck.trigger {
                 print("🛡️ Content check triggered intervention: \(trigger.searchTerm)")
-                
+
                 // Log the attempt
                 historyService.logBlocked(url: url, category: "Content Filter", reason: "Inappropriate content detected: \(trigger.searchTerm)")
-                
+
                 // Show Komal intervention instead of just blocking
                 DispatchQueue.main.async {
                     self.browserState.triggerIntervention(for: trigger, pendingURL: url)
                 }
-                
+
                 decisionHandler(.cancel)
                 return
             }
@@ -456,21 +562,6 @@ struct WebView: UIViewRepresentable {
             if navigationAction.targetFrame == nil {
                 webView.load(URLRequest(url: url))
                 decisionHandler(.cancel)
-                return
-            }
-
-            if url.host?.contains("youtube.com") == true || url.host?.contains("youtu.be") == true {
-                // Still check YouTube search queries
-                if let searchQuery = BrowserState.extractSearchQuery(from: url),
-                   let flagged = BrowserState.checkForInappropriateContent(searchQuery) {
-                    print("🛡️ YouTube search flagged: \(flagged)")
-                    DispatchQueue.main.async {
-                        self.browserState.triggerIntervention(for: .searchQuery(flagged), pendingURL: url)
-                    }
-                    decisionHandler(.cancel)
-                    return
-                }
-                decisionHandler(.allow)
                 return
             }
 
@@ -507,11 +598,6 @@ struct WebView: UIViewRepresentable {
 
             if host.contains("bing.com") {
                 components.queryItems = upsertQueryItem(name: "adlt", value: "strict", items: components.queryItems)
-                return components.url
-            }
-
-            if host.contains("youtube.com") {
-                components.queryItems = upsertQueryItem(name: "safe", value: "active", items: components.queryItems)
                 return components.url
             }
 

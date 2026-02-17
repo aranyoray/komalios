@@ -8,6 +8,7 @@ struct KomaliosApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var pathManager = PathManager()
+    @StateObject private var languageManager = LanguageManager.shared
     @UIApplicationDelegateAdaptor(AppDelegate.self)
     var appDelegate
     
@@ -17,6 +18,7 @@ struct KomaliosApp: App {
                 .environmentObject(appState)
                 .environmentObject(authViewModel)
                 .environmentObject(pathManager)
+                .environmentObject(languageManager)
                 .preferredColorScheme(.light)
         }
     }
@@ -49,22 +51,46 @@ struct ContentView: View {
                 pathManager.push(Routes.onboardingView)
             }
         }
-        .onChange(of: appState.hasCompletedOnboarding) { _ in
-            if appState.hasCompletedOnboarding && (authViewModel.user != nil || appState.isGuestUser) {
+        .onChange(of: appState.hasCompletedOnboarding) { newValue in
+            if newValue && (authViewModel.user != nil || appState.isGuestUser) {
                 pathManager.popToRoot()
                 pathManager.push(Routes.rootView)
             }
         }
-        .onChange(of: scenePhase) { _ in
-            if scenePhase == .background || scenePhase == .inactive {
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .background || newPhase == .inactive {
                 if appState.accountMode == .guest {
                     appState.accountMode = .child
+                }
+                // Save last active date for streak tracking
+                appState.retentionState.lastActiveDate = Date()
+                appState.retentionState.promptsShownThisSession = 0
+                appState.savePreferences()
+            }
+            if newPhase == .active {
+                // Update streak on app open
+                GrowthTrackingService.shared.updateStreakOnAppOpen(retentionState: &appState.retentionState)
+
+                // Track voluntary vs notification-driven return
+                trackReturnType()
+
+                appState.savePreferences()
+
+                // Schedule reconnection reminder
+                NotificationService.shared.scheduleReconnectionReminder()
+
+                // Run tiered memory maintenance (fire-and-forget)
+                Task {
+                    ConversationMemoryService.shared.performTieredMaintenanceAsync()
                 }
             }
         }
         .onAppear {
             print("📱 ContentView appeared - user: \(authViewModel.user?.uid ?? "nil"), hasCompletedOnboarding: \(appState.hasCompletedOnboarding)")
-            // Navigation is handled by SplashScreenView after 3 seconds
+            // Request notification permission
+            NotificationService.shared.requestPermission()
+            // Schedule anchor notifications
+            NotificationService.shared.updateSchedules(retentionState: appState.retentionState)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserDidSignOut"))) { _ in
             // Backup: Force update authViewModel state if notification is received
@@ -80,6 +106,19 @@ struct ContentView: View {
         }
     }
     
+    /// Track whether the return was voluntary or notification-driven
+    private func trackReturnType() {
+        // Simple heuristic: if app opens within 60 seconds of a notification being delivered,
+        // count as push-driven. Otherwise voluntary.
+        let isPushDriven = NotificationService.shared.wasRecentNotificationTapped()
+        if isPushDriven {
+            appState.retentionState.pushNotificationReturnCount += 1
+        } else {
+            appState.retentionState.voluntaryReturnCount += 1
+        }
+        appState.retentionState.childInitiatedSessionCount += 1
+    }
+
     @ViewBuilder
     private func destinationView(for route: Routes) -> some View {
         switch route {
@@ -104,4 +143,6 @@ struct ContentView: View {
     }
 }
 #endif
+
+
 

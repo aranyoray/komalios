@@ -2,34 +2,44 @@
 import SwiftUI
 
 enum NavigationTab: String, CaseIterable {
-    case browser = "Browse"
-    case riki = "Talk"
-    case reflect = "Reflect"
-    case settings = "Settings"
-    
+    case browser = "browser"
+    case riki = "riki"
+    case reflect = "reflect"
+    case settings = "settings"
+
     var icon: String {
         switch self {
-        case .browser: return "safari.fill"
+        case .browser: return "globe"
         case .riki: return "pawprint.fill"
         case .reflect: return "leaf.fill"
         case .settings: return "gearshape.fill"
+        }
+    }
+
+    func displayName(lang: LanguageManager) -> String {
+        switch self {
+        case .browser: return lang.localized("menu.browse")
+        case .riki: return lang.localized("menu.talk")
+        case .reflect: return lang.localized("menu.reflect")
+        case .settings: return lang.localized("menu.settings")
         }
     }
 }
 
 struct FloatingMenuView: View {
     @Binding var selectedTab: NavigationTab
+    @EnvironmentObject var lang: LanguageManager
     var onNewTab: (() -> Void)? = nil
     var onPastTabs: (() -> Void)? = nil
-    
+
     @Namespace private var animation
-    
+
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
             Spacer()
-            
-            // Liquid Glass Navigation Bar
-            HStack(spacing: 4) {
+
+            // Screen-width glass navigation bar with rounded corners
+            HStack(spacing: 0) {
                 ForEach(NavigationTab.allCases, id: \.self) { tab in
                     TabButton(
                         tab: tab,
@@ -40,16 +50,19 @@ struct FloatingMenuView: View {
                             selectedTab = tab
                         }
                     }
+                    .frame(maxWidth: .infinity)
                 }
             }
-            .padding(6)
+            .padding(.vertical, 6)
             .background(
-                Capsule()
+                RoundedRectangle(cornerRadius: 24)
                     .fill(.ultraThinMaterial)
-                    .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
+                    .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: -2)
             )
-            .padding(.bottom, 8)
+            .padding(.horizontal, 6)
+            .padding(.bottom, 2)
         }
+        .ignoresSafeArea(.keyboard)
     }
 }
 
@@ -60,30 +73,20 @@ private struct TabButton: View {
     let isSelected: Bool
     let namespace: Namespace.ID
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 8) {
+            VStack(spacing: 4) {
                 Image(systemName: tab.icon)
-                    .font(.system(size: 17, weight: .semibold))
-                
-                if isSelected {
-                    Text(tab.rawValue)
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .lineLimit(1)
-                }
+                    .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
+
+                Text(tab.rawValue)
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
+                    .lineLimit(1)
             }
-            .foregroundColor(isSelected ? KomalColors.textPrimary : KomalColors.textSecondary)
-            .padding(.horizontal, isSelected ? 20 : 16)
-            .padding(.vertical, 12)
-            .background {
-                if isSelected {
-                    Capsule()
-                        .fill(Color.white)
-                        .matchedGeometryEffect(id: "TAB_INDICATOR", in: namespace)
-                        .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
-                }
-            }
+            .foregroundColor(isSelected ? KomalColors.bubblegumPink : KomalColors.textSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
         }
         .buttonStyle(.plain)
     }

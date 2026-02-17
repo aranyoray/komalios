@@ -25,15 +25,7 @@ struct EmojiResponseView: View {
 
 enum EmojiMapper {
     static func emojisForSubcategory(_ sub: String) -> [String] {
-        let s = sub.lowercased()
-        if s.contains("violen") || s.contains("weapon")     { return ["😨", "😟", "😔", "👍", "😌"] }
-        if s.contains("bully") || s.contains("harass")      { return ["😢", "😡", "😞", "🤗", "💪"] }
-        if s.contains("sexual") || s.contains("explicit")   { return ["😳", "😖", "😟", "👍", "😊"] }
-        if s.contains("drug") || s.contains("alcohol")      { return ["🤔", "😟", "😞", "👍", "💪"] }
-        if s.contains("scam") || s.contains("gambling")     { return ["🤔", "😒", "😟", "👍", "😊"] }
-        if s.contains("horror") || s.contains("scary")      { return ["😱", "😨", "😟", "😌", "💪"] }
-        if s.contains("parasocial") || s.contains("influencer") { return ["🤔", "😐", "😊", "👍", "😎"] }
-        return ["😊", "🤔", "😟", "😢", "👍"]
+        CSVEmojiMappingService.shared.emojisForSubcategory(sub)
     }
 }
 #endif

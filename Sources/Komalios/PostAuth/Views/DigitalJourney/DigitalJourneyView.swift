@@ -11,7 +11,16 @@ import SwiftUI
 struct DigitalJourneyView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel = DigitalJourneyViewModel()
+    @StateObject private var historyViewModel = BrowsingHistoryViewModel()
     @Environment(\.dismiss) private var dismiss
+
+    enum JourneyTab: String, CaseIterable {
+        case insights = "AI Insights"
+        case history = "History"
+    }
+
+    @State private var selectedTab: JourneyTab = .insights
+    @State private var selectedBatch: HistoryBatch?
 
     var body: some View {
         NavigationView {
@@ -19,76 +28,23 @@ struct DigitalJourneyView: View {
                 KomalColors.warmGray
                     .ignoresSafeArea()
 
-                if viewModel.isLoading {
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.2)
-                        Text("Analyzing browsing activity...")
-                            .font(.system(size: 15, weight: .medium, design: .rounded))
-                            .foregroundColor(KomalColors.textSecondary)
-                    }
-                } else if viewModel.allItems.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "globe")
-                            .font(.system(size: 48))
-                            .foregroundColor(KomalColors.textSecondary.opacity(0.5))
-                        Text("No browsing history yet")
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
-                            .foregroundColor(KomalColors.textSecondary)
-                        Text("History will appear here as your child browses")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(KomalColors.textSecondary.opacity(0.7))
-                    }
-                } else {
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            // Filter pills
-                            filterPills
-                                .padding(.horizontal, 16)
-
-                            // Needs Attention section
-                            if !viewModel.filteredFlaggedGroups.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundColor(.orange)
-                                        Text("Needs Attention")
-                                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                                            .foregroundColor(KomalColors.textPrimary)
-                                    }
-                                    .padding(.horizontal, 20)
-
-                                    ForEach(viewModel.filteredFlaggedGroups) { group in
-                                        TopicGroupCard(group: group, onChangeAction: { itemId, action in
-                                            viewModel.changeAction(for: itemId, to: action)
-                                        })
-                                    }
-                                }
-                            }
-
-                            // Allowed Links section
-                            if !viewModel.filteredTopicGroups.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(KomalColors.pearlAqua)
-                                        Text("Allowed Links")
-                                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                                            .foregroundColor(KomalColors.textPrimary)
-                                    }
-                                    .padding(.horizontal, 20)
-
-                                    ForEach(viewModel.filteredTopicGroups) { group in
-                                        TopicGroupCard(group: group, onChangeAction: { itemId, action in
-                                            viewModel.changeAction(for: itemId, to: action)
-                                        })
-                                    }
-                                }
-                            }
-
-                            Color.clear.frame(height: 40)
+                VStack(spacing: 0) {
+                    // Segmented tab picker
+                    Picker("", selection: $selectedTab) {
+                        ForEach(JourneyTab.allCases, id: \.self) { tab in
+                            Text(tab.rawValue).tag(tab)
                         }
-                        .padding(.top, 12)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+
+                    switch selectedTab {
+                    case .insights:
+                        insightsContent
+                    case .history:
+                        historyContent
                     }
                 }
             }
@@ -103,11 +59,196 @@ struct DigitalJourneyView: View {
                     }
                 }
             }
+            .fullScreenCover(item: $selectedBatch) { batch in
+                HistoryBatchDetailView(batch: batch)
+            }
         }
         .onAppear {
             viewModel.loadHistory()
         }
+        .task {
+            await historyViewModel.loadHistory()
+        }
+        .onChange(of: historyViewModel.selectedTimeRange) { _ in historyViewModel.onFilterChanged() }
     }
+
+    // MARK: - AI Insights Content
+
+    private var insightsContent: some View {
+        Group {
+            if viewModel.isLoading {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("Analyzing browsing activity...")
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                }
+                .frame(maxHeight: .infinity)
+            } else if viewModel.allItems.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "globe")
+                        .font(.system(size: 48))
+                        .foregroundColor(KomalColors.textSecondary.opacity(0.5))
+                    Text("No browsing history yet")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                    Text("History will appear here as your child browses")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(KomalColors.textSecondary.opacity(0.7))
+                }
+                .frame(maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Filter pills
+                        filterPills
+                            .padding(.horizontal, 16)
+
+                        // Needs Attention section
+                        if !viewModel.filteredFlaggedGroups.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.orange)
+                                    Text("Needs Attention")
+                                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                                        .foregroundColor(KomalColors.textPrimary)
+                                }
+                                .padding(.horizontal, 20)
+
+                                ForEach(viewModel.filteredFlaggedGroups) { group in
+                                    TopicGroupCard(group: group, onChangeAction: { itemId, action in
+                                        viewModel.changeAction(for: itemId, to: action)
+                                    })
+                                }
+                            }
+                        }
+
+                        // Allowed Links section
+                        if !viewModel.filteredTopicGroups.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(KomalColors.pearlAqua)
+                                    Text("Allowed Links")
+                                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                                        .foregroundColor(KomalColors.textPrimary)
+                                }
+                                .padding(.horizontal, 20)
+
+                                ForEach(viewModel.filteredTopicGroups) { group in
+                                    TopicGroupCard(group: group, onChangeAction: { itemId, action in
+                                        viewModel.changeAction(for: itemId, to: action)
+                                    })
+                                }
+                            }
+                        }
+
+                        Color.clear.frame(height: 40)
+                    }
+                    .padding(.top, 12)
+                }
+            }
+        }
+    }
+
+    // MARK: - History Content
+
+    private var historyContent: some View {
+        Group {
+            if historyViewModel.isLoading {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    Text("Loading browsing history...")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                }
+                .frame(maxHeight: .infinity)
+            } else if historyViewModel.batches.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 48, weight: .light))
+                        .foregroundColor(KomalColors.textSecondary.opacity(0.5))
+                    Text("No browsing history yet")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
+                    Text("History will appear here as your child browses.")
+                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxHeight: .infinity)
+                .padding(.horizontal, 40)
+            } else {
+                ScrollView {
+                    VStack(spacing: 12) {
+                        historyTimeRangeBar
+
+                        LazyVStack(spacing: 12) {
+                            ForEach(historyViewModel.batches) { batch in
+                                TopicBoxCard(batch: batch) {
+                                    selectedBatch = batch
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 40)
+                }
+            }
+        }
+    }
+
+    // MARK: - History Time Range Bar
+
+    private var historyTimeRangeBar: some View {
+        SettingsCard {
+            HStack(spacing: 8) {
+                Image(systemName: "clock")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(KomalColors.textSecondary)
+
+                Text("Time Range")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(KomalColors.textSecondary)
+
+                Spacer()
+
+                Menu {
+                    ForEach(TimeRangeOption.allCases) { option in
+                        Button(action: {
+                            historyViewModel.selectedTimeRange = option
+                        }) {
+                            HStack {
+                                Text(option.rawValue)
+                                if historyViewModel.selectedTimeRange == option {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(historyViewModel.selectedTimeRange.rawValue)
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(KomalColors.textPrimary)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(KomalColors.textSecondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(KomalColors.background)
+                    .cornerRadius(12)
+                }
+            }
+        }
+    }
+
+    // MARK: - Filter Pills (AI Insights)
 
     private var filterPills: some View {
         HStack(spacing: 8) {

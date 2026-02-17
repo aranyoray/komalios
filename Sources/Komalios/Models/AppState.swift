@@ -8,6 +8,7 @@ final class AppState: ObservableObject {
     @Published var parentSettings = ParentSettings.sample
     @Published var accountMode: AccountMode = .child
     @Published var contentFilterPreferences = ContentFilterPreferences()
+    @Published var retentionState: RetentionState = .default
     @Published var hasCompletedOnboarding: Bool {
         didSet {
             UserDefaults.standard.set(hasCompletedOnboarding, forKey: "komal.hasCompletedOnboarding")
@@ -53,6 +54,11 @@ final class AppState: ObservableObject {
         if let parentData = try? encoder.encode(parentSettings) {
             UserDefaults.standard.set(parentData, forKey: "komal.parentSettings")
         }
+
+        // Save retention state
+        if let retentionData = try? encoder.encode(retentionState) {
+            UserDefaults.standard.set(retentionData, forKey: "komal.retentionState")
+        }
     }
 
     /// Load state from UserDefaults
@@ -82,6 +88,12 @@ final class AppState: ObservableObject {
            let settings = try? decoder.decode(ParentSettings.self, from: parentData) {
             parentSettings = settings
         }
+
+        // Load retention state
+        if let retentionData = UserDefaults.standard.data(forKey: "komal.retentionState"),
+           let state = try? decoder.decode(RetentionState.self, from: retentionData) {
+            retentionState = state
+        }
     }
 }
 #else
@@ -90,6 +102,7 @@ final class AppState {
     var parentSettings = ParentSettings.sample
     var accountMode: AccountMode = .child
     var contentFilterPreferences = ContentFilterPreferences()
+    var retentionState: RetentionState = .default
     var hasCompletedOnboarding: Bool = false
     var isGuestUser: Bool = false
 
