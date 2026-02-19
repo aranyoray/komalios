@@ -5,6 +5,7 @@
 //  Created by Auto on 22/01/26.
 //
 
+#if os(iOS)
 import SwiftUI
 
 struct SplashScreenView: View {
@@ -49,7 +50,7 @@ struct SplashScreenView: View {
                     .opacity(opacity)
                 
                 // Tagline
-                Text("Your child's safe digital companion")
+                Text(LanguageManager.shared.localized("splash.tagline"))
                     .font(.system(size: 18, weight: .medium, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
                     .opacity(opacity * 0.8)
@@ -86,4 +87,5 @@ struct SplashScreenView: View {
         .environmentObject(AuthViewModel())
         .environmentObject(AppState())
 }
+#endif
 #endif

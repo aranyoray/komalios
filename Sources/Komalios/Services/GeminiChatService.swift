@@ -201,6 +201,7 @@ actor GeminiChatService {
         Group URLs by topic and provide concise, informative summaries.
         Focus on the child's intent and interests. Be factual and neutral.
         Return ONLY valid JSON, no markdown formatting.
+        IMPORTANT: Respond in \(LanguageManager.shared.currentLanguage.displayName). All your responses must be in this language.
         """
 
         let request = GeminiRequest(
@@ -267,6 +268,7 @@ actor GeminiChatService {
         You are a child safety analyst helping parents understand their child's browsing activity.
         Provide concise, informative summaries. Be factual and neutral.
         Return ONLY valid JSON, no markdown formatting or code blocks.
+        IMPORTANT: Respond in \(LanguageManager.shared.currentLanguage.displayName). All your responses must be in this language.
         """
 
         let request = GeminiRequest(
@@ -369,10 +371,11 @@ actor GeminiChatService {
     /// Simple prompt helper for internal AI calls (internal access for memory tiering + reflection deepening)
     func sendSimplePrompt(_ prompt: String, systemPrompt: String) async throws -> String {
         let contents = [Content(role: "user", parts: [Part(text: prompt)])]
+        let localizedSystemPrompt = systemPrompt + "\nIMPORTANT: Respond in \(LanguageManager.shared.currentLanguage.displayName). All your responses must be in this language."
 
         let request = GeminiRequest(
             contents: contents,
-            systemInstruction: SystemInstruction(parts: [Part(text: systemPrompt)]),
+            systemInstruction: SystemInstruction(parts: [Part(text: localizedSystemPrompt)]),
             generationConfig: GenerationConfig(
                 temperature: 0.7,
                 topP: 0.9,
@@ -501,6 +504,7 @@ actor GeminiChatService {
         return try await sendSimplePrompt(prompt, systemPrompt: "You are a child wellness advisor helping parents. Be warm, factual, and encouraging. Return only the insight text.")
     }
 
+    #if os(iOS)
     /// Generate a free-chat response for reflection mode
     func generateFreeChatResponse(userMessage: String, conversationHistory: [ReflectionChatMessage], ageGroup: AgeGroup) async throws -> String {
         let ageContext: String
@@ -531,6 +535,7 @@ actor GeminiChatService {
 
         return try await sendSimplePrompt(prompt, systemPrompt: "You are a warm reflection guide for children. Be empathetic, supportive, and curious. Never discuss inappropriate topics. Return only your response.")
     }
+    #endif
 
     // MARK: - Private Methods
 
@@ -577,6 +582,8 @@ actor GeminiChatService {
         if let context = conversationContext {
             prompt += "\n\n\(context)"
         }
+
+        prompt += "\nIMPORTANT: Respond in \(LanguageManager.shared.currentLanguage.displayName). All your responses must be in this language."
 
         return prompt
     }

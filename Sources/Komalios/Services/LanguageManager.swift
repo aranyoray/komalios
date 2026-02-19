@@ -1,4 +1,3 @@
-#if os(iOS)
 import SwiftUI
 
 // MARK: - Language Enum
@@ -88,4 +87,3 @@ final class LanguageManager: ObservableObject {
         return String(format: template, arguments: args)
     }
 }
-#endif

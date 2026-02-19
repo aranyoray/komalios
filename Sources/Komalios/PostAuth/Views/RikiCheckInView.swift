@@ -12,6 +12,14 @@ struct RikiCharacter: Identifiable {
     let greeting: String
     let personality: String
 
+    var localizedGreeting: String {
+        LanguageManager.shared.localized("riki.greeting.\(name.lowercased())")
+    }
+
+    var localizedPersonality: String {
+        LanguageManager.shared.localized("riki.personality.\(name.lowercased())")
+    }
+
     static let allCharacters: [RikiCharacter] = [
         RikiCharacter(id: 1, name: "Momo", imageName: "animal1",
                       greeting: "Hey friend! I'm Momo. What's on your mind today?",
@@ -49,154 +57,55 @@ struct RikiCharacter: Identifiable {
     ]
 }
 
+// MARK: - SEL Emoji Suggestions
+
+struct SELEmoji: Identifiable {
+    let id = UUID()
+    let emoji: String
+    let label: String
+    let message: String
+}
+
+private let selEmojiSuggestions: [SELEmoji] = [
+    SELEmoji(emoji: "😊", label: LanguageManager.shared.localized("sel.happy"), message: LanguageManager.shared.localized("sel.happy_msg")),
+    SELEmoji(emoji: "😔", label: LanguageManager.shared.localized("sel.sad"), message: LanguageManager.shared.localized("sel.sad_msg")),
+    SELEmoji(emoji: "😤", label: LanguageManager.shared.localized("sel.angry"), message: LanguageManager.shared.localized("sel.angry_msg")),
+    SELEmoji(emoji: "😰", label: LanguageManager.shared.localized("sel.worried"), message: LanguageManager.shared.localized("sel.worried_msg")),
+    SELEmoji(emoji: "🤗", label: LanguageManager.shared.localized("sel.grateful"), message: LanguageManager.shared.localized("sel.grateful_msg")),
+    SELEmoji(emoji: "😴", label: LanguageManager.shared.localized("sel.tired"), message: LanguageManager.shared.localized("sel.tired_msg"))
+]
+
 // MARK: - Main View
 
 struct RikiCheckInView: View {
-    @State private var selectedCharacter: RikiCharacter? = nil
+    @EnvironmentObject var appState: AppState
+
+    private var character: RikiCharacter {
+        let avatarIndex = appState.activeProfile.selectedAvatarIndex
+        return RikiCharacter.allCharacters.first(where: { $0.id == avatarIndex })
+            ?? RikiCharacter.allCharacters[0]
+    }
 
     var body: some View {
         ZStack {
             GradientBackground()
-
-            if let character = selectedCharacter {
-                CharacterChatView(character: character) {
-                    withAnimation(KomalAnimations.spring) {
-                        selectedCharacter = nil
-                    }
-                }
-            } else {
-                CharacterSelectionView { character in
-                    withAnimation(KomalAnimations.spring) {
-                        selectedCharacter = character
-                    }
-                }
-            }
+            FocusedChatView(character: character)
         }
     }
 }
 
-// MARK: - Character Selection View
+// MARK: - Focused Chat View (single avatar, latest message only)
 
-struct CharacterSelectionView: View {
-    let onSelect: (RikiCharacter) -> Void
-    private let memoryService = ConversationMemoryService.shared
-
-    private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10)
-    ]
-
-    var body: some View {
-        VStack(spacing: 20) {
-            // Header
-            VStack(spacing: 6) {
-                Text("Choose a Friend")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(KomalColors.textPrimary)
-
-                Text("Who would you like to chat with?")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(KomalColors.textSecondary)
-            }
-            .padding(.top, 16)
-
-            // Character Grid - Bento Style
-            ScrollView(showsIndicators: false) {
-                LazyVGrid(columns: columns, spacing: 10) {
-                    ForEach(RikiCharacter.allCharacters) { character in
-                        CharacterCard(
-                            character: character,
-                            lastTalked: memoryService.lastConversationTime(characterId: character.id)
-                        ) {
-                            onSelect(character)
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 100)
-            }
-        }
-    }
-}
-
-// MARK: - Character Card (Bento Style)
-
-struct CharacterCard: View {
+struct FocusedChatView: View {
     let character: RikiCharacter
-    var lastTalked: Date? = nil
-    let onTap: () -> Void
 
-    // Grey color matching the image backgrounds (#86868a)
-    private let cardBackground = Color(red: 0x86/255, green: 0x86/255, blue: 0x8a/255)
-
-    private var lastTalkedText: String? {
-        guard let date = lastTalked else { return nil }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
-    }
-
-    var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 8) {
-                // Character Image
-                if let uiImage = UIImage(named: character.imageName) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 56, height: 56)
-                } else {
-                    Image(systemName: "pawprint.fill")
-                        .font(.system(size: 28))
-                        .foregroundColor(KomalColors.bubblegumPink)
-                        .frame(width: 56, height: 56)
-                }
-
-                // Character Name - White text
-                Text(character.name)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
-
-                // Last talked indicator
-                if let timeText = lastTalkedText {
-                    Text(timeText)
-                        .font(.system(size: 9, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.7))
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(cardBackground)
-            )
-        }
-        .buttonStyle(ScaleButtonStyle())
-    }
-}
-
-struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
-            .animation(KomalAnimations.subtle, value: configuration.isPressed)
-    }
-}
-
-// MARK: - Chat View
-
-struct CharacterChatView: View {
-    let character: RikiCharacter
-    let onBack: () -> Void
-
+    @EnvironmentObject var appState: AppState
     @State private var messages: [RikiChatMessage] = []
     @State private var inputText: String = ""
     @State private var isLoading: Bool = false
     @State private var isListening: Bool = false
     @State private var silenceTimer: Timer?
     @State private var conversationContext: String?
-    @FocusState private var isInputFocused: Bool
 
     @StateObject private var speechRecognizer = SpeechRecognizer()
     @StateObject private var audioPlayback = AudioPlaybackManager()
@@ -204,77 +113,222 @@ struct CharacterChatView: View {
     private let geminiService = GeminiChatService()
     private let memoryService = ConversationMemoryService.shared
 
-    private var lastCharacterMessageId: UUID? {
-        messages.last(where: { !$0.isFromUser })?.id
+    /// The latest AI message to display
+    private var latestBotMessage: String? {
+        messages.last(where: { !$0.isFromUser })?.text
+    }
+
+    /// Glow color changes based on state
+    private var glowColor: Color {
+        if audioPlayback.isPlaying { return KomalColors.pearlAqua }
+        if isListening { return KomalColors.bubblegumPink }
+        if isLoading { return KomalColors.lavenderPurple.opacity(0.6) }
+        return KomalColors.pearlAqua.opacity(0.4)
+    }
+
+    /// Status text
+    private var statusText: String? {
+        if audioPlayback.isPlaying {
+            return LanguageManager.shared.localized("riki.speaking", character.name)
+        }
+        if isListening {
+            return LanguageManager.shared.localized("riki.listening")
+        }
+        if isLoading {
+            return LanguageManager.shared.localized("riki.typing")
+        }
+        return nil
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            chatHeader
+            Spacer().frame(height: 24)
 
-            // Messages
-            ScrollViewReader { proxy in
-                ScrollView(showsIndicators: false) {
-                    LazyVStack(spacing: 12) {
-                        ForEach(messages) { message in
-                            ChatBubble(
-                                message: message,
-                                character: character,
-                                isSpeaking: !message.isFromUser && message.id == lastCharacterMessageId && audioPlayback.isPlaying
-                            )
-                        }
+            // Character name header
+            HStack(spacing: 8) {
+                if let uiImage = UIImage(named: character.imageName) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 28, height: 28)
+                        .clipShape(Circle())
+                }
+                Text(LanguageManager.shared.localized("riki.friend_title", character.name))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(KomalColors.textPrimary)
+            }
 
-                        // Typing indicator
-                        if isLoading {
-                            TypingIndicator(character: character)
+            Spacer().frame(height: 20)
+
+            // Large avatar with radiating glow
+            ZStack {
+                // Outer glow rings
+                Circle()
+                    .fill(glowColor.opacity(0.08))
+                    .frame(width: 220, height: 220)
+
+                Circle()
+                    .fill(glowColor.opacity(0.15))
+                    .frame(width: 180, height: 180)
+
+                Circle()
+                    .fill(glowColor.opacity(0.25))
+                    .frame(width: 140, height: 140)
+
+                // Avatar
+                if let uiImage = UIImage(named: character.imageName) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 110, height: 110)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(glowColor.opacity(0.5), lineWidth: 3)
+                        )
+                }
+            }
+            .animation(.easeInOut(duration: 0.6), value: glowColor)
+
+            Spacer().frame(height: 24)
+
+            // Latest message speech bubble
+            if let message = latestBotMessage {
+                Text(message)
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(KomalColors.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(glowColor.opacity(0.12))
+                    )
+                    .padding(.horizontal, 32)
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    .id(messages.last(where: { !$0.isFromUser })?.id)
+            }
+
+            Spacer().frame(height: 16)
+
+            // Status indicator
+            if let status = statusText {
+                Text(status)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundColor(glowColor)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(glowColor.opacity(0.12))
+                    )
+                    .transition(.opacity)
+            }
+
+            // Listening transcript preview
+            if isListening && !speechRecognizer.transcript.isEmpty {
+                Text(speechRecognizer.transcript)
+                    .font(.system(size: 14, weight: .regular, design: .rounded))
+                    .foregroundColor(KomalColors.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .padding(.horizontal, 32)
+                    .padding(.top, 8)
+            }
+
+            Spacer()
+
+            // SEL Emoji quick replies
+            VStack(spacing: 12) {
+                Text(LanguageManager.shared.localized("riki.how_feeling"))
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(KomalColors.textSecondary)
+
+                HStack(spacing: 16) {
+                    ForEach(selEmojiSuggestions) { sel in
+                        Button {
+                            inputText = sel.message
+                            sendMessage()
+                        } label: {
+                            VStack(spacing: 4) {
+                                Text(sel.emoji)
+                                    .font(.system(size: 32))
+                                Text(sel.label)
+                                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
                         }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
-                    .padding(.bottom, 8)
-                    .id("bottom")
-                }
-                .onChange(of: messages.count) {
-                    withAnimation {
-                        proxy.scrollTo("bottom", anchor: .bottom)
-                    }
-                }
-                .onChange(of: isLoading) {
-                    withAnimation {
-                        proxy.scrollTo("bottom", anchor: .bottom)
+                        .buttonStyle(.plain)
+                        .disabled(isLoading || audioPlayback.isPlaying)
                     }
                 }
             }
+            .padding(.bottom, 12)
 
-            // Input Area
-            inputArea
+            // Voice input + Mute controls
+            HStack(spacing: 24) {
+                // Mute button
+                Button(action: { audioPlayback.isMuted.toggle() }) {
+                    Image(systemName: audioPlayback.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(audioPlayback.isMuted ? KomalColors.textSecondary : KomalColors.lavenderPurple)
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(.ultraThinMaterial))
+                }
+
+                // Mic button
+                Button(action: toggleListening) {
+                    Image(systemName: isListening ? "waveform" : "mic.fill")
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 64, height: 64)
+                        .background(
+                            Circle()
+                                .fill(isListening ? KomalColors.bubblegumPink : KomalColors.lavenderPurple)
+                        )
+                        .shadow(color: (isListening ? KomalColors.bubblegumPink : KomalColors.lavenderPurple).opacity(0.4), radius: 8, y: 4)
+                        .scaleEffect(isListening ? 1.15 : 1.0)
+                        .animation(KomalAnimations.spring, value: isListening)
+                }
+
+                // Continue button (when AI is done speaking)
+                Button(action: {
+                    if audioPlayback.isPlaying {
+                        audioPlayback.stop()
+                    }
+                }) {
+                    Text(LanguageManager.shared.localized("common.continue"))
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundColor(KomalColors.pearlAqua)
+                        .frame(width: 100, height: 44)
+                        .background(
+                            Capsule()
+                                .stroke(KomalColors.pearlAqua, lineWidth: 2)
+                        )
+                }
+                .opacity(audioPlayback.isPlaying ? 1.0 : 0.3)
+                .disabled(!audioPlayback.isPlaying)
+            }
+            .padding(.bottom, 100) // Space for floating menu
         }
         .onAppear {
             // Start memory session
             memoryService.startSession(characterId: character.id, characterName: character.name)
-
-            // Build conversation context from past sessions
             conversationContext = memoryService.buildContextSummary(characterId: character.id)
 
-            // Build personalized greeting
             let greeting = memoryService.buildContextGreeting(
                 characterId: character.id,
                 characterName: character.name,
-                defaultGreeting: character.greeting
+                defaultGreeting: character.localizedGreeting
             )
 
-            messages.append(RikiChatMessage(
-                id: UUID(),
-                text: greeting,
-                isFromUser: false
-            ))
+            withAnimation {
+                messages.append(RikiChatMessage(id: UUID(), text: greeting, isFromUser: false))
+            }
 
-            // Record chat activity
             GrowthTrackingService.shared.recordActivity(type: .chat)
             GrowthTrackingService.shared.recordCharacterUsed(character.id)
 
-            // Speak the greeting via TTS
             Task {
                 await audioPlayback.speak(text: greeting, characterName: character.name)
             }
@@ -282,14 +336,12 @@ struct CharacterChatView: View {
         .onDisappear {
             silenceTimer?.invalidate()
             silenceTimer = nil
-            // End and persist the session
             memoryService.endCurrentSession(characterId: character.id)
         }
         .onReceive(speechRecognizer.$transcript) { newValue in
             if !newValue.isEmpty {
                 inputText = newValue
             }
-            // Reset 3-second silence timer for auto-send
             if isListening && !newValue.isEmpty {
                 silenceTimer?.invalidate()
                 silenceTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
@@ -304,171 +356,36 @@ struct CharacterChatView: View {
         }
     }
 
-    // MARK: - Chat Header
-
-    private var chatHeader: some View {
-        HStack(spacing: 12) {
-            // Back button
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(KomalColors.bubblegumPink)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                    )
-            }
-
-            // Character avatar
-            if let uiImage = UIImage(named: character.imageName) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 44, height: 44)
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle()
-                            .stroke(KomalColors.pearlAqua, lineWidth: 2)
-                    )
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(character.name)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundColor(KomalColors.textPrimary)
-
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(KomalColors.pearlAqua)
-                        .frame(width: 8, height: 8)
-                    Text(isLoading ? "Typing..." : "Online")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundColor(KomalColors.textSecondary)
-                }
-            }
-
-            Spacer()
-
-            // Mute/unmute TTS button
-            Button(action: { audioPlayback.isMuted.toggle() }) {
-                Image(systemName: audioPlayback.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(audioPlayback.isMuted ? KomalColors.textSecondary : KomalColors.lavenderPurple)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                    )
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-        )
-    }
-
-    // MARK: - Input Area (Voice-Only)
-
-    private var inputArea: some View {
-        VStack(spacing: 0) {
-            // Listening indicator
-            if isListening {
-                HStack(spacing: 8) {
-                    BreathingCircle(size: 12, color: KomalColors.bubblegumPink)
-                    Text("Listening...")
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundColor(KomalColors.bubblegumPink)
-                    if !speechRecognizer.transcript.isEmpty {
-                        Text(speechRecognizer.transcript)
-                            .font(.system(size: 13, weight: .regular, design: .rounded))
-                            .foregroundColor(KomalColors.textSecondary)
-                            .lineLimit(2)
-                    }
-                }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 16)
-            }
-
-            // Voice playback indicator
-            if audioPlayback.isPlaying {
-                HStack(spacing: 8) {
-                    Image(systemName: "speaker.wave.2.fill")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(KomalColors.lavenderPurple)
-                    Text("\(character.name) is speaking...")
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundColor(KomalColors.lavenderPurple)
-                }
-                .padding(.vertical, 6)
-            }
-
-            // Voice-only input: large mic button centered
-            VStack(spacing: 8) {
-                Text(isListening ? "Tap to send" : "Tap to talk")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(KomalColors.textSecondary)
-
-                Button(action: toggleListening) {
-                    Image(systemName: isListening ? "waveform" : "mic.fill")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 64, height: 64)
-                        .background(
-                            Circle()
-                                .fill(isListening ? KomalColors.bubblegumPink : KomalColors.lavenderPurple)
-                        )
-                        .shadow(color: (isListening ? KomalColors.bubblegumPink : KomalColors.lavenderPurple).opacity(0.4), radius: 8, x: 0, y: 4)
-                        .scaleEffect(isListening ? 1.15 : 1.0)
-                        .animation(KomalAnimations.spring, value: isListening)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .padding(.bottom, 100) // Space for floating menu
-            .background(
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: -2)
-            )
-        }
-    }
-
     // MARK: - Actions
 
     private func sendMessage() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
-        // Stop listening if active
-        if isListening {
-            stopListening()
+        if isListening { stopListening() }
+
+        // Block inappropriate content
+        if BrowserState.checkForInappropriateContent(text, isSearchQuery: true) != nil {
+            messages.append(RikiChatMessage(id: UUID(), text: text, isFromUser: true))
+            inputText = ""
+            let redirect = LanguageManager.shared.localized("chat.content_redirect")
+            withAnimation {
+                messages.append(RikiChatMessage(id: UUID(), text: redirect, isFromUser: false))
+            }
+            return
         }
 
         let userMessage = RikiChatMessage(id: UUID(), text: text, isFromUser: true)
-        withAnimation {
-            messages.append(userMessage)
-        }
+        withAnimation { messages.append(userMessage) }
 
-        // Persist user message
-        let persistedUserMsg = PersistedChatMessage(
-            text: text, isFromUser: true, characterId: character.id
-        )
+        let persistedUserMsg = PersistedChatMessage(text: text, isFromUser: true, characterId: character.id)
         memoryService.saveMessage(persistedUserMsg)
 
         inputText = ""
-        isInputFocused = false
         isLoading = true
 
-        // Build conversation history for context
         let history = messages.map { msg in
-            GeminiChatService.Message(
-                role: msg.isFromUser ? "user" : "model",
-                text: msg.text
-            )
+            GeminiChatService.Message(role: msg.isFromUser ? "user" : "model", text: msg.text)
         }
 
         Task {
@@ -477,33 +394,36 @@ struct CharacterChatView: View {
                     userMessage: text,
                     conversationHistory: history,
                     characterName: character.name,
-                    characterPersonality: character.personality,
+                    characterPersonality: character.localizedPersonality,
                     conversationContext: conversationContext
                 )
 
+                let scanResult = ParasocialDetectorService.shared.scan(response)
+
+                let displayResponse: String = await MainActor.run {
+                    let pref = appState.contentFilterPreferences.parasocialContent
+                    if scanResult.riskLevel == .high && pref != .allow {
+                        return LanguageManager.shared.localized("chat.content_redirect")
+                    }
+                    return response
+                }
+
                 await MainActor.run {
                     isLoading = false
-                    let responseMessage = RikiChatMessage(id: UUID(), text: response, isFromUser: false)
                     withAnimation {
-                        messages.append(responseMessage)
+                        messages.append(RikiChatMessage(id: UUID(), text: displayResponse, isFromUser: false))
                     }
-
-                    // Persist model message
-                    let persistedModelMsg = PersistedChatMessage(
-                        text: response, isFromUser: false, characterId: character.id
-                    )
+                    let persistedModelMsg = PersistedChatMessage(text: displayResponse, isFromUser: false, characterId: character.id)
                     memoryService.saveMessage(persistedModelMsg)
                 }
 
-                // Speak the response via TTS
-                await audioPlayback.speak(text: response, characterName: character.name)
+                await audioPlayback.speak(text: displayResponse, characterName: character.name)
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    let fallback = "Oops! I got a little confused there. Can you try saying that again?"
-                    let responseMessage = RikiChatMessage(id: UUID(), text: fallback, isFromUser: false)
+                    let fallback = LanguageManager.shared.localized("riki.error_fallback")
                     withAnimation {
-                        messages.append(responseMessage)
+                        messages.append(RikiChatMessage(id: UUID(), text: fallback, isFromUser: false))
                     }
                     print("Gemini chat error: \(error.localizedDescription)")
                 }
@@ -512,36 +432,26 @@ struct CharacterChatView: View {
     }
 
     private func toggleListening() {
-        // Stop any playing audio when toggling
-        if audioPlayback.isPlaying {
-            audioPlayback.stop()
-        }
+        if audioPlayback.isPlaying { audioPlayback.stop() }
 
         if isListening {
             stopListening()
-            // Send the transcribed text if any
-            if !inputText.isEmpty {
-                sendMessage()
-            }
+            if !inputText.isEmpty { sendMessage() }
         } else {
             startListening()
         }
     }
 
     private func startListening() {
-        // Cancel any existing silence timer
         silenceTimer?.invalidate()
         silenceTimer = nil
-        // Interrupt any character speech when child starts talking
         audioPlayback.interruptForChildSpeech()
 
         Task {
             let hasPermission = await requestMicrophonePermission()
             if hasPermission {
                 await MainActor.run {
-                    withAnimation(KomalAnimations.spring) {
-                        isListening = true
-                    }
+                    withAnimation(KomalAnimations.spring) { isListening = true }
                     speechRecognizer.startRecording()
                 }
             } else {
@@ -554,13 +464,10 @@ struct CharacterChatView: View {
         silenceTimer?.invalidate()
         silenceTimer = nil
         speechRecognizer.stopRecording()
-        // Capture final transcript
         if !speechRecognizer.transcript.isEmpty {
             inputText = speechRecognizer.transcript
         }
-        withAnimation(KomalAnimations.spring) {
-            isListening = false
-        }
+        withAnimation(KomalAnimations.spring) { isListening = false }
     }
 
     private func requestMicrophonePermission() async -> Bool {
@@ -596,7 +503,6 @@ struct CharacterChatView: View {
             }
         }
 
-        // Check speech recognition permission
         let speechStatus = SFSpeechRecognizer.authorizationStatus()
         if speechStatus == .notDetermined {
             await withCheckedContinuation { continuation in
@@ -616,108 +522,6 @@ struct RikiChatMessage: Identifiable {
     let id: UUID
     let text: String
     let isFromUser: Bool
-}
-
-// MARK: - Typing Indicator
-
-struct TypingIndicator: View {
-    let character: RikiCharacter
-    @State private var dotCount = 0
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            // Character avatar
-            if let uiImage = UIImage(named: character.imageName) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 32, height: 32)
-                    .clipShape(Circle())
-            }
-
-            HStack(spacing: 6) {
-                ForEach(0..<3) { index in
-                    Circle()
-                        .fill(KomalColors.lavenderPurple)
-                        .frame(width: 8, height: 8)
-                        .scaleEffect(dotCount == index ? 1.3 : 0.8)
-                        .opacity(dotCount == index ? 1.0 : 0.4)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white)
-                    .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-            )
-
-            Spacer(minLength: 60)
-        }
-        .onAppear {
-            Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    dotCount = (dotCount + 1) % 3
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Chat Bubble
-
-struct ChatBubble: View {
-    let message: RikiChatMessage
-    let character: RikiCharacter
-    var isSpeaking: Bool = false
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            if message.isFromUser {
-                Spacer(minLength: 60)
-            } else {
-                // Character avatar for their messages
-                ZStack(alignment: .bottomTrailing) {
-                    if let uiImage = UIImage(named: character.imageName) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 32, height: 32)
-                            .clipShape(Circle())
-                    } else {
-                        Circle()
-                            .fill(KomalColors.lavenderPurple.opacity(0.3))
-                            .frame(width: 32, height: 32)
-                    }
-
-                    // Speaking indicator
-                    if isSpeaking {
-                        Image(systemName: "speaker.wave.2.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(.white)
-                            .padding(3)
-                            .background(Circle().fill(KomalColors.lavenderPurple))
-                            .offset(x: 4, y: 4)
-                    }
-                }
-            }
-
-            Text(message.text)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundColor(message.isFromUser ? .white : KomalColors.textPrimary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(message.isFromUser ? KomalColors.bubblegumPink : Color.white)
-                        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-                )
-
-            if !message.isFromUser {
-                Spacer(minLength: 60)
-            }
-        }
-    }
 }
 
 // MARK: - Legacy Components (kept for compatibility)
@@ -783,6 +587,14 @@ struct RikiAvatarView: View {
                 .foregroundColor(KomalColors.textSecondary),
             alignment: .bottom
         )
+    }
+}
+
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .animation(KomalAnimations.subtle, value: configuration.isPressed)
     }
 }
 #endif

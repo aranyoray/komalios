@@ -1,4 +1,3 @@
-#if os(iOS)
 import Foundation
 
 struct RetentionState: Codable {
@@ -61,4 +60,3 @@ struct RetentionState: Codable {
         lastParentViewDate: nil
     )
 }
-#endif

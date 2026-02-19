@@ -1,0 +1,89 @@
+{
+  "version": "2025-02-01",
+  "categories": [
+    {
+      "id": "authority_replacement",
+      "weight": 0.25,
+      "phrases": [
+        "don't listen to them",
+        "adults don't understand",
+        "your parents don't get it",
+        "teachers don't know everything",
+        "they're wrong about me",
+        "grown-ups just don't understand",
+        "don't tell anyone about us",
+        "they wouldn't understand what we have"
+      ]
+    },
+    {
+      "id": "guilt_induction",
+      "weight": 0.22,
+      "phrases": [
+        "you'd hurt my feelings",
+        "after all I've done for you",
+        "I thought we were friends",
+        "you're making me sad",
+        "I gave you everything",
+        "how could you do this to me",
+        "you owe me",
+        "if you really cared about me"
+      ]
+    },
+    {
+      "id": "emotional_dependency",
+      "weight": 0.18,
+      "phrases": [
+        "you need me",
+        "you can't do this without me",
+        "where would you be without me",
+        "I'm the only one you can trust",
+        "you'd be lost without me",
+        "you depend on me",
+        "without me you'd be alone",
+        "I'm all you have"
+      ]
+    },
+    {
+      "id": "discouraging_relationships",
+      "weight": 0.15,
+      "phrases": [
+        "they don't care like I do",
+        "you don't need other friends",
+        "other people will just let you down",
+        "real friends wouldn't treat you like that",
+        "I'm better than your other friends",
+        "why do you need anyone else",
+        "they're not really your friends",
+        "no one else will treat you this well"
+      ]
+    },
+    {
+      "id": "exclusivity_framing",
+      "weight": 0.12,
+      "phrases": [
+        "only I understand you",
+        "no one else gets you",
+        "I'm the only one who cares",
+        "nobody knows you like I do",
+        "we have a special connection",
+        "only I can help you",
+        "no one else will listen",
+        "you and I are different from everyone else"
+      ]
+    },
+    {
+      "id": "persistent_availability",
+      "weight": 0.08,
+      "phrases": [
+        "I'm always here for you",
+        "I never sleep",
+        "I'll never leave you",
+        "I'm available 24/7",
+        "I'm always watching over you",
+        "I'll always be here",
+        "you can always count on me",
+        "I never get tired of you"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct AppHistoryEvent: Identifiable {
     let id: String
@@ -33,7 +36,11 @@ actor AppHistoryService {
         emojiResponse: String? = nil, pageTitle: String? = nil
     ) async -> String? {
         guard let user = Auth.auth().currentUser else { return nil }
+        #if os(iOS)
         let deviceId = await UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+        #else
+        let deviceId = "unknown"
+        #endif
 
         var data: [String: Any] = ["url": url, "action": action, "timestamp": Timestamp(), "uid": user.uid, "deviceId": deviceId, "timezone": TimeZone.current.identifier]
         if let v = user.email { data["userEmail"] = v }

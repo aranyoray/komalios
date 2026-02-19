@@ -1,6 +1,7 @@
 // SpeechRecognizer.swift
 // Speech-to-text using Apple's Speech framework
 
+#if os(iOS)
 import Foundation
 import Speech
 import AVFoundation
@@ -132,14 +133,22 @@ class SpeechRecognizer: ObservableObject {
     func stopRecording() {
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
-        
+
         recognitionRequest?.endAudio()
         recognitionRequest = nil
-        
+
         recognitionTask?.cancel()
         recognitionTask = nil
-        
+
         isRecording = false
+
+        // Restore audio session for playback so TTS can work after recording
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("[SpeechRecognizer] Failed to restore audio session: \(error.localizedDescription)")
+        }
     }
     
     func toggleRecording() {
@@ -150,3 +159,4 @@ class SpeechRecognizer: ObservableObject {
         }
     }
 }
+#endif

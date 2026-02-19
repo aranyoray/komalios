@@ -4,17 +4,17 @@ import PackageDescription
 let package = Package(
     name: "Komalios",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v13)
+        .iOS(.v17),
+        .macOS(.v14)
     ],
     products: [
         .library(name: "Komalios", targets: ["Komalios"])
     ],
     dependencies: [
         // Firebase dependencies
-        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "10.20.0"),
+        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "11.0.0"),
         // Google Sign-In
-        .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "7.0.0")
+        .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "8.0.0")
     ],
     targets: [
         .target(
@@ -49,6 +49,11 @@ let package = Package(
                 .process("animal10.png"),
                 .process("animal11.png")
             ]
+        ),
+        .testTarget(
+            name: "KomaliosTests",
+            dependencies: ["Komalios"],
+            path: "Tests/KomaliosTests"
         )
     ]
 )

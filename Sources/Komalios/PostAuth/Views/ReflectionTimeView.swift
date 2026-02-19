@@ -13,6 +13,7 @@ struct ReflectionTimeView: View {
     @State private var userResponses: [String] = []
     @State private var currentResponse = ""
     @State private var showCompletion = false
+    @State private var sessionTimer: Timer?
 
     private var isYoungerChild: Bool {
         appState.activeProfile.ageGroup == .under10 || appState.activeProfile.ageGroup == .tenToThirteen
@@ -20,9 +21,7 @@ struct ReflectionTimeView: View {
 
     enum SessionType {
         case welcome
-        case sel // Social-Emotional Learning (under 13)
-        case mindfulness // For all ages
-        case reflection // Guided reflection questions
+        case sel // Social-Emotional Learning
         case freeChat // Open conversation
     }
 
@@ -54,10 +53,6 @@ struct ReflectionTimeView: View {
                         welcomeView
                     case .sel:
                         selSessionView
-                    case .mindfulness:
-                        mindfulnessView
-                    case .reflection:
-                        reflectionView
                     case .freeChat:
                         freeChatView
                     }
@@ -74,7 +69,7 @@ struct ReflectionTimeView: View {
                 }
 
                 ToolbarItem(placement: .principal) {
-                    Text("Reflection Time")
+                    Text(LanguageManager.shared.localized("reflect.title"))
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                 }
             }
@@ -85,13 +80,19 @@ struct ReflectionTimeView: View {
         .onAppear {
             startTimer()
         }
+        .onDisappear {
+            // Stop the timer when leaving the Reflect tab
+            sessionTimer?.invalidate()
+            sessionTimer = nil
+            timerActive = false
+        }
     }
 
     // MARK: - Timer
 
     private func startTimer() {
         timerActive = true
-        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
+        sessionTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
             if timeRemaining > 0 {
                 timeRemaining -= 1
             } else {
@@ -120,50 +121,30 @@ struct ReflectionTimeView: View {
                 }
 
                 VStack(spacing: 8) {
-                    Text("Welcome to Reflection Time")
+                    Text(LanguageManager.shared.localized("reflect.welcome.title"))
                         .font(.system(size: 24, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 
-                    Text("15 minutes of mindful digital wellness")
+                    Text(LanguageManager.shared.localized("reflect.welcome.subtitle"))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
 
                 // Session options
                 VStack(spacing: 12) {
-                    if isYoungerChild {
-                        SessionOptionCard(
-                            icon: "heart.circle.fill",
-                            title: "Feelings Check-In",
-                            description: "Explore and understand your emotions",
-                            color: KomalColors.bubblegumPink
-                        ) {
-                            withAnimation { currentSession = .sel }
-                        }
-                    }
-
                     SessionOptionCard(
-                        icon: "sparkles",
-                        title: "Mindfulness Exercise",
-                        description: "Calm breathing and relaxation",
-                        color: KomalColors.pearlAqua
+                        icon: "brain.head.profile",
+                        title: "Daily Check-In",
+                        description: "Scenario-based SEL assessment across 5 domains",
+                        color: KomalColors.bubblegumPink
                     ) {
-                        withAnimation { currentSession = .mindfulness }
-                    }
-
-                    SessionOptionCard(
-                        icon: "text.bubble.fill",
-                        title: "Guided Reflection",
-                        description: "Think about your digital experiences",
-                        color: KomalColors.lavenderPurple
-                    ) {
-                        withAnimation { currentSession = .reflection }
+                        withAnimation { currentSession = .sel }
                     }
 
                     SessionOptionCard(
                         icon: "bubble.left.and.bubble.right.fill",
-                        title: "Free Chat",
-                        description: "Talk about anything on your mind",
+                        title: LanguageManager.shared.localized("reflect.free_chat.title"),
+                        description: LanguageManager.shared.localized("reflect.free_chat.desc"),
                         color: Color.orange
                     ) {
                         withAnimation { currentSession = .freeChat }
@@ -179,19 +160,7 @@ struct ReflectionTimeView: View {
     // MARK: - SEL Session View (Social-Emotional Learning)
 
     private var selSessionView: some View {
-        SELSessionView(onBack: { withAnimation { currentSession = .welcome } })
-    }
-
-    // MARK: - Mindfulness View
-
-    private var mindfulnessView: some View {
-        MindfulnessSessionView(onBack: { withAnimation { currentSession = .welcome } })
-    }
-
-    // MARK: - Reflection View
-
-    private var reflectionView: some View {
-        ReflectionSessionView(onBack: { withAnimation { currentSession = .welcome } })
+        SELDailySessionView(onComplete: { withAnimation { currentSession = .welcome } })
     }
 
     // MARK: - Free Chat View
@@ -230,7 +199,7 @@ struct TimerBar: View {
 
                 Spacer()
 
-                Text("remaining")
+                Text(LanguageManager.shared.localized("reflect.remaining"))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
             }
@@ -305,16 +274,18 @@ struct SELSessionView: View {
     @State private var emotionIntensity: Double = 5
     @State private var hasSavedMood = false
 
-    private let emotions = [
-        ("😊", "Happy", KomalColors.pearlAqua),
-        ("😢", "Sad", Color.blue),
-        ("😠", "Angry", Color.red),
-        ("😰", "Worried", Color.orange),
-        ("😴", "Tired", Color.gray),
-        ("🤩", "Excited", KomalColors.bubblegumPink),
-        ("😐", "Okay", Color.gray),
-        ("🤔", "Confused", KomalColors.lavenderPurple)
-    ]
+    private var emotions: [(String, String, Color)] {
+        [
+            ("😊", LanguageManager.shared.localized("reflect.emotion.happy"), KomalColors.pearlAqua),
+            ("😢", LanguageManager.shared.localized("reflect.emotion.sad"), Color.blue),
+            ("😠", LanguageManager.shared.localized("reflect.emotion.angry"), Color.red),
+            ("😰", LanguageManager.shared.localized("reflect.emotion.worried"), Color.orange),
+            ("😴", LanguageManager.shared.localized("reflect.emotion.tired"), Color.gray),
+            ("🤩", LanguageManager.shared.localized("reflect.emotion.excited"), KomalColors.bubblegumPink),
+            ("😐", LanguageManager.shared.localized("reflect.emotion.okay"), Color.gray),
+            ("🤔", LanguageManager.shared.localized("reflect.emotion.confused"), KomalColors.lavenderPurple)
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -323,7 +294,7 @@ struct SELSessionView: View {
                 Button(action: onBack) {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
-                        Text("Back")
+                        Text(LanguageManager.shared.localized("common.back"))
                     }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(KomalColors.lavenderPurple)
@@ -337,11 +308,11 @@ struct SELSessionView: View {
                 VStack(spacing: 28) {
                     // Header
                     VStack(spacing: 8) {
-                        Text("How Are You Feeling?")
+                        Text(LanguageManager.shared.localized("reflect.sel.title"))
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
 
-                        Text("It's okay to feel any emotion. Let's explore together.")
+                        Text(LanguageManager.shared.localized("reflect.sel.subtitle"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -374,22 +345,22 @@ struct SELSessionView: View {
                     if selectedEmotion != nil {
                         // Intensity slider
                         VStack(spacing: 12) {
-                            Text("How strong is this feeling?")
+                            Text(LanguageManager.shared.localized("reflect.sel.intensity"))
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
 
                             HStack {
-                                Text("A little")
+                                Text(LanguageManager.shared.localized("reflect.sel.a_little"))
                                     .font(.system(size: 12))
                                     .foregroundColor(KomalColors.textSecondary)
 
                                 Slider(value: $emotionIntensity, in: 1...10, step: 1)
                                     .tint(KomalColors.lavenderPurple)
-                                    .onChange(of: emotionIntensity) { _ in
+                                    .onChange(of: emotionIntensity) {
                                         saveMoodIfNeeded()
                                     }
 
-                                Text("A lot")
+                                Text(LanguageManager.shared.localized("reflect.sel.a_lot"))
                                     .font(.system(size: 12))
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -405,7 +376,7 @@ struct SELSessionView: View {
 
                         // Coping strategies
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Things that might help:")
+                            Text(LanguageManager.shared.localized("reflect.sel.things_help"))
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
 
@@ -448,16 +419,41 @@ struct SELSessionView: View {
 
     private func getCopingStrategies() -> [String] {
         switch selectedEmotion {
-        case "Sad":
-            return ["Talk to someone you trust", "Draw or write about your feelings", "Listen to your favorite music", "Give yourself a hug"]
-        case "Angry":
-            return ["Take 5 deep breaths", "Count backwards from 10", "Squeeze a stress ball", "Go for a short walk"]
-        case "Worried":
-            return ["Tell an adult how you feel", "Think of 3 things you're grateful for", "Imagine your happy place", "Take slow, deep breaths"]
-        case "Tired":
-            return ["Rest your eyes for a minute", "Drink some water", "Stretch your body", "Take a break from screens"]
+        case LanguageManager.shared.localized("reflect.emotion.sad"):
+            return [
+                LanguageManager.shared.localized("reflect.coping.sad.1"),
+                LanguageManager.shared.localized("reflect.coping.sad.2"),
+                LanguageManager.shared.localized("reflect.coping.sad.3"),
+                LanguageManager.shared.localized("reflect.coping.sad.4")
+            ]
+        case LanguageManager.shared.localized("reflect.emotion.angry"):
+            return [
+                LanguageManager.shared.localized("reflect.coping.angry.1"),
+                LanguageManager.shared.localized("reflect.coping.angry.2"),
+                LanguageManager.shared.localized("reflect.coping.angry.3"),
+                LanguageManager.shared.localized("reflect.coping.angry.4")
+            ]
+        case LanguageManager.shared.localized("reflect.emotion.worried"):
+            return [
+                LanguageManager.shared.localized("reflect.coping.worried.1"),
+                LanguageManager.shared.localized("reflect.coping.worried.2"),
+                LanguageManager.shared.localized("reflect.coping.worried.3"),
+                LanguageManager.shared.localized("reflect.coping.worried.4")
+            ]
+        case LanguageManager.shared.localized("reflect.emotion.tired"):
+            return [
+                LanguageManager.shared.localized("reflect.coping.tired.1"),
+                LanguageManager.shared.localized("reflect.coping.tired.2"),
+                LanguageManager.shared.localized("reflect.coping.tired.3"),
+                LanguageManager.shared.localized("reflect.coping.tired.4")
+            ]
         default:
-            return ["Share your feelings with someone", "Do something you enjoy", "Take a mindful moment", "Be kind to yourself"]
+            return [
+                LanguageManager.shared.localized("reflect.coping.default.1"),
+                LanguageManager.shared.localized("reflect.coping.default.2"),
+                LanguageManager.shared.localized("reflect.coping.default.3"),
+                LanguageManager.shared.localized("reflect.coping.default.4")
+            ]
         }
     }
 }
@@ -504,37 +500,71 @@ struct MindfulnessSessionView: View {
     @State private var isBreathing = false
 
     enum BreathPhase: String {
-        case inhale = "Breathe In"
-        case hold = "Hold"
-        case exhale = "Breathe Out"
+        case inhale = "inhale"
+        case hold = "hold"
+        case exhale = "exhale"
+
+        var localizedName: String {
+            switch self {
+            case .inhale: return LanguageManager.shared.localized("reflect.breathe.inhale")
+            case .hold: return LanguageManager.shared.localized("reflect.breathe.hold")
+            case .exhale: return LanguageManager.shared.localized("reflect.breathe.exhale")
+            }
+        }
     }
 
-    private let exercises = [
-        MindfulnessExercise(
-            title: "Box Breathing",
-            description: "A calming technique used by athletes and astronauts",
-            icon: "square",
-            steps: ["Breathe in for 4 seconds", "Hold for 4 seconds", "Breathe out for 4 seconds", "Hold for 4 seconds", "Repeat 4 times"]
-        ),
-        MindfulnessExercise(
-            title: "5-4-3-2-1 Grounding",
-            description: "Connect with the present moment",
-            icon: "hand.raised.fill",
-            steps: ["Notice 5 things you can SEE", "Notice 4 things you can TOUCH", "Notice 3 things you can HEAR", "Notice 2 things you can SMELL", "Notice 1 thing you can TASTE"]
-        ),
-        MindfulnessExercise(
-            title: "Body Scan",
-            description: "Relax your body from head to toe",
-            icon: "figure.stand",
-            steps: ["Relax your forehead and eyes", "Relax your jaw and shoulders", "Relax your arms and hands", "Relax your stomach", "Relax your legs and feet"]
-        ),
-        MindfulnessExercise(
-            title: "Gratitude Moment",
-            description: "Focus on the good things in life",
-            icon: "heart.fill",
-            steps: ["Think of someone who makes you happy", "Think of something you're good at", "Think of a place that makes you feel safe", "Think of a happy memory", "Smile and feel grateful"]
-        )
-    ]
+    private var exercises: [MindfulnessExercise] {
+        [
+            MindfulnessExercise(
+                title: LanguageManager.shared.localized("reflect.exercise.box.title"),
+                description: LanguageManager.shared.localized("reflect.exercise.box.desc"),
+                icon: "square",
+                steps: [
+                    LanguageManager.shared.localized("reflect.exercise.box.step1"),
+                    LanguageManager.shared.localized("reflect.exercise.box.step2"),
+                    LanguageManager.shared.localized("reflect.exercise.box.step3"),
+                    LanguageManager.shared.localized("reflect.exercise.box.step4"),
+                    LanguageManager.shared.localized("reflect.exercise.box.step5")
+                ]
+            ),
+            MindfulnessExercise(
+                title: LanguageManager.shared.localized("reflect.exercise.grounding.title"),
+                description: LanguageManager.shared.localized("reflect.exercise.grounding.desc"),
+                icon: "hand.raised.fill",
+                steps: [
+                    LanguageManager.shared.localized("reflect.exercise.grounding.step1"),
+                    LanguageManager.shared.localized("reflect.exercise.grounding.step2"),
+                    LanguageManager.shared.localized("reflect.exercise.grounding.step3"),
+                    LanguageManager.shared.localized("reflect.exercise.grounding.step4"),
+                    LanguageManager.shared.localized("reflect.exercise.grounding.step5")
+                ]
+            ),
+            MindfulnessExercise(
+                title: LanguageManager.shared.localized("reflect.exercise.bodyscan.title"),
+                description: LanguageManager.shared.localized("reflect.exercise.bodyscan.desc"),
+                icon: "figure.stand",
+                steps: [
+                    LanguageManager.shared.localized("reflect.exercise.bodyscan.step1"),
+                    LanguageManager.shared.localized("reflect.exercise.bodyscan.step2"),
+                    LanguageManager.shared.localized("reflect.exercise.bodyscan.step3"),
+                    LanguageManager.shared.localized("reflect.exercise.bodyscan.step4"),
+                    LanguageManager.shared.localized("reflect.exercise.bodyscan.step5")
+                ]
+            ),
+            MindfulnessExercise(
+                title: LanguageManager.shared.localized("reflect.exercise.gratitude.title"),
+                description: LanguageManager.shared.localized("reflect.exercise.gratitude.desc"),
+                icon: "heart.fill",
+                steps: [
+                    LanguageManager.shared.localized("reflect.exercise.gratitude.step1"),
+                    LanguageManager.shared.localized("reflect.exercise.gratitude.step2"),
+                    LanguageManager.shared.localized("reflect.exercise.gratitude.step3"),
+                    LanguageManager.shared.localized("reflect.exercise.gratitude.step4"),
+                    LanguageManager.shared.localized("reflect.exercise.gratitude.step5")
+                ]
+            )
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -543,7 +573,7 @@ struct MindfulnessSessionView: View {
                 Button(action: onBack) {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
-                        Text("Back")
+                        Text(LanguageManager.shared.localized("common.back"))
                     }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(KomalColors.lavenderPurple)
@@ -557,11 +587,11 @@ struct MindfulnessSessionView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 8) {
-                        Text("Mindfulness")
+                        Text(LanguageManager.shared.localized("reflect.mindfulness.header"))
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
 
-                        Text("Take a moment to calm your mind")
+                        Text(LanguageManager.shared.localized("reflect.mindfulness.calm_mind"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -672,13 +702,15 @@ struct ReflectionSessionView: View {
 
     private let maxFollowUpDepth = 2
 
-    private let questions = [
-        ReflectionQuestion(question: "What was the best thing you saw online today?", prompt: "Share something that made you smile or feel good..."),
-        ReflectionQuestion(question: "Did anything online make you feel uncomfortable?", prompt: "It's okay to talk about things that bothered you..."),
-        ReflectionQuestion(question: "What did you learn today from the internet?", prompt: "Share something interesting you discovered..."),
-        ReflectionQuestion(question: "How much time did you spend on screens today?", prompt: "Was it too much, just right, or not enough?"),
-        ReflectionQuestion(question: "What would you like to do offline tomorrow?", prompt: "Think of fun activities away from screens...")
-    ]
+    private var questions: [ReflectionQuestion] {
+        [
+            ReflectionQuestion(question: LanguageManager.shared.localized("reflect.q1.question"), prompt: LanguageManager.shared.localized("reflect.q1.prompt")),
+            ReflectionQuestion(question: LanguageManager.shared.localized("reflect.q2.question"), prompt: LanguageManager.shared.localized("reflect.q2.prompt")),
+            ReflectionQuestion(question: LanguageManager.shared.localized("reflect.q3.question"), prompt: LanguageManager.shared.localized("reflect.q3.prompt")),
+            ReflectionQuestion(question: LanguageManager.shared.localized("reflect.q4.question"), prompt: LanguageManager.shared.localized("reflect.q4.prompt")),
+            ReflectionQuestion(question: LanguageManager.shared.localized("reflect.q5.question"), prompt: LanguageManager.shared.localized("reflect.q5.prompt"))
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -687,7 +719,7 @@ struct ReflectionSessionView: View {
                 Button(action: onBack) {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
-                        Text("Back")
+                        Text(LanguageManager.shared.localized("common.back"))
                     }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(KomalColors.lavenderPurple)
@@ -720,7 +752,7 @@ struct ReflectionSessionView: View {
                                 Image(systemName: "sparkles")
                                     .font(.system(size: 14))
                                     .foregroundColor(KomalColors.lavenderPurple)
-                                Text("Going deeper...")
+                                Text(LanguageManager.shared.localized("reflect.going_deeper"))
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(KomalColors.lavenderPurple)
                             }
@@ -753,7 +785,7 @@ struct ReflectionSessionView: View {
                                     followUpResponse = ""
                                 }
                             }) {
-                                Text("Skip")
+                                Text(LanguageManager.shared.localized("common.skip"))
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(KomalColors.lavenderPurple)
                                     .frame(maxWidth: .infinity)
@@ -777,7 +809,7 @@ struct ReflectionSessionView: View {
                                     advanceToNextQuestion()
                                 }
                             }) {
-                                Text("Continue")
+                                Text(LanguageManager.shared.localized("common.continue"))
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -820,7 +852,7 @@ struct ReflectionSessionView: View {
                             HStack(spacing: 8) {
                                 ProgressView()
                                     .scaleEffect(0.8)
-                                Text("Thinking of a follow-up...")
+                                Text(LanguageManager.shared.localized("reflect.thinking_followup"))
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -835,7 +867,7 @@ struct ReflectionSessionView: View {
                                         response = responses.count > currentQuestion ? responses[currentQuestion] : ""
                                     }
                                 }) {
-                                    Text("Previous")
+                                    Text(LanguageManager.shared.localized("reflect.previous"))
                                         .font(.system(size: 15, weight: .semibold))
                                         .foregroundColor(KomalColors.lavenderPurple)
                                         .frame(maxWidth: .infinity)
@@ -852,7 +884,7 @@ struct ReflectionSessionView: View {
                             Button(action: {
                                 submitResponse()
                             }) {
-                                Text(currentQuestion == questions.count - 1 ? "Done" : "Next")
+                                Text(currentQuestion == questions.count - 1 ? LanguageManager.shared.localized("common.done") : LanguageManager.shared.localized("reflect.next"))
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -872,6 +904,13 @@ struct ReflectionSessionView: View {
     }
 
     private func submitResponse() {
+        // Block inappropriate content in journal input
+        if BrowserState.checkForInappropriateContent(response, isSearchQuery: true) != nil {
+            response = ""
+            followUpQuestion = LanguageManager.shared.localized("chat.content_redirect")
+            return
+        }
+
         // Save response
         if responses.count > currentQuestion {
             responses[currentQuestion] = response
@@ -942,6 +981,10 @@ struct FreeChatSessionView: View {
     @State private var inputText = ""
     @State private var isGenerating = false
 
+    /// characterId 0 is reserved for the Reflect free-chat session
+    private static let reflectCharacterId = 0
+    private let memoryService = ConversationMemoryService.shared
+
     var body: some View {
         VStack(spacing: 0) {
             // Back button
@@ -949,7 +992,7 @@ struct FreeChatSessionView: View {
                 Button(action: onBack) {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
-                        Text("Back")
+                        Text(LanguageManager.shared.localized("common.back"))
                     }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(KomalColors.lavenderPurple)
@@ -972,7 +1015,7 @@ struct FreeChatSessionView: View {
                                 HStack(spacing: 6) {
                                     ProgressView()
                                         .scaleEffect(0.7)
-                                    Text("Thinking...")
+                                    Text(LanguageManager.shared.localized("reflect.free_chat.thinking"))
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
                                 }
@@ -1000,7 +1043,7 @@ struct FreeChatSessionView: View {
 
             // Input
             HStack(spacing: 12) {
-                TextField("Type your thoughts...", text: $inputText)
+                TextField(LanguageManager.shared.localized("reflect.free_chat.placeholder"), text: $inputText)
                     .font(.system(size: 16, weight: .medium))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -1019,22 +1062,51 @@ struct FreeChatSessionView: View {
             .background(Color.white.opacity(0.9))
         }
         .onAppear {
+            // Start a memory session for the reflect free-chat
+            memoryService.startSession(characterId: Self.reflectCharacterId, characterName: "Reflect")
+
             // Initial greeting
             let greetings = [
-                "Hi! This is a safe space to share your thoughts. What's on your mind today?",
-                "Hey there! I'm here to listen. Tell me about something interesting that happened.",
-                "Welcome! You can talk about anything here. What would you like to chat about?"
+                LanguageManager.shared.localized("reflect.chat.greeting.1"),
+                LanguageManager.shared.localized("reflect.chat.greeting.2"),
+                LanguageManager.shared.localized("reflect.chat.greeting.3")
             ]
             messages.append(ReflectionChatMessage(
                 id: UUID(),
-                text: greetings.randomElement() ?? "Hi! What's on your mind?",
+                text: greetings.randomElement() ?? greetings[0],
                 isFromUser: false
             ))
+        }
+        .onDisappear {
+            // Save all messages and end the session
+            for msg in messages {
+                let persisted = PersistedChatMessage(
+                    text: msg.text,
+                    isFromUser: msg.isFromUser,
+                    characterId: Self.reflectCharacterId
+                )
+                memoryService.saveMessage(persisted)
+            }
+            memoryService.endCurrentSession(characterId: Self.reflectCharacterId)
         }
     }
 
     private func sendMessage() {
         guard !inputText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+
+        // Block inappropriate content in chat input
+        if BrowserState.checkForInappropriateContent(inputText, isSearchQuery: true) != nil {
+            let userMessage = ReflectionChatMessage(id: UUID(), text: inputText, isFromUser: true)
+            messages.append(userMessage)
+            inputText = ""
+            let redirectMessage = ReflectionChatMessage(
+                id: UUID(),
+                text: LanguageManager.shared.localized("chat.content_redirect"),
+                isFromUser: false
+            )
+            withAnimation { messages.append(redirectMessage) }
+            return
+        }
 
         let userMessage = ReflectionChatMessage(id: UUID(), text: inputText, isFromUser: true)
         messages.append(userMessage)
@@ -1052,9 +1124,20 @@ struct FreeChatSessionView: View {
                     conversationHistory: messages,
                     ageGroup: ageGroup
                 )
+
+                let scanResult = ParasocialDetectorService.shared.scan(response)
+
+                let displayResponse: String = await MainActor.run {
+                    let pref = appState.contentFilterPreferences.parasocialContent
+                    if scanResult.riskLevel == .high && pref != .allow {
+                        return LanguageManager.shared.localized("chat.content_redirect")
+                    }
+                    return response
+                }
+
                 await MainActor.run {
                     isGenerating = false
-                    let responseMessage = ReflectionChatMessage(id: UUID(), text: response, isFromUser: false)
+                    let responseMessage = ReflectionChatMessage(id: UUID(), text: displayResponse, isFromUser: false)
                     withAnimation {
                         messages.append(responseMessage)
                     }
@@ -1064,15 +1147,15 @@ struct FreeChatSessionView: View {
                     isGenerating = false
                     // Fallback response
                     let fallbackResponses = [
-                        "Thank you for sharing that with me. How does that make you feel?",
-                        "I hear you. That sounds really important to you.",
-                        "It's great that you're talking about this. Tell me more?",
-                        "I understand. It's okay to feel that way.",
-                        "Thanks for trusting me with that. What else is on your mind?"
+                        LanguageManager.shared.localized("reflect.chat.fallback.1"),
+                        LanguageManager.shared.localized("reflect.chat.fallback.2"),
+                        LanguageManager.shared.localized("reflect.chat.fallback.3"),
+                        LanguageManager.shared.localized("reflect.chat.fallback.4"),
+                        LanguageManager.shared.localized("reflect.chat.fallback.5")
                     ]
                     let responseMessage = ReflectionChatMessage(
                         id: UUID(),
-                        text: fallbackResponses.randomElement() ?? "I'm listening.",
+                        text: fallbackResponses.randomElement() ?? fallbackResponses[0],
                         isFromUser: false
                     )
                     withAnimation {
@@ -1133,15 +1216,15 @@ struct CompletionView: View {
             }
 
             VStack(spacing: 8) {
-                Text("Great Job!")
+                Text(LanguageManager.shared.localized("reflect.completion.title"))
                     .font(.system(size: 28, weight: .bold, design: .rounded))
 
-                Text("You completed your Reflection Time")
+                Text(LanguageManager.shared.localized("reflect.completion.subtitle"))
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
             }
 
-            Text("Taking time to reflect helps you understand yourself better and stay healthy online.")
+            Text(LanguageManager.shared.localized("reflect.completion.message"))
                 .font(.system(size: 14, weight: .regular))
                 .foregroundColor(KomalColors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -1150,7 +1233,7 @@ struct CompletionView: View {
             Spacer()
 
             Button(action: { dismiss() }) {
-                Text("Done")
+                Text(LanguageManager.shared.localized("common.done"))
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)

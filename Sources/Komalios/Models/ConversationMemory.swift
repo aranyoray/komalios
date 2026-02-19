@@ -1,4 +1,3 @@
-#if os(iOS)
 import Foundation
 
 // MARK: - Memory Tier
@@ -128,4 +127,3 @@ struct ConversationMemoryData: Codable {
         self.developmentalSignals = developmentalSignals
     }
 }
-#endif
