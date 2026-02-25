@@ -1,6 +1,7 @@
 #if os(iOS)
 import Foundation
 import Combine
+import FirebaseAuth
 
 final class ConversationMemoryService: ObservableObject {
     static let shared = ConversationMemoryService()
@@ -11,6 +12,7 @@ final class ConversationMemoryService: ObservableObject {
     private let fileName = "conversation_memory.json"
     private var memoryData = ConversationMemoryData()
     private let maxMessagesPerCharacter = 500
+    private var isMaintenanceRunning = false
 
     private init() {
         loadData()
@@ -19,7 +21,9 @@ final class ConversationMemoryService: ObservableObject {
     // MARK: - File URL
 
     private var fileURL: URL {
-        let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        guard let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(fileName)
+        }
         return docs.appendingPathComponent(fileName)
     }
 
@@ -83,6 +87,18 @@ final class ConversationMemoryService: ObservableObject {
         memoryData.sessions.append(session)
         pruneMessages(characterId: characterId)
         saveData()
+
+        // Upload to Firestore (fire-and-forget)
+        let completedSession = session
+        let entities = memoryData.entities
+        let signals = memoryData.developmentalSignals
+        if let uid = Auth.auth().currentUser?.uid {
+            Task {
+                await FirestoreSyncService.shared.uploadConversationSession(uid: uid, session: completedSession)
+                await FirestoreSyncService.shared.uploadConversationMeta(uid: uid, entities: entities, signals: signals)
+            }
+        }
+
         currentSession = nil
         print("💬 Ended session with \(session.characterName), \(session.messages.count) messages")
     }
@@ -174,7 +190,7 @@ final class ConversationMemoryService: ObservableObject {
         // Find a topic from the last session
         let lastUserMessages = lastSession.messages.filter { $0.isFromUser }
         if let lastTopic = lastUserMessages.last?.text, lastTopic.count < 100 {
-            return "Hey, welcome back! We last chatted \(timeAgo). I remember we were talking about something fun. How have you been?"
+            return "Hey, welcome back! We last chatted \(timeAgo). I remember you said: \"\(lastTopic)\". How have you been?"
         }
 
         return "Hey, great to see you again! We last hung out \(timeAgo). What's new with you?"
@@ -235,6 +251,50 @@ final class ConversationMemoryService: ObservableObject {
         return Array(Set(topics)).prefix(10).map { $0 }
     }
 
+    // MARK: - Cloud Sync
+
+    /// Merge conversation data downloaded from Firestore.
+    /// Adds sessions not found locally by ID, deduplicates entities by name.
+    func mergeCloudData(
+        sessions: [ConversationSession],
+        entities: [ConversationEntity],
+        signals: [DevelopmentalSignal]
+    ) {
+        // Merge sessions by ID
+        let localSessionIDs = Set(memoryData.sessions.map { $0.id })
+        let newSessions = sessions.filter { !localSessionIDs.contains($0.id) }
+        if !newSessions.isEmpty {
+            memoryData.sessions.append(contentsOf: newSessions)
+            memoryData.sessions.sort { $0.startTime > $1.startTime }
+        }
+
+        // Merge entities by name (deduplicate, keep higher mention count)
+        let localEntityNames = Dictionary(uniqueKeysWithValues: memoryData.entities.map { ($0.name, $0) })
+        for cloudEntity in entities {
+            if let local = localEntityNames[cloudEntity.name] {
+                // Keep whichever has higher mention count
+                if cloudEntity.mentionCount > local.mentionCount,
+                   let idx = memoryData.entities.firstIndex(where: { $0.name == cloudEntity.name }) {
+                    memoryData.entities[idx] = cloudEntity
+                }
+            } else {
+                memoryData.entities.append(cloudEntity)
+            }
+        }
+
+        // Merge developmental signals by ID
+        let localSignalIDs = Set(memoryData.developmentalSignals.map { $0.id })
+        let newSignals = signals.filter { !localSignalIDs.contains($0.id) }
+        if !newSignals.isEmpty {
+            memoryData.developmentalSignals.append(contentsOf: newSignals)
+        }
+
+        if !newSessions.isEmpty || !newSignals.isEmpty {
+            saveData()
+            print("💬 Merged \(newSessions.count) sessions, \(newSignals.count) signals from cloud")
+        }
+    }
+
     // MARK: - Tiered Memory Maintenance
 
     /// Perform tiered maintenance: summarize old sessions, extract signals from older ones
@@ -245,7 +305,13 @@ final class ConversationMemoryService: ObservableObject {
         }
     }
 
+    @MainActor
     private func performTieredMaintenance() async {
+        // Guard against concurrent mutation with pruneMessages
+        guard !isMaintenanceRunning else { return }
+        isMaintenanceRunning = true
+        defer { isMaintenanceRunning = false }
+
         let now = Date()
         var summarizationsThisCycle = 0
         let maxSummarizations = 5
@@ -354,6 +420,9 @@ final class ConversationMemoryService: ObservableObject {
     // MARK: - Pruning
 
     private func pruneMessages(characterId: Int) {
+        // Skip pruning if tiered maintenance is actively mutating memoryData
+        guard !isMaintenanceRunning else { return }
+
         var allMessages = memoryData.sessions
             .filter { $0.characterId == characterId && $0.memoryTier == .fullText }
             .flatMap { $0.messages }

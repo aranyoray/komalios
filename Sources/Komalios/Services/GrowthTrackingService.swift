@@ -1,11 +1,11 @@
 #if os(iOS)
 import Foundation
 import Combine
+import FirebaseAuth
 
 final class GrowthTrackingService: ObservableObject {
     static let shared = GrowthTrackingService()
 
-    @Published private(set) var currentStreak: Int = 0
     @Published private(set) var milestones: [Milestone] = []
     @Published private(set) var todayActivity: DailyActivity?
 
@@ -32,7 +32,9 @@ final class GrowthTrackingService: ObservableObject {
     // MARK: - File URL
 
     private var fileURL: URL {
-        let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        guard let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(fileName)
+        }
         return docs.appendingPathComponent(fileName)
     }
 
@@ -56,6 +58,15 @@ final class GrowthTrackingService: ObservableObject {
             try data.write(to: fileURL)
         } catch {
             print("🌱 Error saving growth data: \(error)")
+            return
+        }
+
+        // Upload to Firestore (fire-and-forget)
+        let currentData = growthData
+        if let uid = Auth.auth().currentUser?.uid {
+            Task {
+                await FirestoreSyncService.shared.uploadGrowthData(uid: uid, data: currentData)
+            }
         }
     }
 
@@ -100,9 +111,9 @@ final class GrowthTrackingService: ObservableObject {
         checkAndUpdateMilestones()
     }
 
-    // MARK: - Streak Management
+    // MARK: - App Open
 
-    /// Update streak when app opens. Call from KomaliosApp scenePhase .active
+    /// Update state when app opens. Call from KomaliosApp scenePhase .active
     func updateStreakOnAppOpen(retentionState: inout RetentionState) {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -111,36 +122,19 @@ final class GrowthTrackingService: ObservableObject {
             let lastDay = calendar.startOfDay(for: lastActive)
             let daysBetween = calendar.dateComponents([.day], from: lastDay, to: today).day ?? 0
 
-            if daysBetween == 0 {
-                // Same day, no change
-            } else if daysBetween == 1 {
-                // Consecutive day
-                retentionState.currentStreak += 1
-                retentionState.totalDaysActive += 1
-            } else {
-                // Gap > 1 day, reset streak
-                retentionState.currentStreak = 1
+            // Intentionally increments by 1 regardless of gap size.
+            // totalDaysActive counts distinct days the user opened the app,
+            // not consecutive calendar days (that would be a streak counter).
+            if daysBetween > 0 {
                 retentionState.totalDaysActive += 1
             }
         } else {
-            // First time ever
-            retentionState.currentStreak = 1
             retentionState.totalDaysActive = 1
         }
 
-        retentionState.longestStreak = max(retentionState.longestStreak, retentionState.currentStreak)
         retentionState.lastActiveDate = Date()
-
-        currentStreak = retentionState.currentStreak
-
-        // Update streak milestone progress
-        updateMilestoneProgress(id: "week_warrior", progress: retentionState.currentStreak)
-        updateMilestoneProgress(id: "month_champion", progress: retentionState.currentStreak)
-    }
-
-    /// Get current streak value
-    func getCurrentStreak() -> Int {
-        currentStreak
+        ensureTodayActivity()
+        checkAndUpdateMilestones()
     }
 
     // MARK: - Milestones
@@ -348,6 +342,69 @@ final class GrowthTrackingService: ObservableObject {
             moodDelta: thisMoods - lastMoods,
             activeDaysDelta: thisActive - lastActive
         )
+    }
+
+    // MARK: - Cloud Sync
+
+    /// Merge growth data downloaded from Firestore.
+    /// Merges daily activities by date, milestones by ID, takes higher identity stage.
+    func mergeCloudData(_ cloudData: GrowthData) {
+        // Merge daily activities by date
+        let localDates = Set(growthData.dailyActivities.map { $0.date })
+        let newActivities = cloudData.dailyActivities.filter { !localDates.contains($0.date) }
+        if !newActivities.isEmpty {
+            growthData.dailyActivities.append(contentsOf: newActivities)
+            growthData.dailyActivities.sort { $0.date < $1.date }
+        }
+
+        // Merge milestones by ID (keep higher progress / earlier earned date)
+        for cloudMilestone in cloudData.milestones {
+            if let idx = growthData.milestones.firstIndex(where: { $0.id == cloudMilestone.id }) {
+                if cloudMilestone.currentProgress > growthData.milestones[idx].currentProgress {
+                    growthData.milestones[idx].currentProgress = cloudMilestone.currentProgress
+                }
+                if let cloudEarned = cloudMilestone.earnedDate, growthData.milestones[idx].earnedDate == nil {
+                    growthData.milestones[idx].earnedDate = cloudEarned
+                }
+            }
+        }
+
+        // Merge weekly snapshots by weekStartDate
+        let localWeeks = Set(growthData.weeklySnapshots.map { $0.weekStartDate })
+        let newSnapshots = cloudData.weeklySnapshots.filter { !localWeeks.contains($0.weekStartDate) }
+        if !newSnapshots.isEmpty {
+            growthData.weeklySnapshots.append(contentsOf: newSnapshots)
+        }
+
+        // Merge anchors by ID
+        let localAnchorIDs = Set(growthData.anchors.map { $0.id })
+        let newAnchors = cloudData.anchors.filter { !localAnchorIDs.contains($0.id) }
+        if !newAnchors.isEmpty {
+            growthData.anchors.append(contentsOf: newAnchors)
+        }
+
+        // Merge unique characters used
+        growthData.uniqueCharactersUsed.formUnion(cloudData.uniqueCharactersUsed)
+
+        // Take higher identity stage (compare by allCases index)
+        let allStages = IdentityStage.allCases
+        let localIndex = allStages.firstIndex(of: growthData.identityProgression.currentStage) ?? 0
+        let cloudIndex = allStages.firstIndex(of: cloudData.identityProgression.currentStage) ?? 0
+        if cloudIndex > localIndex {
+            growthData.identityProgression = cloudData.identityProgression
+        }
+
+        milestones = growthData.milestones
+        todayActivity = growthData.dailyActivities.first { $0.date == todayString }
+
+        // Save locally without triggering another cloud upload
+        do {
+            let data = try JSONEncoder().encode(growthData)
+            try data.write(to: fileURL)
+        } catch {
+            print("🌱 Error saving merged growth data: \(error)")
+        }
+        print("🌱 Merged cloud growth data")
     }
 
     // MARK: - Helpers

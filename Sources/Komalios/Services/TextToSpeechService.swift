@@ -36,17 +36,23 @@ actor TextToSpeechService {
             "audioConfig": ["audioEncoding": "LINEAR16", "pitch": voice.pitch, "speakingRate": voice.speakingRate]
         ]
 
-        guard let url = URL(string: "\(endpoint)?key=\(apiKey)") else { throw TTSError.invalidURL }
+        guard let url = URL(string: endpoint) else { throw TTSError.invalidURL }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         request.timeoutInterval = 15
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw TTSError.apiError("TTS API returned non-200 status")
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+            #if DEBUG
+            let body = String(data: data, encoding: .utf8) ?? "no body"
+            print("[TTS] API error: status=\(statusCode) body=\(body)")
+            #endif
+            throw TTSError.apiError("status \(statusCode): \(body)")
         }
 
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],

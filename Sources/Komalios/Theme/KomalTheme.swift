@@ -6,9 +6,9 @@ import SwiftUI
 struct KomalColors {
     // Primary Colors - New Palette
     static let white = Color(hex: "FCFCFC")          // White
-    static let bubblegumPink = Color(hex: "F7567C")  // Bubblegum Pink
-    static let lavenderPurple = Color(hex: "8269ff") // Lavender Purple
-    static let pearlAqua = Color(hex: "99E1D9")      // Pearl Aqua (cool teal)
+    static let bubblegumPink = Color(hex: "E84C6F")  // Bubblegum Pink (3.59:1 on white)
+    static let lavenderPurple = Color(hex: "7559E5") // Lavender Purple (4.74:1 on white)
+    static let pearlAqua = Color(hex: "248A3D")      // Green (4.28:1 on white)
 
     // Semantic Colors
     static let primary = bubblegumPink       // Primary actions, focus
@@ -31,7 +31,7 @@ struct KomalColors {
 
     // Functional
     static let textPrimary = Color(hex: "2C3E50")
-    static let textSecondary = Color(hex: "7F8C8D")
+    static let textSecondary = Color(hex: "5D6D6E") // Darkened for 5.28:1 WCAG AA
 
     // Legacy names for compatibility
     static let yellow = lavenderPurple
@@ -79,6 +79,10 @@ struct PillButtonStyle: ButtonStyle {
             .padding(.vertical, 12)
             .background(backgroundColor)
             .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+            )
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
             .animation(KomalAnimations.subtle, value: configuration.isPressed)
     }
@@ -93,6 +97,10 @@ struct SecondaryPillButtonStyle: ButtonStyle {
             .padding(.vertical, 10)
             .background(KomalColors.pearlAqua.opacity(0.5))
             .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+            )
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
             .animation(KomalAnimations.subtle, value: configuration.isPressed)
     }
@@ -129,7 +137,7 @@ struct BubblyCard<Content: View>: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.gray.opacity(0.15), lineWidth: 1)
+                    .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
             )
     }
 }
@@ -146,7 +154,7 @@ struct RoundedTextFieldStyle: ViewModifier {
             .clipShape(Capsule())
             .overlay(
                 Capsule()
-                    .stroke(KomalColors.bubblegumPink, lineWidth: 2)
+                    .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
             )
     }
 }

@@ -14,7 +14,7 @@ struct DailyActivity: Codable, Identifiable {
     var eveningAnchorCompleted: Bool
 
     var isActive: Bool {
-        chatCount > 0 || reflectionCount > 0 || moodCheckInCount > 0
+        chatCount > 0 || reflectionCount > 0 || moodCheckInCount > 0 || browsingMinutes > 0
     }
 
     init(id: UUID = UUID(), date: String, chatCount: Int = 0, reflectionCount: Int = 0, moodCheckInCount: Int = 0, browsingMinutes: Int = 0, morningAnchorCompleted: Bool = false, eveningAnchorCompleted: Bool = false) {
@@ -80,11 +80,9 @@ struct Milestone: Codable, Identifiable {
         Milestone(id: "first_chat", title: "First Chat", description: "Had your first conversation with a friend", icon: "bubble.left.fill", category: .chat, requirement: 1, currentProgress: 0),
         Milestone(id: "chatty_friend", title: "Chatty Friend", description: "Had 10 conversations", icon: "bubble.left.and.bubble.right.fill", category: .chat, requirement: 10, currentProgress: 0),
         Milestone(id: "feeling_explorer", title: "Feeling Explorer", description: "Checked in with your feelings 5 times", icon: "heart.circle.fill", category: .mood, requirement: 5, currentProgress: 0),
-        Milestone(id: "week_warrior", title: "Week Warrior", description: "Used Komal for 7 days in a row", icon: "flame.fill", category: .streak, requirement: 7, currentProgress: 0),
         Milestone(id: "reflection_star", title: "Reflection Star", description: "Completed 10 reflection sessions", icon: "sparkles", category: .reflection, requirement: 10, currentProgress: 0),
         Milestone(id: "character_collector", title: "Character Collector", description: "Chatted with 5 different friends", icon: "person.3.fill", category: .exploration, requirement: 5, currentProgress: 0),
         Milestone(id: "mood_master", title: "Mood Master", description: "Logged 30 mood check-ins", icon: "face.smiling.fill", category: .mood, requirement: 30, currentProgress: 0),
-        Milestone(id: "month_champion", title: "Month Champion", description: "Used Komal for 30 days in a row", icon: "trophy.fill", category: .streak, requirement: 30, currentProgress: 0)
     ]
 }
 

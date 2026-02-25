@@ -35,7 +35,24 @@ extension AgeGroup {
         case .sixteenToEighteen:
             return .age16_18
         case .eighteenPlus:
-            return .age16_18 // Map 18+ to highest age band
+            // No 18+ AgeBand exists; map to highest. Note: round-trip via toAgeGroup() will return .sixteenToEighteen
+            return .age16_18
+        }
+    }
+}
+
+extension AgeBand {
+    /// Convert AgeBand back to AgeGroup for resolving filter preferences
+    func toAgeGroup() -> AgeGroup {
+        switch self {
+        case .below10:
+            return .under10
+        case .age10_13:
+            return .tenToThirteen
+        case .age13_16:
+            return .thirteenToSixteen
+        case .age16_18:
+            return .sixteenToEighteen
         }
     }
 }

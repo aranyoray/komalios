@@ -224,6 +224,22 @@ enum EnglishStrings {
         d["onboarding.pin.use_biometric"] = "Use %@ instead of PIN"
         d["onboarding.pin.research_note"] = "A parent PIN ensures only authorized adults can modify safety settings and approve gated content."
 
+        // MARK: - Onboarding Guided Access
+        d["onboarding.guided_access.title"] = "Lock Your Child's Device"
+        d["onboarding.guided_access.subtitle"] = "Keep your child safely in Komal"
+        d["onboarding.guided_access.explanation"] = "Guided Access prevents children from leaving the app or switching to other apps."
+        d["onboarding.guided_access.step1"] = "Open Settings → Accessibility → Guided Access"
+        d["onboarding.guided_access.step2"] = "Toggle Guided Access ON and set a passcode"
+        d["onboarding.guided_access.step3"] = "Triple-click the side button in Komal to activate"
+        d["onboarding.guided_access.open_settings"] = "Open Settings"
+        d["onboarding.guided_access.research_note"] = "Single-app mode is recommended by child safety researchers to prevent unsupervised app switching on shared devices."
+
+        // MARK: - Guided Access Reminder
+        d["guided_access.reminder.title"] = "Activate Guided Access"
+        d["guided_access.reminder.explanation"] = "Guided Access locks the device to Komal so your child can't switch apps. Triple-click the side button to activate."
+        d["guided_access.reminder.got_it"] = "Got it"
+        d["guided_access.reminder.dont_remind"] = "Don't remind me again"
+
         // MARK: - Avatar Selection
         d["onboarding.avatar.title"] = "Choose Your Buddy"
         d["onboarding.avatar.subtitle"] = "Pick an animal friend to be your guide!"
@@ -353,6 +369,9 @@ enum EnglishStrings {
         d["settings.incorrect_pin"] = "Incorrect PIN. Try again."
         d["settings.use_biometric"] = "Use %@"
         d["settings.enter"] = "Enter"
+        d["settings.sel_journey"] = "SEL Journey"
+        d["settings.view_sel_report"] = "View SEL Report"
+        d["settings.sel_progress_desc"] = "Track your child's social-emotional learning progress"
 
         // MARK: - Riki / Talk
         d["riki.choose_friend"] = "Choose a Friend"
@@ -410,6 +429,8 @@ enum EnglishStrings {
         // MARK: - Reflection
         d["reflect.title"] = "Reflection Time"
         d["reflect.how_feeling"] = "How are you feeling right now?"
+        d["reflect.daily_checkin.title"] = "Daily Check-in"
+        d["reflect.daily_checkin.desc"] = "A quick social-emotional check-in for the day"
         d["reflect.select_emotion"] = "Select an emotion to begin"
         d["reflect.session.title"] = "Guided Reflection"
         d["reflect.session.breathe"] = "Let's take a deep breath together"
@@ -453,7 +474,8 @@ enum EnglishStrings {
         d["journey.tab.history"] = "History"
         d["journey.analyzing"] = "Analyzing browsing activity..."
         d["journey.no_history"] = "No browsing history yet"
-        d["journey.history_will_appear"] = "History will appear here as your child browses"
+        d["journey.history_will_appear"] = "Browsing activity will appear here as your child uses the browser. Switch to the History tab to see local session data."
+        d["journey.history_empty_hint"] = "Your child's browsing sessions will be recorded here automatically."
         d["journey.needs_attention"] = "Needs Attention"
         d["journey.allowed_links"] = "Allowed Links"
         d["journey.loading_history"] = "Loading browsing history..."
@@ -483,7 +505,7 @@ enum EnglishStrings {
         d["browser.forward"] = "Forward"
         d["browser.history"] = "History"
         d["browser.homepage"] = "Homepage"
-        d["browser.quick_checkin"] = "How are you feeling?"
+        d["browser.quick_checkin"] = "Quick Check-in"
         d["browser.search_or_url"] = "Search or type URL"
         d["browser.past_tabs"] = "Past Tabs"
         d["browser.no_past_tabs"] = "No past tabs yet"
@@ -505,6 +527,9 @@ enum EnglishStrings {
         // MARK: - Chat Content Filtering
         d["chat.content_redirect"] = "Hey, that's not something I can chat about! How about we talk about something fun instead? What's your favorite thing to do after school?"
         d["browser.checking_page"] = "Checking this page for you..."
+        d["browser.before_you_go"] = "Before You Go"
+        d["browser.content_filtered"] = "This content has been filtered for your safety."
+        d["browser.content_unverified"] = "This content could not be verified as safe."
         d["blocked.hi_there"] = "Hi there! 👋"
         d["blocked.find_something_else"] = "Let's find something else!"
         d["blocked.friendly_1"] = "I'm sorry, but this content isn't available right now. Let's find something else fun to explore together! 🌟"
@@ -522,10 +547,12 @@ enum EnglishStrings {
         d["gate.approve_continue"] = "Approve and Continue"
         d["gate.access_gated"] = "Access is gated for %@ (%@)."
         d["gate.message"] = "This content needs parent approval to access."
+        d["gate.wrong_pin"] = "Incorrect PIN. Try again."
+        d["gate.locked_out"] = "Too many attempts. Try again in %d seconds."
 
         // MARK: - Emoji Check-in
         d["checkin.how_feeling"] = "How're you feeling exploring this?"
-        d["checkin.how_are_you"] = "How are you feeling?"
+        d["checkin.how_are_you"] = "How are you feeling today?"
         d["checkin.hi_there"] = "Hi there! 👋"
         d["checkin.intro_message"] = "I'm Komal, and I'm here surfing the internet with you! How are you feeling right now?"
         d["checkin.thanks_komal"] = "Thanks, Komal! 😊"
@@ -593,6 +620,25 @@ enum EnglishStrings {
         d["reflect.sel.a_little"] = "A little"
         d["reflect.sel.a_lot"] = "A lot"
         d["reflect.sel.things_help"] = "Things that might help:"
+
+        // MARK: - SEL Journey & Daily Session
+        d["sel.growth_report"] = "Growth Report"
+        d["sel.no_data_yet"] = "No data yet. Your child can start a Daily Check-In from the Reflect tab to begin tracking growth."
+        d["sel.empty_state_hint"] = "Tap the Reflect tab and choose \"Daily Check-In\" to begin."
+        d["sel.progress_description"] = "Your child's social-emotional learning progress over the last 30 days."
+        d["sel.overall_score"] = "Overall Score"
+        d["sel.domain_profile"] = "Domain Profile"
+        d["sel.domain_breakdown"] = "Domain Breakdown"
+        d["sel.seven_day_trends"] = "7-Day Trends"
+        d["sel.need_more_sessions"] = "Complete at least 2 sessions to see trend data."
+        d["sel.recent_sessions"] = "Recent Sessions"
+        d["sel.mindfulness_moment"] = "MINDFULNESS MOMENT"
+        d["sel.deep_breaths"] = "Let's take {count} deep breaths"
+        d["sel.breathe_instruction"] = "Breathe in slowly... and breathe out."
+        d["sel.skip_to_activities"] = "Skip to Activities"
+        d["sel.wonderful_job"] = "Wonderful job! 🌟"
+        d["sel.closing_message"] = "You did great reflecting on your feelings today. Keep it up!"
+        d["sel.activities_completed"] = "{count} activities completed"
         d["reflect.mindfulness.header"] = "Mindfulness"
         d["reflect.mindfulness.calm_mind"] = "Take a moment to calm your mind"
         d["reflect.going_deeper"] = "Going deeper..."
@@ -975,6 +1021,29 @@ enum EnglishStrings {
         d["screentime.minimal"] = "30 min/day"
         d["screentime.moderate"] = "1-2 hours/day"
         d["screentime.flexible"] = "Flexible"
+
+        // MARK: - Eye Tracking
+        d["eye.settings_title"] = "Eye Tracking"
+        d["eye.enable_toggle"] = "Enable Eye Tracking"
+        d["eye.enable_subtitle"] = "Monitor attention & eye comfort (on-device only)"
+        d["eye.view_report"] = "View Eye Tracking Report"
+        d["eye.view_report_desc"] = "Attention, fatigue & gaze insights"
+        d["eye.report_title"] = "Eye Tracking Report"
+        d["eye.privacy_badge"] = "All data stays on this device"
+        d["eye.metric_attention"] = "Attention"
+        d["eye.metric_focus"] = "Avg Focus"
+        d["eye.metric_blink"] = "Blink Rate"
+        d["eye.metric_fatigue"] = "Fatigue"
+        d["eye.trend_attention"] = "7-Day Attention Trend"
+        d["eye.trend_blink"] = "7-Day Blink Rate"
+        d["eye.gaze_distribution"] = "Gaze Distribution"
+        d["eye.interpretation_title"] = "Insights"
+        d["eye.no_data_title"] = "No Eye Tracking Data Yet"
+        d["eye.no_data_message"] = "Enable eye tracking in Settings and use the app for a while. Reports will appear here."
+        d["eye.delete_button"] = "Delete All Eye Tracking Data"
+        d["eye.delete_confirm_title"] = "Delete Eye Data?"
+        d["eye.delete_confirm_message"] = "This will permanently remove all eye tracking history from this device. This cannot be undone."
+        d["eye.sel_bridge_title"] = "Eye Insights"
 
         return d
     }()

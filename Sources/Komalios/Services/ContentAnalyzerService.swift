@@ -21,6 +21,10 @@ final class ContentAnalyzerService: ObservableObject {
     // MARK: - Private Properties
     private var allPageSummaries: [PageContentSummary] = []
     private let analysisQueue = DispatchQueue(label: "com.komalios.contentanalyzer", qos: .userInitiated)
+    /// Serial queue that serializes all mutations to `currentPageSummary`, preventing
+    /// races between the analysisQueue callback (which posts back to main) and direct
+    /// call sites such as startPageTracking / finalizeCurrentPage.
+    private let summaryQueue = DispatchQueue(label: "com.komalios.contentanalyzer.summary", qos: .userInitiated)
     
     // Keyword categories for detection
     private let keywordCategories: [String: [String]] = [
@@ -69,46 +73,68 @@ final class ContentAnalyzerService: ObservableObject {
     func processViewportSnapshot(_ data: [String: Any], pageURL: URL) {
         analysisQueue.async { [weak self] in
             guard let self = self else { return }
-            
+
             let snapshot = self.parseSnapshot(data, pageURL: pageURL)
-            
-            DispatchQueue.main.async {
-                self.recentSnapshots.insert(snapshot, at: 0)
-                if self.recentSnapshots.count > 50 {
-                    self.recentSnapshots = Array(self.recentSnapshots.prefix(50))
+
+            // Use summaryQueue → main to serialize with startPageTracking / finalizeCurrentPage
+            self.summaryQueue.async { [weak self] in
+                guard let self = self else { return }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.recentSnapshots.insert(snapshot, at: 0)
+                    if self.recentSnapshots.count > 50 {
+                        self.recentSnapshots = Array(self.recentSnapshots.prefix(50))
+                    }
+
+                    self.totalContentAnalyzed += snapshot.visibleContent.count
+                    self.flaggedContentCount += snapshot.flaggedKeywords.count
+
+                    // Update current page summary
+                    self.updatePageSummary(with: snapshot)
                 }
-                
-                self.totalContentAnalyzed += snapshot.visibleContent.count
-                self.flaggedContentCount += snapshot.flaggedKeywords.count
-                
-                // Update current page summary
-                self.updatePageSummary(with: snapshot)
             }
         }
     }
-    
+
     /// Start tracking a new page
     func startPageTracking(url: URL, title: String?) {
-        // Finalize previous page summary
-        finalizeCurrentPage()
-        
-        // Start new summary
-        currentPageSummary = PageContentSummary(
-            pageURL: url,
-            pageTitle: title
-        )
+        // Serialize through summaryQueue to prevent races with processViewportSnapshot callbacks
+        summaryQueue.async { [weak self] in
+            guard let self = self else { return }
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                // Finalize previous page summary
+                self.finalizeCurrentPageInternal()
+                // Start new summary
+                self.currentPageSummary = PageContentSummary(
+                    pageURL: url,
+                    pageTitle: title
+                )
+            }
+        }
     }
-    
+
     /// Finalize current page tracking
     func finalizeCurrentPage() {
+        summaryQueue.async { [weak self] in
+            guard let self = self else { return }
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.finalizeCurrentPageInternal()
+            }
+        }
+    }
+
+    /// Internal (must be called on the main thread, within summaryQueue serialization)
+    private func finalizeCurrentPageInternal() {
         guard var summary = currentPageSummary else { return }
-        
+
         let scrollThroughRate = calculateScrollThroughRate()
         summary.finalize(
             totalTime: Date().timeIntervalSince(summary.visitTimestamp),
             scrollThroughRate: scrollThroughRate
         )
-        
+
         // Save if has meaningful content
         if summary.contentSnapshots.count > 0 {
             allPageSummaries.insert(summary, at: 0)
@@ -305,7 +331,9 @@ final class ContentAnalyzerService: ObservableObject {
     // MARK: - Persistence
     
     private var summariesFileURL: URL {
-        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        guard let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("content_summaries.json")
+        }
         return documentsPath.appendingPathComponent("content_summaries.json")
     }
     

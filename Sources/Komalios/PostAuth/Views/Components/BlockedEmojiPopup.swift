@@ -8,6 +8,7 @@ struct BlockedEmojiPopup: View {
     let onDismiss: () -> Void
     let onEmojiSelected: (String) -> Void
 
+    @EnvironmentObject var appState: AppState
     @State private var selectedEmoji: String?
     @State private var countdown = 3
     @State private var isListening = false
@@ -15,12 +16,14 @@ struct BlockedEmojiPopup: View {
     @StateObject private var audioPlayback = AudioPlaybackManager()
     @State private var chatResponse: String?
     @State private var isLoadingChat = false
-    @State private var avatarImage = "animal1"
     @State private var hasSentTranscript = false
     @State private var silenceTimer: Timer?
 
     private let geminiService = GeminiChatService()
-    private let avatarNames = (1...11).map { "animal\($0)" }
+
+    private var avatarImage: String {
+        "animal\(appState.activeProfile.selectedAvatarIndex)"
+    }
 
     var body: some View {
         ZStack {
@@ -65,10 +68,10 @@ struct BlockedEmojiPopup: View {
                 }
 
                 VStack(spacing: 8) {
-                    Text("This content isn't available")
+                    Text(LanguageManager.shared.localized("blocked.not_available"))
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                    Text("Komal is keeping you safe!")
+                    Text(LanguageManager.shared.localized("blocked.keeping_safe"))
                         .font(.system(size: 16, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.8))
                 }
@@ -87,8 +90,9 @@ struct BlockedEmojiPopup: View {
                 Spacer()
             }
         }
-        .onAppear { avatarImage = avatarNames.randomElement() ?? "animal1" }
         .onDisappear {
+            countdownTimer?.invalidate()
+            countdownTimer = nil
             silenceTimer?.invalidate()
             silenceTimer = nil
         }
@@ -131,25 +135,29 @@ struct BlockedEmojiPopup: View {
                             .animation(KomalAnimations.spring, value: isListening)
                     }
 
-                    Text(isListening ? "Listening..." : "Tap to talk to Komal")
+                    Text(isListening ? LanguageManager.shared.localized("riki.listening") : LanguageManager.shared.localized("blocked.tap_talk"))
                         .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.7))
                 }
 
-                Text("Going back in \(countdown)...")
+                Text(LanguageManager.shared.localized("blocked.countdown", countdown))
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.7))
             }
         }
     }
 
+    @State private var countdownTimer: Timer?
+
     private func startCountdown() {
         if showTalkFeature {
             // Full countdown with talk feature
             countdown = 3
-            Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-                if countdown > 1 { countdown -= 1 }
-                else { timer.invalidate(); onDismiss() }
+            countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+                Task { @MainActor in
+                    if countdown > 1 { countdown -= 1 }
+                    else { timer.invalidate(); onDismiss() }
+                }
             }
         } else {
             // Quick dismiss — no talk, just show emoji briefly then go back
@@ -195,7 +203,7 @@ struct BlockedEmojiPopup: View {
                 // Speak the response via TTS
                 await audioPlayback.speak(text: response, characterName: characterName)
             } catch {
-                let fallback = "I'm here for you. Let's go explore something fun together!"
+                let fallback = LanguageManager.shared.localized("blocked.fallback_response")
                 await MainActor.run {
                     chatResponse = fallback
                     isLoadingChat = false

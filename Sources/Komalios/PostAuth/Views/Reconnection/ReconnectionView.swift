@@ -6,8 +6,6 @@ struct ReconnectionView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentStep = 0
     @State private var selectedMood: String? = nil
-    @State private var selectedTab: NavigationTab = .riki
-
     var body: some View {
         ZStack {
             LinearGradient(
@@ -25,7 +23,7 @@ struct ReconnectionView: View {
                 // Skip button
                 HStack {
                     Spacer()
-                    Button("Skip") { dismiss() }
+                    Button(LanguageManager.shared.localized("common.skip")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                         .padding(.trailing, 20)
@@ -44,7 +42,7 @@ struct ReconnectionView: View {
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 20)
                 }
             }
         }
@@ -62,11 +60,11 @@ struct ReconnectionView: View {
                     .frame(width: 120, height: 120)
             }
 
-            Text("Welcome Back!")
+            Text(LanguageManager.shared.localized("reconnection.welcome_back"))
                 .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
-            Text("It's Ellie! I never forget my friends, and I'm so happy to see you again!")
+            Text(LanguageManager.shared.localized("reconnection.ellie_greeting"))
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .foregroundColor(KomalColors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -74,13 +72,13 @@ struct ReconnectionView: View {
 
             let daysSince = daysSinceLastActive()
             if daysSince > 0 {
-                Text("It's been \(daysSince) days since we last hung out.")
+                Text(LanguageManager.shared.localized("reconnection.days_since").replacingOccurrences(of: "{days}", with: "\(daysSince)"))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
             }
 
             Button(action: { withAnimation { currentStep = 1 } }) {
-                Text("Hi Ellie!")
+                Text(LanguageManager.shared.localized("reconnection.hi_ellie"))
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -95,18 +93,18 @@ struct ReconnectionView: View {
 
     private var quickMoodStep: some View {
         VStack(spacing: 24) {
-            Text("How have you been?")
+            Text(LanguageManager.shared.localized("reconnection.how_have_you_been"))
                 .font(.system(size: 24, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
             VStack(spacing: 12) {
-                MoodOptionButton(emoji: "😊", label: "Great!", isSelected: selectedMood == "Great") {
+                MoodOptionButton(emoji: "😊", label: LanguageManager.shared.localized("reconnection.mood_great"), isSelected: selectedMood == "Great") {
                     selectedMood = "Great"
                 }
-                MoodOptionButton(emoji: "😐", label: "Okay", isSelected: selectedMood == "Okay") {
+                MoodOptionButton(emoji: "😐", label: LanguageManager.shared.localized("reconnection.mood_okay"), isSelected: selectedMood == "Okay") {
                     selectedMood = "Okay"
                 }
-                MoodOptionButton(emoji: "😔", label: "Not great", isSelected: selectedMood == "Not great") {
+                MoodOptionButton(emoji: "😔", label: LanguageManager.shared.localized("reconnection.mood_not_great"), isSelected: selectedMood == "Not great") {
                     selectedMood = "Not great"
                 }
             }
@@ -126,7 +124,7 @@ struct ReconnectionView: View {
                     }
                     withAnimation { currentStep = 2 }
                 }) {
-                    Text("Continue")
+                    Text(LanguageManager.shared.localized("common.continue"))
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -152,11 +150,11 @@ struct ReconnectionView: View {
             let moodMessage: String = {
                 switch selectedMood {
                 case "Great":
-                    return "That's wonderful to hear! Let's keep the good vibes going."
+                    return LanguageManager.shared.localized("reconnection.response_great")
                 case "Not great":
-                    return "I'm sorry to hear that. Remember, I'm always here for you."
+                    return LanguageManager.shared.localized("reconnection.response_not_great")
                 default:
-                    return "Good to know! Let's hang out and have some fun."
+                    return LanguageManager.shared.localized("reconnection.response_okay")
                 }
             }()
 
@@ -166,35 +164,35 @@ struct ReconnectionView: View {
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
 
-            Text("What would you like to do?")
+            Text(LanguageManager.shared.localized("reconnection.what_to_do"))
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
             VStack(spacing: 12) {
                 ReEngageOptionButton(
                     icon: "globe",
-                    title: "Browse the Web",
+                    title: LanguageManager.shared.localized("reconnection.browse_web"),
                     color: KomalColors.pearlAqua
                 ) {
-                    selectedTab = .browser
+                    appState.pendingNavigationTab = .browser
                     finishReconnection()
                 }
 
                 ReEngageOptionButton(
                     icon: "bubble.left.fill",
-                    title: "Chat with a Friend",
+                    title: LanguageManager.shared.localized("reconnection.chat_friend"),
                     color: KomalColors.bubblegumPink
                 ) {
-                    selectedTab = .riki
+                    appState.pendingNavigationTab = .riki
                     finishReconnection()
                 }
 
                 ReEngageOptionButton(
                     icon: "sparkles",
-                    title: "Reflection Time",
+                    title: LanguageManager.shared.localized("reconnection.reflection_time"),
                     color: KomalColors.lavenderPurple
                 ) {
-                    selectedTab = .reflect
+                    appState.pendingNavigationTab = .reflect
                     finishReconnection()
                 }
             }

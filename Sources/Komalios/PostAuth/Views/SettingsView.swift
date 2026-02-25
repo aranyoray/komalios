@@ -1,5 +1,7 @@
 #if os(iOS)
 import SwiftUI
+import StoreKit
+import os.log
 import FirebaseAuth
 import FirebaseFirestore
 import UIKit
@@ -31,10 +33,18 @@ struct SettingsView: View {
         self.selectedTab = selectedTab
     }
     
-    @State private var attemptingBiometric = false
     @State private var showDigitalJourney = false
     @State private var showParentInsights = false
     @State private var showGrowthJourney = false
+    @State private var showSELJourney = false
+    @State private var showPlanSelection = false
+    @State private var showEyeTrackingReport = false
+    @State private var showBillingHistory = false
+    @State private var showPinReset = false
+    @State private var newPin = ""
+    @State private var confirmNewPin = ""
+    @State private var pinResetMismatch = false
+    @State private var pinResetSuccess = false
     
     private var isLoggedIn: Bool {
         Auth.auth().currentUser != nil || authViewModel.user != nil
@@ -44,6 +54,22 @@ struct SettingsView: View {
         appState.isGuestUser && !isLoggedIn
     }
 
+    private var subscriptionAccentColor: Color {
+        switch appState.subscriptionState.currentPlan {
+        case .essentials: return KomalColors.pearlAqua
+        case .grow: return KomalColors.lavenderPurple
+        case .thrive: return KomalColors.bubblegumPink
+        }
+    }
+
+    private var subscriptionPlanIcon: String {
+        switch appState.subscriptionState.currentPlan {
+        case .essentials: return "shield.fill"
+        case .grow: return "leaf.fill"
+        case .thrive: return "star.fill"
+        }
+    }
+
     var body: some View {
         ZStack {
             // Clean, slightly off-white background for clearer card separation
@@ -51,77 +77,27 @@ struct SettingsView: View {
                 .ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 24) {
-                    
+                VStack(spacing: 16) {
+
                     // MARK: - Header
                     HStack {
                         Text(lang.localized("settings.title"))
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                         Spacer()
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 20)
+                    .padding(.top, 12)
 
-                    // MARK: - Account Mode
-                    SettingsCard {
-                        VStack(alignment: .leading, spacing: 16) {
-                            CardHeader(icon: "person.2.circle.fill", title: lang.localized("settings.whos_using"), color: KomalColors.bubblegumPink)
-
-                            Text(lang.localized("settings.whos_using.desc"))
-                                .font(.system(size: 13, weight: .regular, design: .rounded))
-                                .foregroundColor(KomalColors.textSecondary)
-
-                            HStack(spacing: 12) {
-                                // Child Mode Button
-                                AccountModeButton(
-                                    icon: "face.smiling.fill",
-                                    title: lang.localized("settings.child"),
-                                    subtitle: lang.localized("settings.child.subtitle"),
-                                    color: KomalColors.pearlAqua,
-                                    isSelected: appState.accountMode == .child
-                                ) {
-                                    withAnimation(.spring(response: 0.3)) {
-                                        appState.accountMode = .child
-                                    }
-                                }
-                                
-                                // Parent Mode Button - requires PIN
-                                AccountModeButton(
-                                    icon: "lock.shield.fill",
-                                    title: lang.localized("settings.parent"),
-                                    subtitle: lang.localized("settings.parent.subtitle"),
-                                    color: KomalColors.lavenderPurple,
-                                    isSelected: appState.accountMode == .guest
-                                ) {
-                                    if appState.accountMode == .guest {
-                                        // Already in parent mode, switch to child
-                                        withAnimation(.spring(response: 0.3)) {
-                                            appState.accountMode = .child
-                                        }
-                                    } else {
-                                        // Try biometric first if enabled
-                                        if BiometricAuthService.isBiometricEnabled {
-                                            attemptingBiometric = true
-                                            Task {
-                                                let success = await BiometricAuthService.authenticate()
-                                                await MainActor.run {
-                                                    attemptingBiometric = false
-                                                    if success {
-                                                        withAnimation(.spring(response: 0.3)) {
-                                                            appState.accountMode = .guest
-                                                        }
-                                                    } else {
-                                                        showPinEntry = true
-                                                    }
-                                                }
-                                            }
-                                        } else {
-                                            showPinEntry = true
-                                        }
-                                    }
-                                }
-                            }
+                    // MARK: - Child Mode Button
+                    AccountModeButton(
+                        icon: "face.smiling.fill",
+                        title: lang.localized("settings.child"),
+                        color: KomalColors.pearlAqua,
+                        isSelected: appState.accountMode == .child
+                    ) {
+                        withAnimation(.spring(response: 0.3)) {
+                            appState.accountMode = .child
                         }
                     }
                     
@@ -132,16 +108,49 @@ struct SettingsView: View {
                         parentModeContent
                     }
 
+                    // MARK: - Parent Mode Button (bottom of page)
+                    AccountModeButton(
+                        icon: "lock.shield.fill",
+                        title: lang.localized("settings.parent"),
+                        color: KomalColors.lavenderPurple,
+                        isSelected: appState.accountMode == .guest
+                    ) {
+                        if appState.accountMode == .guest {
+                            // Already in parent mode, switch to child
+                            withAnimation(.spring(response: 0.3)) {
+                                appState.accountMode = .child
+                            }
+                        } else {
+                            // Try biometric first if enabled
+                            if BiometricAuthService.isBiometricEnabled {
+                                Task {
+                                    let success = await BiometricAuthService.authenticate()
+                                    await MainActor.run {
+                                        if success {
+                                            withAnimation(.spring(response: 0.3)) {
+                                                appState.accountMode = .guest
+                                            }
+                                        } else {
+                                            showPinEntry = true
+                                        }
+                                    }
+                                }
+                            } else {
+                                showPinEntry = true
+                            }
+                        }
+                    }
+
                     // Use space at bottom
-                    Color.clear.frame(height: 40)
+                    Color.clear.frame(height: 20)
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 20)
+                .padding(.bottom, 12)
             }
         }
         .sheet(isPresented: $showFilterPreferences) {
             FilterPreferencesView(preferences: $appState.contentFilterPreferences)
-                .onChange(of: appState.contentFilterPreferences) { _ in
+                .onChange(of: appState.contentFilterPreferences) {
                     appState.savePreferences()
                 }
                 .environmentObject(appState)
@@ -178,9 +187,46 @@ struct SettingsView: View {
                     withAnimation(.spring(response: 0.3)) {
                         appState.accountMode = .guest
                     }
+                },
+                onForgotPin: {
+                    showPinEntry = false
+                    enteredPin = ""
+                    pinError = false
+                    showPinReset = true
                 }
             )
-            .presentationDetents([.height(340)])
+            .presentationDetents([.height(400)])
+        }
+        .sheet(isPresented: $showPinReset) {
+            PinResetView(
+                newPin: $newPin,
+                confirmNewPin: $confirmNewPin,
+                mismatchError: $pinResetMismatch,
+                showSuccess: $pinResetSuccess,
+                onSave: {
+                    guard newPin.count == 4, newPin == confirmNewPin else {
+                        pinResetMismatch = true
+                        return
+                    }
+                    KeychainService.savePin(newPin)
+                    pinResetMismatch = false
+                    pinResetSuccess = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        showPinReset = false
+                        newPin = ""
+                        confirmNewPin = ""
+                        pinResetSuccess = false
+                    }
+                },
+                onCancel: {
+                    showPinReset = false
+                    newPin = ""
+                    confirmNewPin = ""
+                    pinResetMismatch = false
+                    pinResetSuccess = false
+                }
+            )
+            .presentationDetents([.height(420)])
         }
         .alert("Logout", isPresented: $showLogoutAlert) {
             Button("Cancel", role: .cancel) {
@@ -190,7 +236,7 @@ struct SettingsView: View {
                 handleLogout()
             }
         } message: {
-            Text("Do you want to logout?")
+            Text(LanguageManager.shared.localized("settings.logout_confirm"))
         }
         .fullScreenCover(isPresented: $showDigitalJourney) {
             DigitalJourneyView()
@@ -202,6 +248,26 @@ struct SettingsView: View {
         .sheet(isPresented: $showGrowthJourney) {
             GrowthJourneyView()
         }
+        .sheet(isPresented: $showSELJourney) {
+            SELJourneyView()
+        }
+        .sheet(isPresented: $showEyeTrackingReport) {
+            EyeTrackingReportView()
+        }
+        .fullScreenCover(isPresented: $showPlanSelection) {
+            PlanSelectionView(allowDismiss: true) { plan in
+                appState.subscriptionState.currentPlan = plan
+                if let productID = plan.productID {
+                    appState.subscriptionState.purchasedProductID = productID
+                }
+                appState.hasSelectedPlan = true
+                showPlanSelection = false
+            }
+        }
+        .sheet(isPresented: $showBillingHistory) {
+            BillingHistoryView()
+                .environmentObject(appState)
+        }
         .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
             Button("Cancel", role: .cancel) {
                 // User cancelled, do nothing
@@ -210,13 +276,13 @@ struct SettingsView: View {
                 handleDeleteAccount()
             }
         } message: {
-            Text("Are You Sure to delete account? This action cannot be undone.")
+            Text(LanguageManager.shared.localized("settings.delete_confirm"))
         }
     }
     
     // MARK: - Child Mode Content
     private var childModeContent: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             // Friendly greeting card
             SettingsCard {
                 VStack(spacing: 16) {
@@ -249,7 +315,7 @@ struct SettingsView: View {
             
             // Fun action cards
             SettingsCard {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     CardHeader(icon: "bubble.left.and.bubble.right.fill", title: lang.localized("settings.child.chatty"), color: KomalColors.bubblegumPink)
 
                     Text(lang.localized("settings.child.chatty.desc"))
@@ -277,6 +343,7 @@ struct SettingsView: View {
                         .padding(.horizontal, 24)
                         .padding(.vertical, 14)
                         .background(KomalColors.lavenderPurple.opacity(0.12))
+                        .contentShape(Capsule())
                         .clipShape(Capsule())
                         .overlay(
                             Capsule()
@@ -289,13 +356,18 @@ struct SettingsView: View {
             
             // Your profile (limited)
             SettingsCard {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     CardHeader(icon: "star.fill", title: lang.localized("settings.child.profile"), color: KomalColors.pearlAqua)
 
                     HStack(spacing: 12) {
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(KomalColors.pearlAqua)
+                        if let uiImage = UIImage(named: "animal\(appState.activeProfile.selectedAvatarIndex)") {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 44, height: 44)
+                                .clipShape(Circle())
+                                .overlay(Circle().stroke(KomalColors.pearlAqua, lineWidth: 2))
+                        }
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(appState.activeProfile.name.isEmpty ? lang.localized("settings.child.explorer") : appState.activeProfile.name)
@@ -309,25 +381,64 @@ struct SettingsView: View {
 
                         Spacer()
                     }
+
+                    // Avatar picker
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(lang.localized("settings.avatar.title"))
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(KomalColors.textPrimary)
+
+                        Text(lang.localized("settings.avatar.change"))
+                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                            .foregroundColor(KomalColors.textSecondary)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(RikiCharacter.allCharacters) { character in
+                                    Button {
+                                        withAnimation(.spring(response: 0.3)) {
+                                            appState.activeProfile.selectedAvatarIndex = character.id
+                                            appState.savePreferences()
+                                        }
+                                    } label: {
+                                        VStack(spacing: 4) {
+                                            if let uiImage = UIImage(named: character.imageName) {
+                                                Image(uiImage: uiImage)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: 48, height: 48)
+                                                    .clipShape(Circle())
+                                                    .overlay(
+                                                        Circle()
+                                                            .stroke(
+                                                                appState.activeProfile.selectedAvatarIndex == character.id ? KomalColors.lavenderPurple : Color.clear,
+                                                                lineWidth: 3
+                                                            )
+                                                    )
+                                            }
+
+                                            Text(character.name)
+                                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                                .foregroundColor(
+                                                    appState.activeProfile.selectedAvatarIndex == character.id ? KomalColors.lavenderPurple : KomalColors.textSecondary
+                                                )
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
                 }
             }
 
             // Growth Journey card
             SettingsCard {
-                VStack(alignment: .leading, spacing: 16) {
-                    CardHeader(icon: "flame.fill", title: lang.localized("settings.child.journey"), color: .orange)
+                VStack(alignment: .leading, spacing: 12) {
+                    CardHeader(icon: "sparkles", title: lang.localized("settings.child.journey"), color: KomalColors.bubblegumPink)
 
                     HStack(spacing: 16) {
-                        VStack(spacing: 4) {
-                            Text("\(GrowthTrackingService.shared.currentStreak)")
-                                .font(.system(size: 24, weight: .bold, design: .rounded))
-                                .foregroundColor(.orange)
-                            Text(lang.localized("settings.child.day_streak"))
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(KomalColors.textSecondary)
-                        }
-                        .frame(maxWidth: .infinity)
-
                         VStack(spacing: 4) {
                             Text("\(GrowthTrackingService.shared.getEarnedMilestones().count)")
                                 .font(.system(size: 24, weight: .bold, design: .rounded))
@@ -353,6 +464,7 @@ struct SettingsView: View {
                         .padding(.horizontal, 24)
                         .padding(.vertical, 14)
                         .background(KomalColors.bubblegumPink.opacity(0.12))
+                        .contentShape(Capsule())
                         .clipShape(Capsule())
                         .overlay(
                             Capsule()
@@ -367,10 +479,10 @@ struct SettingsView: View {
     
     // MARK: - Parent Mode Content
     private var parentModeContent: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             // Digital Journey
             SettingsCard {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     CardHeader(icon: "book.fill", title: lang.localized("settings.parent.digital_journey"), color: KomalColors.lavenderPurple)
 
                     Button(action: {
@@ -397,28 +509,31 @@ struct SettingsView: View {
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(KomalColors.textSecondary)
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
             }
 
-            // Child Wellness
+            // SEL Journey
             SettingsCard {
-                VStack(alignment: .leading, spacing: 16) {
-                    CardHeader(icon: "heart.text.square.fill", title: "Child Wellness", color: KomalColors.bubblegumPink)
+                VStack(alignment: .leading, spacing: 12) {
+                    CardHeader(icon: "brain.head.profile", title: LanguageManager.shared.localized("settings.sel_journey"), color: KomalColors.pearlAqua)
 
-                    Button(action: { showParentInsights = true }) {
+                    Button(action: {
+                        showSELJourney = true
+                    }) {
                         HStack(spacing: 12) {
-                            Image(systemName: "chart.line.uptrend.xyaxis")
+                            Image(systemName: "pentagon")
                                 .font(.system(size: 20))
-                                .foregroundColor(KomalColors.bubblegumPink)
+                                .foregroundColor(KomalColors.pearlAqua)
                                 .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Wellness Dashboard")
+                                Text(LanguageManager.shared.localized("settings.view_sel_report"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text("Mood trends, conversations, growth metrics")
+                                Text(LanguageManager.shared.localized("settings.sel_progress_desc"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -429,6 +544,107 @@ struct SettingsView: View {
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(KomalColors.textSecondary)
                         }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            // Eye Tracking
+            if EyeTrackingService.isSupported {
+                SettingsCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        CardHeader(icon: "eye.circle.fill", title: LanguageManager.shared.localized("eye.settings_title"), color: KomalColors.lavenderPurple)
+
+                        ModernToggleRow(
+                            icon: "eye.fill",
+                            iconColor: KomalColors.lavenderPurple,
+                            title: LanguageManager.shared.localized("eye.enable_toggle"),
+                            subtitle: LanguageManager.shared.localized("eye.enable_subtitle"),
+                            isOn: Binding(
+                                get: { appState.parentSettings.eyeTrackingEnabled },
+                                set: { newValue in
+                                    appState.parentSettings.eyeTrackingEnabled = newValue
+                                    appState.savePreferences()
+                                    // Defer tracking lifecycle to avoid I/O in Binding.set during view update
+                                    Task { @MainActor in
+                                        if newValue {
+                                            EyeTrackingService.shared.startTracking()
+                                            #if targetEnvironment(simulator)
+                                            EyeTrackingService.shared.seedMockData()
+                                            #endif
+                                        } else {
+                                            if EyeTrackingService.shared.isTracking {
+                                                EyeTrackingService.shared.commitDailySummary()
+                                                EyeTrackingService.shared.stopTracking()
+                                            }
+                                        }
+                                    }
+                                }
+                            )
+                        )
+
+                        if appState.parentSettings.eyeTrackingEnabled {
+                            Divider()
+
+                            Button(action: { showEyeTrackingReport = true }) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "chart.bar.doc.horizontal")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(KomalColors.lavenderPurple)
+                                        .frame(width: 24)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(LanguageManager.shared.localized("eye.view_report"))
+                                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                            .foregroundColor(KomalColors.textPrimary)
+                                        Text(LanguageManager.shared.localized("eye.view_report_desc"))
+                                            .font(.caption)
+                                            .foregroundColor(KomalColors.textSecondary)
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(KomalColors.textSecondary)
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+
+            // Child Wellness
+            SettingsCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    CardHeader(icon: "heart.text.square.fill", title: "Child Wellness", color: KomalColors.bubblegumPink)
+
+                    Button(action: { showParentInsights = true }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.system(size: 20))
+                                .foregroundColor(KomalColors.bubblegumPink)
+                                .frame(width: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(LanguageManager.shared.localized("settings.wellness_dashboard"))
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(KomalColors.textPrimary)
+                                Text(LanguageManager.shared.localized("settings.wellness_desc"))
+                                    .font(.caption)
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
 
@@ -468,9 +684,175 @@ struct SettingsView: View {
                 }
             }
 
+            // Subscription & Billing
+            SettingsCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    CardHeader(icon: "crown.fill", title: "Subscription & Billing", color: KomalColors.lavenderPurple)
+
+                    // Current plan badge
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(subscriptionAccentColor.opacity(0.15))
+                                .frame(width: 48, height: 48)
+                            Image(systemName: subscriptionPlanIcon)
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(subscriptionAccentColor)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(appState.subscriptionState.currentPlan.displayName)
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .foregroundColor(KomalColors.textPrimary)
+                            Text(appState.subscriptionState.currentPlan == .essentials ? "Free plan" : "Active subscription")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
+
+                        Spacer()
+
+                        Text(appState.subscriptionState.currentPlan == .essentials ? "FREE" : "ACTIVE")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(subscriptionAccentColor)
+                            .cornerRadius(8)
+                    }
+
+                    // Plan features summary
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(appState.subscriptionState.currentPlan.features.prefix(3), id: \.self) { feature in
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(subscriptionAccentColor)
+                                Text(feature)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    Divider()
+
+                    // Change Plan
+                    Button(action: { showPlanSelection = true }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(KomalColors.lavenderPurple)
+                                .frame(width: 24)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(appState.subscriptionState.currentPlan == .essentials ? "Upgrade Plan" : "Change Plan")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(KomalColors.textPrimary)
+                                Text("View all plans and pricing")
+                                    .font(.caption)
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+
+                    // Billing History
+                    Button(action: { showBillingHistory = true }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "doc.text.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(KomalColors.pearlAqua)
+                                .frame(width: 24)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Billing & Invoices")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(KomalColors.textPrimary)
+                                Text("View transaction history and receipts")
+                                    .font(.caption)
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+
+                    // Manage via App Store
+                    Button(action: {
+                        Task {
+                            let subLog = Logger(subsystem: "com.komalkids.komal", category: "Subscription")
+                            subLog.info("Opening App Store manage subscriptions sheet")
+                            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                                try? await AppStore.showManageSubscriptions(in: windowScene)
+                            } else {
+                                subLog.error("No UIWindowScene found — cannot show manage subscriptions")
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "gear")
+                                .font(.system(size: 20))
+                                .foregroundColor(KomalColors.bubblegumPink)
+                                .frame(width: 24)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Manage in App Store")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(KomalColors.textPrimary)
+                                Text("Cancel, renew, or update payment method")
+                                    .font(.caption)
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
+                            Spacer()
+                            Image(systemName: "arrow.up.forward.square")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    // Restore Purchases
+                    Button(action: {
+                        Task {
+                            let subLog = Logger(subsystem: "com.komalkids.komal", category: "Subscription")
+                            subLog.info("Settings: user tapped Restore Purchases")
+                            await SubscriptionService.shared.restorePurchases()
+                            let plan = SubscriptionService.shared.currentPlan()
+                            subLog.info("Settings: restore complete — plan is now \(plan.displayName)")
+                            appState.subscriptionState.currentPlan = plan
+                        }
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.clockwise.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(KomalColors.textSecondary)
+                                .frame(width: 24)
+                            Text("Restore Purchases")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .foregroundColor(KomalColors.textSecondary)
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
             // Child Profile (editable in parent mode)
             SettingsCard {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     CardHeader(icon: "sparkles", title: "Child Profile", color: KomalColors.lavenderPurple)
 
                     HStack(spacing: 16) {
@@ -534,7 +916,7 @@ struct SettingsView: View {
 
             // Parent Controls
             SettingsCard {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 14) {
                     CardHeader(icon: "lock.shield.fill", title: "Parent Controls", color: KomalColors.pearlAqua)
 
                     VStack(spacing: 16) {
@@ -569,10 +951,10 @@ struct SettingsView: View {
                                     .frame(width: 24)
                                 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("View Insights")
+                                    Text(LanguageManager.shared.localized("settings.view_insights"))
                                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                                         .foregroundColor(KomalColors.textPrimary)
-                                    Text("See browsing activity and blocked content")
+                                    Text(LanguageManager.shared.localized("settings.insights_desc"))
                                         .font(.caption)
                                         .foregroundColor(KomalColors.textSecondary)
                                 }
@@ -583,22 +965,83 @@ struct SettingsView: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(KomalColors.textSecondary)
                             }
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
 
+            // Security & PIN
+            SettingsCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    CardHeader(icon: "lock.circle.fill", title: "Security", color: KomalColors.lavenderPurple)
+
+                    // Face ID / Touch ID toggle
+                    if BiometricAuthService.availableBiometricType != .none {
+                        ModernToggleRow(
+                            icon: BiometricAuthService.biometricIcon,
+                            iconColor: KomalColors.lavenderPurple,
+                            title: BiometricAuthService.biometricName,
+                            subtitle: "Use \(BiometricAuthService.biometricName) to access parent settings",
+                            isOn: Binding(
+                                get: { BiometricAuthService.isBiometricEnabled },
+                                set: { newValue in
+                                    BiometricAuthService.isBiometricEnabled = newValue
+                                    appState.parentSettings.biometricEnabled = newValue
+                                    appState.savePreferences()
+                                }
+                            )
+                        )
+
+                        Divider()
+                    }
+
+                    // Change PIN
+                    Button(action: {
+                        newPin = ""
+                        confirmNewPin = ""
+                        pinResetMismatch = false
+                        pinResetSuccess = false
+                        showPinReset = true
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "key.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(KomalColors.pearlAqua)
+                                .frame(width: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Change PIN")
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(KomalColors.textPrimary)
+                                Text("Set a new 4-digit parent PIN")
+                                    .font(.caption)
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
             // Modify Content
             SettingsCard {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     CardHeader(icon: "hand.raised.fill", title: "Modify Content", color: KomalColors.bubblegumPink)
 
                     Button(action: {
                         showFilterPreferences = true
                     }) {
                         HStack {
-                            Text("Modify Filters")
+                            Text(LanguageManager.shared.localized("settings.modify_filters"))
                                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
                             Spacer()
@@ -606,6 +1049,7 @@ struct SettingsView: View {
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
                         }
+                        .contentShape(Rectangle())
                     }
                     .padding(.vertical, 4)
 
@@ -619,7 +1063,7 @@ struct SettingsView: View {
                             }
                         }) {
                             HStack {
-                                Text("Custom Keywords")
+                                Text(LanguageManager.shared.localized("settings.custom_keywords"))
                                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
                                 Spacer()
@@ -627,6 +1071,7 @@ struct SettingsView: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(KomalColors.textSecondary)
                             }
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         
@@ -662,7 +1107,7 @@ struct SettingsView: View {
                                     }
                                 }
                             } else {
-                                Text("No custom keywords added yet.")
+                                Text(LanguageManager.shared.localized("settings.no_keywords"))
                                     .font(.caption)
                                     .italic()
                                     .foregroundColor(KomalColors.textSecondary)
@@ -680,7 +1125,7 @@ struct SettingsView: View {
                             }
                         }) {
                             HStack {
-                                Text("Custom Websites")
+                                Text(LanguageManager.shared.localized("settings.custom_websites"))
                                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
                                 Spacer()
@@ -688,6 +1133,7 @@ struct SettingsView: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(KomalColors.textSecondary)
                             }
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         
@@ -725,7 +1171,7 @@ struct SettingsView: View {
                                     }
                                 }
                             } else {
-                                Text("No custom websites added yet.")
+                                Text(LanguageManager.shared.localized("settings.no_websites"))
                                     .font(.caption)
                                     .italic()
                                     .foregroundColor(KomalColors.textSecondary)
@@ -735,9 +1181,53 @@ struct SettingsView: View {
                 }
             }
 
+            // Language
+            SettingsCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    CardHeader(icon: "globe", title: lang.localized("settings.language"), color: KomalColors.pearlAqua)
+
+                    ForEach(AppLanguage.allCases) { language in
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                lang.currentLanguage = language
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Text(language.flag)
+                                    .font(.system(size: 24))
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(language.nativeName)
+                                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                        .foregroundColor(KomalColors.textPrimary)
+                                    Text(language.displayName)
+                                        .font(.caption)
+                                        .foregroundColor(KomalColors.textSecondary)
+                                }
+
+                                Spacer()
+
+                                if lang.currentLanguage == language {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 22))
+                                        .foregroundColor(KomalColors.pearlAqua)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                            .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+
+                        if language != AppLanguage.allCases.last {
+                            Divider()
+                        }
+                    }
+                }
+            }
+
             // Account (only in parent mode)
             SettingsCard {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     CardHeader(icon: "person.circle.fill", title: "Account", color: KomalColors.lavenderPurple)
 
                     if isGuestMode {
@@ -746,13 +1236,13 @@ struct SettingsView: View {
                             Image(systemName: "person.crop.circle.badge.questionmark")
                                 .font(.system(size: 20))
                                 .foregroundColor(KomalColors.lavenderPurple)
-                            Text("Using as Guest")
+                            Text(LanguageManager.shared.localized("settings.using_guest"))
                                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
                             Spacer()
                         }
 
-                        Text("Your data is stored locally on this device only. Sign in to sync across devices.")
+                        Text(LanguageManager.shared.localized("settings.guest_data_info"))
                             .font(.caption)
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -768,7 +1258,7 @@ struct SettingsView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(KomalColors.pearlAqua)
 
-                                Text("Sign In")
+                                Text(LanguageManager.shared.localized("settings.sign_in"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.pearlAqua)
 
@@ -778,6 +1268,7 @@ struct SettingsView: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(KomalColors.pearlAqua.opacity(0.6))
                             }
+                            .contentShape(Rectangle())
                             .padding(.vertical, 8)
                         }
                         .buttonStyle(.plain)
@@ -792,7 +1283,7 @@ struct SettingsView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.red)
 
-                                Text("Exit Guest Mode")
+                                Text(LanguageManager.shared.localized("settings.exit_guest"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(.red)
 
@@ -802,6 +1293,7 @@ struct SettingsView: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(.red.opacity(0.6))
                             }
+                            .contentShape(Rectangle())
                             .padding(.vertical, 8)
                         }
                         .buttonStyle(.plain)
@@ -815,7 +1307,7 @@ struct SettingsView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.red)
 
-                                Text("Delete Account")
+                                Text(LanguageManager.shared.localized("settings.delete_account"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(.red)
 
@@ -830,6 +1322,7 @@ struct SettingsView: View {
                                         .foregroundColor(.red.opacity(0.6))
                                 }
                             }
+                            .contentShape(Rectangle())
                             .padding(.vertical, 8)
                         }
                         .buttonStyle(.plain)
@@ -846,7 +1339,7 @@ struct SettingsView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.red)
 
-                                Text("Logout")
+                                Text(LanguageManager.shared.localized("settings.logout"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(.red)
 
@@ -856,6 +1349,7 @@ struct SettingsView: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(.red.opacity(0.6))
                             }
+                            .contentShape(Rectangle())
                             .padding(.vertical, 8)
                         }
                         .buttonStyle(.plain)
@@ -877,7 +1371,7 @@ struct SettingsView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(KomalColors.pearlAqua)
 
-                                Text("Login")
+                                Text(LanguageManager.shared.localized("settings.login"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.pearlAqua)
 
@@ -887,11 +1381,12 @@ struct SettingsView: View {
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(KomalColors.pearlAqua.opacity(0.6))
                             }
+                            .contentShape(Rectangle())
                             .padding(.vertical, 8)
                         }
                         .buttonStyle(.plain)
 
-                        Text("Sign in to sync your preferences across devices")
+                        Text(LanguageManager.shared.localized("settings.sync_desc"))
                             .font(.caption)
                             .foregroundColor(KomalColors.textSecondary)
                             .padding(.top, 4)
@@ -955,8 +1450,22 @@ struct SettingsView: View {
         
         Task {
             do {
-                // 1. Delete user data from Firestore
+                // 1. Delete user data from Firestore (including all subcollections — COPPA requirement)
                 let db = Firestore.firestore()
+
+                // Delete app-history events subcollection
+                let eventsRef = db.collection("app-history").document(user.uid).collection("events")
+                let eventDocs = try await eventsRef.getDocuments()
+                for doc in eventDocs.documents {
+                    try await doc.reference.delete()
+                }
+                try? await db.collection("app-history").document(user.uid).delete()
+
+                // Delete synced data (sync docs + subcollections)
+                await FirestoreSyncService.shared.deleteAllUserData(uid: user.uid)
+                print("✅ Synced data deleted from Firestore")
+
+                // Delete top-level user document
                 let userRef = db.collection("users").document(user.uid)
                 try await userRef.delete()
                 print("✅ User data deleted from Firestore")
@@ -985,7 +1494,9 @@ struct SettingsView: View {
                     UserDefaults.standard.removeObject(forKey: "komal.activeProfile")
                     UserDefaults.standard.removeObject(forKey: "komal.accountMode")
                     UserDefaults.standard.removeObject(forKey: "komal.parentSettings")
-                    
+                    UserDefaults.standard.removeObject(forKey: "komal.subscriptionState")
+                    UserDefaults.standard.removeObject(forKey: "komal.hasSelectedPlan")
+
                     print("✅ Local data cleared")
                     
                     // 5. Update authViewModel state
@@ -1098,10 +1609,14 @@ struct SettingsCard<Content: View>: View {
 
     var body: some View {
         content
-            .padding(20)
+            .padding(16)
             .background(Color.white)
-            .cornerRadius(20)
-            .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+            )
+            .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 3)
     }
 }
 
@@ -1109,20 +1624,20 @@ struct CardHeader: View {
     let icon: String
     let title: String
     let color: Color
-    
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             ZStack {
                 Circle()
                     .fill(color.opacity(0.15))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 32, height: 32)
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(color)
             }
-            
+
             Text(title)
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
             
             Spacer()
@@ -1165,44 +1680,47 @@ struct ModernToggleRow: View {
 struct AccountModeButton: View {
     let icon: String
     let title: String
-    let subtitle: String
     let color: Color
     let isSelected: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 8) {
+            HStack(spacing: 14) {
                 ZStack {
                     Circle()
                         .fill(isSelected ? color : color.opacity(0.15))
-                        .frame(width: 50, height: 50)
-                    
+                        .frame(width: 44, height: 44)
+
                     Image(systemName: icon)
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(isSelected ? .white : color)
                 }
-                
-                VStack(spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundColor(isSelected ? color : KomalColors.textPrimary)
-                    
-                    Text(subtitle)
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundColor(KomalColors.textSecondary)
+
+                Text(title)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(isSelected ? color : KomalColors.textPrimary)
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(color)
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(isSelected ? color.opacity(0.1) : Color.clear)
+                    .fill(isSelected ? color.opacity(0.1) : Color.white)
             )
+            .contentShape(Rectangle())
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? color : Color.gray.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+                    .stroke(isSelected ? color : Color.black.opacity(0.08), lineWidth: isSelected ? 2 : 0.5)
             )
+            .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }
@@ -1300,7 +1818,7 @@ struct CleanTextFieldStyle: ViewModifier {
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.black.opacity(0.05), lineWidth: 1)
+                    .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
             )
     }
 }
@@ -1311,6 +1829,222 @@ extension View {
     }
 }
 
+// MARK: - Billing History View
+
+struct BillingHistoryView: View {
+    @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+    @State private var transactions: [SubscriptionService.TransactionInfo] = []
+    @State private var renewalDate: Date?
+    @State private var isLoading = true
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+
+    private static let shortDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        return f
+    }()
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                KomalColors.warmGray.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Current plan summary card
+                        VStack(spacing: 16) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Current Plan")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(KomalColors.textSecondary)
+                                    Text(appState.subscriptionState.currentPlan.displayName)
+                                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                                        .foregroundColor(KomalColors.textPrimary)
+                                }
+                                Spacer()
+                                if appState.subscriptionState.currentPlan != .essentials {
+                                    VStack(alignment: .trailing, spacing: 4) {
+                                        if let price = SubscriptionService.shared.priceString(for: appState.subscriptionState.currentPlan) {
+                                            Text(price)
+                                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                                .foregroundColor(KomalColors.textPrimary)
+                                            Text("per month")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(KomalColors.textSecondary)
+                                        }
+                                    }
+                                }
+                            }
+
+                            if let renewal = renewalDate, appState.subscriptionState.currentPlan != .essentials {
+                                Divider()
+                                HStack {
+                                    Image(systemName: "calendar.badge.clock")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(KomalColors.lavenderPurple)
+                                    Text("Next renewal: \(Self.shortDateFormatter.string(from: renewal))")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(KomalColors.textSecondary)
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .padding(20)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+
+                        // Transaction history
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Transaction History")
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .foregroundColor(KomalColors.textPrimary)
+
+                            if isLoading {
+                                HStack {
+                                    Spacer()
+                                    ProgressView()
+                                    Spacer()
+                                }
+                                .padding(.vertical, 40)
+                            } else if transactions.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "doc.text")
+                                        .font(.system(size: 36))
+                                        .foregroundColor(KomalColors.textSecondary.opacity(0.5))
+                                    Text("No transactions yet")
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(KomalColors.textSecondary)
+                                    Text("Your purchase history will appear here")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(KomalColors.textSecondary.opacity(0.7))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 40)
+                            } else {
+                                ForEach(transactions) { transaction in
+                                    TransactionRow(transaction: transaction)
+                                }
+                            }
+                        }
+                        .padding(20)
+                        .background(Color.white)
+                        .cornerRadius(20)
+                        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+
+                        // Info footer
+                        VStack(spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "info.circle")
+                                    .font(.system(size: 13))
+                                Text("Subscriptions are managed through your Apple ID. To request a refund, visit reportaproblem.apple.com")
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .foregroundColor(KomalColors.textSecondary)
+                            .padding(.horizontal, 4)
+                        }
+                        .padding(.top, 8)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 20)
+                }
+            }
+            .navigationTitle("Billing & Invoices")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundColor(KomalColors.lavenderPurple)
+                }
+            }
+            .task {
+                let billingLog = Logger(subsystem: "com.komalkids.komal", category: "Billing")
+                billingLog.info("BillingHistoryView loading — fetching products and history...")
+                await SubscriptionService.shared.fetchProducts()
+                await SubscriptionService.shared.fetchTransactionHistory()
+                transactions = SubscriptionService.shared.transactionHistory
+                billingLog.info("Loaded \(transactions.count) transactions")
+                renewalDate = await SubscriptionService.shared.currentRenewalDate()
+                billingLog.info("Renewal date: \(renewalDate?.description ?? "none")")
+                isLoading = false
+            }
+        }
+    }
+}
+
+private struct TransactionRow: View {
+    let transaction: SubscriptionService.TransactionInfo
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+
+    private var statusColor: Color {
+        if transaction.isRevoked { return .red }
+        if let exp = transaction.expirationDate, exp < Date() { return KomalColors.textSecondary }
+        return KomalColors.pearlAqua
+    }
+
+    private var statusText: String {
+        if transaction.isRevoked { return "Refunded" }
+        if let exp = transaction.expirationDate, exp < Date() { return "Expired" }
+        return "Completed"
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(statusColor.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: transaction.isRevoked ? "arrow.uturn.backward" : "checkmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(statusColor)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(transaction.planName) Monthly")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
+                    Text(Self.dateFormatter.string(from: transaction.purchaseDate))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(KomalColors.textSecondary)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    if let price = transaction.displayPrice {
+                        Text(price)
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundColor(KomalColors.textPrimary)
+                    }
+                    Text(statusText)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(statusColor)
+                }
+            }
+            .padding(.vertical, 12)
+
+            Divider()
+        }
+    }
+}
+
 // MARK: - PIN Entry View
 struct PinEntryView: View {
     @Binding var enteredPin: String
@@ -1318,20 +2052,21 @@ struct PinEntryView: View {
     let onSubmit: () -> Void
     let onCancel: () -> Void
     var onBiometricSuccess: (() -> Void)? = nil
+    var onForgotPin: (() -> Void)? = nil
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 16) {
             // Header
             VStack(spacing: 8) {
                 Image(systemName: "lock.shield.fill")
                     .font(.system(size: 40))
                     .foregroundColor(KomalColors.lavenderPurple)
 
-                Text("Enter Parent PIN")
+                Text(LanguageManager.shared.localized("settings.enter_pin"))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
 
-                Text("Enter your 4-digit PIN to access parent settings")
+                Text(LanguageManager.shared.localized("settings.pin_desc"))
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -1350,14 +2085,14 @@ struct PinEntryView: View {
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(pinError ? Color.red : Color.black.opacity(0.05), lineWidth: pinError ? 2 : 1)
+                            .stroke(pinError ? Color.red : Color.black.opacity(0.1), lineWidth: pinError ? 2 : 0.5)
                     )
-                    .onChange(of: enteredPin) { newValue in
-                        if newValue.count > 4 { enteredPin = String(newValue.prefix(4)) }
+                    .onChange(of: enteredPin) {
+                        if enteredPin.count > 4 { enteredPin = String(enteredPin.prefix(4)) }
                     }
 
                 if pinError {
-                    Text("Incorrect PIN. Try again.")
+                    Text(LanguageManager.shared.localized("settings.incorrect_pin"))
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundColor(.red)
                 }
@@ -1378,7 +2113,7 @@ struct PinEntryView: View {
                     HStack(spacing: 8) {
                         Image(systemName: BiometricAuthService.biometricIcon)
                             .font(.system(size: 20))
-                        Text("Use \(BiometricAuthService.biometricName)")
+                        Text(LanguageManager.shared.localized("settings.use_biometric", BiometricAuthService.biometricName))
                             .font(.system(size: 15, weight: .medium, design: .rounded))
                     }
                     .foregroundColor(KomalColors.lavenderPurple)
@@ -1388,7 +2123,7 @@ struct PinEntryView: View {
             // Buttons
             HStack(spacing: 16) {
                 Button(action: onCancel) {
-                    Text("Cancel")
+                    Text(LanguageManager.shared.localized("common.cancel"))
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                         .frame(maxWidth: .infinity)
@@ -1398,7 +2133,7 @@ struct PinEntryView: View {
                 }
 
                 Button(action: onSubmit) {
-                    Text("Enter")
+                    Text(LanguageManager.shared.localized("settings.enter"))
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -1407,6 +2142,145 @@ struct PinEntryView: View {
                         .cornerRadius(12)
                 }
                 .disabled(enteredPin.count != 4)
+            }
+
+            // Forgot PIN - uses Face ID to reset
+            if BiometricAuthService.availableBiometricType != .none, onForgotPin != nil {
+                Button(action: {
+                    Task {
+                        let success = await BiometricAuthService.authenticate()
+                        if success {
+                            await MainActor.run {
+                                onForgotPin?()
+                            }
+                        }
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: BiometricAuthService.biometricIcon)
+                            .font(.system(size: 14))
+                        Text("Forgot PIN? Reset with \(BiometricAuthService.biometricName)")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                    }
+                    .foregroundColor(KomalColors.textSecondary)
+                }
+            }
+        }
+        .padding(24)
+        .background(Color.white)
+    }
+}
+
+// MARK: - PIN Reset View
+struct PinResetView: View {
+    @Binding var newPin: String
+    @Binding var confirmNewPin: String
+    @Binding var mismatchError: Bool
+    @Binding var showSuccess: Bool
+    let onSave: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            if showSuccess {
+                // Success state
+                VStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 56))
+                        .foregroundColor(KomalColors.pearlAqua)
+
+                    Text("PIN Updated")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
+
+                    Text("Your new parent PIN has been saved.")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                }
+            } else {
+                // Header
+                VStack(spacing: 8) {
+                    Image(systemName: "key.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(KomalColors.lavenderPurple)
+
+                    Text("Set New PIN")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
+
+                    Text("Enter a new 4-digit parent PIN")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                }
+
+                // New PIN fields
+                VStack(spacing: 12) {
+                    SecureField("New PIN", text: $newPin)
+                        .keyboardType(.numberPad)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 150)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(KomalColors.background)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
+                        )
+                        .onChange(of: newPin) {
+                            if newPin.count > 4 { newPin = String(newPin.prefix(4)) }
+                            mismatchError = false
+                        }
+
+                    SecureField("Confirm PIN", text: $confirmNewPin)
+                        .keyboardType(.numberPad)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 150)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(KomalColors.background)
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(mismatchError ? Color.red : Color.black.opacity(0.1), lineWidth: mismatchError ? 2 : 0.5)
+                        )
+                        .onChange(of: confirmNewPin) {
+                            if confirmNewPin.count > 4 { confirmNewPin = String(confirmNewPin.prefix(4)) }
+                            mismatchError = false
+                        }
+
+                    if mismatchError {
+                        Text("PINs don't match or are incomplete")
+                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .foregroundColor(.red)
+                    }
+                }
+
+                // Buttons
+                HStack(spacing: 16) {
+                    Button(action: onCancel) {
+                        Text(LanguageManager.shared.localized("common.cancel"))
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(KomalColors.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(KomalColors.background)
+                            .cornerRadius(12)
+                    }
+
+                    Button(action: onSave) {
+                        Text("Save PIN")
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(newPin.count == 4 && confirmNewPin.count == 4 ? KomalColors.lavenderPurple : KomalColors.lavenderPurple.opacity(0.4))
+                            .cornerRadius(12)
+                    }
+                    .disabled(newPin.count != 4 || confirmNewPin.count != 4)
+                }
             }
         }
         .padding(24)

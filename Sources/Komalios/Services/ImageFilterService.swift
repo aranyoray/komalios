@@ -29,6 +29,7 @@ private final class ContinuationResumeGuard: @unchecked Sendable {
 }
 
 /// Service for analyzing images and determining if they should be filtered
+@MainActor
 final class ImageFilterService: ObservableObject {
     static let shared = ImageFilterService()
     
@@ -40,21 +41,21 @@ final class ImageFilterService: ObservableObject {
     // MARK: - Private Properties
     private var visionModel: VNCoreMLModel?
     private let analysisQueue = DispatchQueue(label: "com.komalios.imagefilter", qos: .userInitiated)
-    private let imageCache = NSCache<NSString, UIImage>()
-    
+
+    // URL result cache: avoids re-analyzing the same image URL
+    // Key = URL string, Value = cached result
+    private var urlResultCache: [String: ImageAnalysisResult] = [:]
+    private var urlResultCacheInsertionOrder: [String] = []  // tracks FIFO order for eviction
+    private let urlResultCacheLimit = 200
+
     // Confidence threshold for filtering (0.0 - 1.0)
-    private let filterConfidenceThreshold: Float = 0.6
+    // Only block images with meaningful confidence of inappropriate content
+    private let filterConfidenceThreshold: Float = 0.50
     
     // MARK: - Initialization
     
     private init() {
         setupModel()
-        configureCache()
-    }
-    
-    private func configureCache() {
-        imageCache.countLimit = 50
-        imageCache.totalCostLimit = 50 * 1024 * 1024 // 50MB
     }
     
     private func setupModel() {
@@ -64,9 +65,12 @@ final class ImageFilterService: ObservableObject {
     }
     
     private func loadCoreMLModel() {
+        #if !targetEnvironment(simulator)
+        // Simulator has no Neural Engine / ANE; VNCoreMLRequest inference always fails
+        // with Code=9 "Could not create inference context". Skip model loading there.
         analysisQueue.async { [weak self] in
             guard let self = self else { return }
-            
+
             // Try to load the NSFW detection model
             // First try compiled model (.mlmodelc), then try source model (.mlmodel)
             var modelURL: URL?
@@ -98,48 +102,183 @@ final class ImageFilterService: ObservableObject {
             
             do {
                 let config = MLModelConfiguration()
-                config.computeUnits = .cpuAndNeuralEngine
+                config.computeUnits = .all
                 
                 let mlModel = try MLModel(contentsOf: url, configuration: config)
-                self.visionModel = try VNCoreMLModel(for: mlModel)
-                
+                let vnModel = try VNCoreMLModel(for: mlModel)
                 DispatchQueue.main.async {
+                    self.visionModel = vnModel
                     self.isModelLoaded = true
                     print("🛡️ ImageFilterService: NSFW CoreML model loaded successfully from \(url.lastPathComponent)")
                 }
             } catch {
-                print("🛡️ ImageFilterService: Failed to load NSFW CoreML model: \(error)")
+            print("🛡️ ImageFilterService: Failed to load NSFW CoreML model: \(error)")
                 DispatchQueue.main.async {
                     self.isModelLoaded = false
                 }
             }
         }
+        #endif
     }
-    
+
     // MARK: - Public API
     
     /// Analyze an image from URL and return classification result
     func analyzeImage(url: URL, preferences: ContentFilterPreferences) async -> ImageAnalysisResult {
         totalImagesAnalyzed += 1
-        
-        // Download image
+
+        // Check URL result cache first — instant result for previously-seen URLs
+        let cacheKey = url.absoluteString
+        if let cached = urlResultCache[cacheKey] {
+            return cached
+        }
+
+        // Handle data: URLs by decoding base64 inline
+        if url.scheme == "data" {
+            let result = await analyzeDataURL(url: url, preferences: preferences)
+            cacheResult(result, forKey: cacheKey)
+            return result
+        }
+
+        // Download image — if download fails, allow it (don't block unverifiable images)
         guard let imageData = await downloadImage(url: url),
               let image = UIImage(data: imageData) else {
-            return ImageAnalysisResult(
+            // Can't download/parse image — allow it rather than blocking all failed downloads
+            let failResult = ImageAnalysisResult(
                 imageURL: url,
                 category: .neutral,
                 confidence: 0,
                 shouldFilter: false,
-                action: .failed
+                action: .allowed
+            )
+            cacheResult(failResult, forKey: cacheKey)
+            return failResult
+        }
+
+        // Analyze with CoreML if available, otherwise use heuristics
+        var result: ImageAnalysisResult
+        if isModelLoaded, visionModel != nil {
+            result = await analyzeWithCoreML(image: image, url: url, preferences: preferences)
+        } else {
+            result = await analyzeWithHeuristics(image: image, url: url, preferences: preferences)
+        }
+
+        // Run RevealingLevelClassifier on safe, neutral, AND suggestive results
+        // so that suggestive content with explicit body exposure gets upgraded to explicit
+        if result.category == .safe || result.category == .neutral || result.category == .suggestive {
+            result = await applyRevealingLevelUpgrade(baseResult: result, image: image, url: url, preferences: preferences)
+        }
+
+        cacheResult(result, forKey: cacheKey)
+        return result
+    }
+
+    private func cacheResult(_ result: ImageAnalysisResult, forKey key: String) {
+        // If the key is already cached, don't duplicate it in the insertion order
+        if urlResultCache[key] != nil {
+            urlResultCache[key] = result
+            return
+        }
+
+        // Evict oldest entries (FIFO) if cache is full
+        if urlResultCache.count >= urlResultCacheLimit {
+            let evictCount = urlResultCacheLimit / 4  // Remove ~25% of entries
+            let keysToRemove = Array(urlResultCacheInsertionOrder.prefix(evictCount))
+            for k in keysToRemove { urlResultCache.removeValue(forKey: k) }
+            urlResultCacheInsertionOrder.removeFirst(min(evictCount, urlResultCacheInsertionOrder.count))
+        }
+
+        urlResultCache[key] = result
+        urlResultCacheInsertionOrder.append(key)
+    }
+
+    /// Run RevealingLevelClassifier on safe/neutral images and upgrade if revealing
+    private func applyRevealingLevelUpgrade(
+        baseResult: ImageAnalysisResult,
+        image: UIImage,
+        url: URL,
+        preferences: ContentFilterPreferences
+    ) async -> ImageAnalysisResult {
+        let revealingResult = await RevealingLevelClassifier.shared.classify(image: image)
+
+        // No person detected — return as-is
+        guard revealingResult.personDetected else {
+            return baseResult
+        }
+
+        // Minor detected — err on side of safety: block the image
+        // Do NOT return unfiltered base result when a minor is in the image
+        if revealingResult.minorDetected {
+            print("🛡️ Minor detected in image — blocking for safety")
+            return ImageAnalysisResult(
+                imageURL: url,
+                category: .suggestive,
+                confidence: 0.8,
+                shouldFilter: true,
+                action: .replaced
             )
         }
-        
-        // Analyze with CoreML if available, otherwise use heuristics
-        if isModelLoaded, visionModel != nil {
-            return await analyzeWithCoreML(image: image, url: url, preferences: preferences)
-        } else {
-            return analyzeWithHeuristics(image: image, url: url, preferences: preferences)
+
+        // Level ≥ 5: upgrade to explicit with block action
+        if revealingResult.level >= RevealingLevel.explicitExposure {
+            let shouldFilter = self.shouldFilter(category: .explicit, preferences: preferences)
+            if shouldFilter {
+                DispatchQueue.main.async { self.totalImagesFiltered += 1 }
+            }
+            print("🛡️ Revealing level \(revealingResult.level.rawValue) → upgraded to explicit (score: \(revealingResult.aggregateScore))")
+            return ImageAnalysisResult(
+                imageURL: url,
+                category: .explicit,
+                confidence: min(Float(revealingResult.aggregateScore / 5.0), 0.95),
+                shouldFilter: shouldFilter,
+                action: shouldFilter ? .replaced : .allowed
+            )
         }
+
+        // Level ≥ 2: upgrade to suggestive — block at 30% threshold
+        if revealingResult.level >= RevealingLevel.partialExposure {
+            let shouldFilter = self.shouldFilter(category: .suggestive, preferences: preferences)
+            if shouldFilter {
+                DispatchQueue.main.async { self.totalImagesFiltered += 1 }
+            }
+            print("🛡️ Revealing level \(revealingResult.level.rawValue) → upgraded to suggestive (score: \(revealingResult.aggregateScore))")
+            return ImageAnalysisResult(
+                imageURL: url,
+                category: .suggestive,
+                confidence: min(Float(revealingResult.aggregateScore / 3.5), 0.85),
+                shouldFilter: shouldFilter,
+                action: shouldFilter ? .replaced : .allowed
+            )
+        }
+
+        // Level < 3: no upgrade needed
+        return baseResult
+    }
+
+    /// Decode and analyze a data: URL (base64-encoded image)
+    private func analyzeDataURL(url: URL, preferences: ContentFilterPreferences) async -> ImageAnalysisResult {
+        let urlString = url.absoluteString
+        // data:image/png;base64,iVBOR... → extract after the comma
+        guard let commaIndex = urlString.firstIndex(of: ",") else {
+            return ImageAnalysisResult(imageURL: url, category: .neutral, confidence: 0, shouldFilter: false, action: .allowed)
+        }
+        let base64String = String(urlString[urlString.index(after: commaIndex)...])
+        guard let data = Data(base64Encoded: base64String, options: .ignoreUnknownCharacters),
+              let image = UIImage(data: data) else {
+            return ImageAnalysisResult(imageURL: url, category: .neutral, confidence: 0, shouldFilter: false, action: .allowed)
+        }
+
+        // Run analysis pipeline (CoreML or heuristic + RevealingLevel)
+        var result: ImageAnalysisResult
+        if isModelLoaded, visionModel != nil {
+            result = await analyzeWithCoreML(image: image, url: url, preferences: preferences)
+        } else {
+            result = await analyzeWithHeuristics(image: image, url: url, preferences: preferences)
+        }
+        if result.category == .safe || result.category == .neutral || result.category == .suggestive {
+            result = await applyRevealingLevelUpgrade(baseResult: result, image: image, url: url, preferences: preferences)
+        }
+        return result
     }
 
     /// Analyze image data directly
@@ -147,39 +286,51 @@ final class ImageFilterService: ObservableObject {
         totalImagesAnalyzed += 1
 
         guard let image = UIImage(data: data) else {
+            // Can't parse image — allow it
             return ImageAnalysisResult(
                 imageURL: url,
                 category: .neutral,
                 confidence: 0,
                 shouldFilter: false,
-                action: .failed
+                action: .allowed
             )
         }
 
+        var result: ImageAnalysisResult
         if isModelLoaded, visionModel != nil {
-            return await analyzeWithCoreML(image: image, url: url, preferences: preferences)
+            result = await analyzeWithCoreML(image: image, url: url, preferences: preferences)
         } else {
-            return analyzeWithHeuristics(image: image, url: url, preferences: preferences)
+            result = await analyzeWithHeuristics(image: image, url: url, preferences: preferences)
         }
+
+        // Run RevealingLevelClassifier on safe/neutral/suggestive results (same as analyzeImage)
+        if result.category == .safe || result.category == .neutral || result.category == .suggestive {
+            result = await applyRevealingLevelUpgrade(baseResult: result, image: image, url: url, preferences: preferences)
+        }
+
+        return result
     }
     
-    /// Determine if a category should be filtered based on preferences
+    /// Determine if a category should be filtered based on preferences.
+    /// For images, both `.block` and `.gate` mean the image should be replaced —
+    /// only `.allow` passes the image through.
     func shouldFilter(category: ImageContentCategory, preferences: ContentFilterPreferences) -> Bool {
         let action = category.shouldFilter(preferences: preferences)
-        return action == .block
+        return action == .block || action == .gate
     }
     
     /// Get the Komal logo as base64 for JavaScript injection
-    func getKomalLogoBase64() -> String? {
+    /// nonisolated because this is called from EngagementTracker init (non-actor context)
+    nonisolated func getKomalLogoBase64() -> String? {
         // Try to load the Komal logo/mascot image
-        guard let logoImage = UIImage(named: "komaliconnobg") ?? UIImage(named: "komalicon") ?? createDefaultLogo() else {
+        guard let logoImage = UIImage(named: "komaliconnobg") ?? UIImage(named: "komalicon") ?? Self.createDefaultLogo() else {
             return nil
         }
-        
+
         guard let imageData = logoImage.pngData() else {
             return nil
         }
-        
+
         return "data:image/png;base64," + imageData.base64EncodedString()
     }
     
@@ -188,12 +339,13 @@ final class ImageFilterService: ObservableObject {
     private func analyzeWithCoreML(image: UIImage, url: URL, preferences: ContentFilterPreferences) async -> ImageAnalysisResult {
         return await withCheckedContinuation { continuation in
             guard let cgImage = image.cgImage, let visionModel = visionModel else {
+                // Can't process image — allow it rather than blocking
                 continuation.resume(returning: ImageAnalysisResult(
                     imageURL: url,
                     category: .neutral,
                     confidence: 0,
                     shouldFilter: false,
-                    action: .failed
+                    action: .allowed
                 ))
                 return
             }
@@ -208,24 +360,26 @@ final class ImageFilterService: ObservableObject {
                 guard resumeGuard.tryMarkResumed() else { return }
 
                 guard let self = self else {
+                    // Can't process — allow it
                     continuation.resume(returning: ImageAnalysisResult(
                         imageURL: url,
                         category: .neutral,
                         confidence: 0,
                         shouldFilter: false,
-                        action: .failed
+                        action: .allowed
                     ))
                     return
                 }
 
                 if let error = error {
                     print("🛡️ CoreML analysis error: \(error)")
+                    // Analysis error — allow the image
                     continuation.resume(returning: ImageAnalysisResult(
                         imageURL: url,
                         category: .neutral,
                         confidence: 0,
                         shouldFilter: false,
-                        action: .failed
+                        action: .allowed
                     ))
                     return
                 }
@@ -238,7 +392,13 @@ final class ImageFilterService: ObservableObject {
                     let nsfwScore = self.extractNSFWScore(from: topResult)
                     let category = self.determineCategory(from: nsfwScore)
                     let confidence = Float(nsfwScore)
-                    let shouldFilter = self.shouldFilter(category: category, preferences: preferences) && confidence >= self.filterConfidenceThreshold
+                    // Check preferences first, then apply confidence threshold
+                    // For child safety, use lower threshold for dangerous categories
+                    let prefShouldFilter = self.shouldFilter(category: category, preferences: preferences)
+                    let effectiveThreshold: Float = (category == .explicit || category == .violence || category == .gore)
+                        ? self.filterConfidenceThreshold * 0.7 // Even lower bar for dangerous content
+                        : self.filterConfidenceThreshold
+                    let shouldFilter = prefShouldFilter && confidence >= effectiveThreshold
 
                     let action: ImageFilterAction = shouldFilter ? .replaced : .allowed
 
@@ -259,11 +419,11 @@ final class ImageFilterService: ObservableObject {
                     return
                 }
 
-                // Fallback: If no classification results, assume safe
-                print("🛡️ NSFW model returned unexpected results, defaulting to safe")
+                // Fallback: If no classification results, allow the image
+                print("🛡️ NSFW model returned unexpected results, allowing image")
                 continuation.resume(returning: ImageAnalysisResult(
                     imageURL: url,
-                    category: .safe,
+                    category: .neutral,
                     confidence: 0.0,
                     shouldFilter: false,
                     action: .allowed
@@ -273,6 +433,17 @@ final class ImageFilterService: ObservableObject {
             // Configure request for optimal NSFW detection
             request.imageCropAndScaleOption = .scaleFill  // Better for NSFW detection
 
+            // CONCURRENCY WARNING: nonisolated(unsafe) is used here because
+            // VNImageRequestHandler and VNCoreMLRequest are not Sendable, but we
+            // must pass them to analysisQueue.async (a different isolation domain).
+            // This is safe in practice because:
+            //   1. `handler` and `visionRequest` are created on the MainActor,
+            //   2. they are only used inside `analysisQueue.async` after creation,
+            //   3. no further reads/writes happen on the MainActor after dispatch.
+            // However, the compiler cannot verify this, so a data race is
+            // theoretically possible if future edits break these invariants.
+            // A proper fix would require rewriting the Vision pipeline using
+            // async/await VNImageRequestHandler APIs (iOS 17+) or actor isolation.
             nonisolated(unsafe) let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
             nonisolated(unsafe) let visionRequest = request
 
@@ -282,12 +453,13 @@ final class ImageFilterService: ObservableObject {
                 } catch {
                     guard resumeGuard.tryMarkResumed() else { return }
                     print("🛡️ Vision request failed: \(error)")
+                    // Vision failed — allow the image
                     continuation.resume(returning: ImageAnalysisResult(
                         imageURL: url,
                         category: .neutral,
                         confidence: 0,
                         shouldFilter: false,
-                        action: .failed
+                        action: .allowed
                     ))
                 }
             }
@@ -298,22 +470,30 @@ final class ImageFilterService: ObservableObject {
     private func extractNSFWScore(from observation: VNClassificationObservation) -> Double {
         let identifier = observation.identifier.lowercased()
         let confidence = Double(observation.confidence)
-        
+
         // Check if the identifier indicates NSFW/explicit content
-        if identifier.contains("nsfw") || identifier.contains("explicit") || 
+        if identifier.contains("nsfw") || identifier.contains("explicit") ||
            identifier.contains("porn") || identifier.contains("adult") ||
            identifier.contains("nude") || identifier.contains("naked") {
             // This is an NSFW classification, return the confidence as the score
             return confidence
         }
-        
+
         // Check if the identifier indicates safe content
-        if identifier.contains("safe") || identifier.contains("sfw") || 
+        if identifier.contains("safe") || identifier.contains("sfw") ||
            identifier.contains("neutral") || identifier.contains("normal") {
-            // This is a safe classification, return inverse confidence
-            return 1.0 - confidence
+            // The top label IS "safe" — the image is safe.
+            // Only flag as NSFW if the model is very uncertain about safety
+            // (confidence < 0.3 means model barely thinks it's safe).
+            // Previously: `1.0 - confidence` caused a "safe" label at 0.3 confidence
+            // to return 0.7, incorrectly flagging it as explicit.
+            if confidence >= 0.5 {
+                return 0.0  // Model is confident it's safe
+            }
+            // Model is very uncertain — return a low suggestive-range score, not explicit
+            return max(0.0, (0.5 - confidence) * 0.6)  // max possible: 0.3
         }
-        
+
         // If identifier is a probability-like value (e.g., "0.85" or "85%")
         if let numericValue = Double(identifier) {
             // If it's between 0 and 1, use it directly
@@ -325,10 +505,12 @@ final class ImageFilterService: ObservableObject {
                 return numericValue / 100.0
             }
         }
-        
-        // Default: use confidence as NSFW score
-        // Higher confidence in any classification might indicate NSFW
-        return confidence
+
+        // Default: unrecognized label (e.g. "cat", "dog", "car") — treat as safe.
+        // Returning the model's classification confidence here would be wrong:
+        // an image classified as "cat" with 0.95 confidence would score 0.95,
+        // falsely flagging it as explicit content.
+        return 0.0
     }
     
     /// Determine category based on NSFW score
@@ -350,31 +532,31 @@ final class ImageFilterService: ObservableObject {
         }
     }
     
-    private func analyzeWithHeuristics(image: UIImage, url: URL, preferences: ContentFilterPreferences) -> ImageAnalysisResult {
+    private func analyzeWithHeuristics(image: UIImage, url: URL, preferences: ContentFilterPreferences) async -> ImageAnalysisResult {
         // Basic heuristic analysis when CoreML model is not available
         // This provides basic protection based on:
         // 1. URL patterns
         // 2. Image characteristics
-        
+
         let urlString = url.absoluteString.lowercased()
-        
-        // Check URL for suspicious patterns
+
+        // Check URL for suspicious patterns (also check URL path components and query params)
         let suspiciousPatterns = [
             "nsfw", "xxx", "porn", "adult", "nude", "naked", "sexy",
-            "explicit", "18+", "mature", "gore", "violence", "blood"
+            "explicit", "18+", "mature", "gore", "violence", "blood",
+            "hentai", "onlyfans", "playboy", "brazzers", "xnxx", "xvideos",
+            "redtube", "youporn", "pornhub", "xhamster", "spankbang"
         ]
-        
+
         for pattern in suspiciousPatterns {
             if urlString.contains(pattern) {
                 let category = categorizeByURLPattern(pattern)
                 let shouldFilter = self.shouldFilter(category: category, preferences: preferences)
-                
+
                 if shouldFilter {
-                    DispatchQueue.main.async {
-                        self.totalImagesFiltered += 1
-                    }
+                    DispatchQueue.main.async { self.totalImagesFiltered += 1 }
                 }
-                
+
                 return ImageAnalysisResult(
                     imageURL: url,
                     category: category,
@@ -384,13 +566,15 @@ final class ImageFilterService: ObservableObject {
                 )
             }
         }
-        
-        // Analyze image characteristics (basic skin tone detection)
-        let skinToneRatio = analyzeSkinToneRatio(image: image)
-        
+
+        // Run pixel analysis off the main actor to avoid blocking UI
+        let skinToneRatio = await Task.detached(priority: .userInitiated) {
+            return self.analyzeSkinToneRatio(image: image)
+        }.value
+
         if skinToneRatio > 0.6 {
-            // High skin tone ratio - flag as potentially suggestive
-            let category: ImageContentCategory = skinToneRatio > 0.8 ? .explicit : .suggestive
+            // Skin tone ratio above 60% — likely inappropriate content
+            let category: ImageContentCategory = skinToneRatio > 0.65 ? .explicit : .suggestive
             let confidence = Float(skinToneRatio)
             let shouldFilter = self.shouldFilter(category: category, preferences: preferences) && confidence >= filterConfidenceThreshold
             
@@ -422,52 +606,31 @@ final class ImageFilterService: ObservableObject {
     // MARK: - Helper Methods
     
     private func downloadImage(url: URL) async -> Data? {
-        // Check if it's a data URL
-        if url.scheme == "data" {
-            return nil // Skip data URLs for now
-        }
-        
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
-            
+
             guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
+                  (200...299).contains(httpResponse.statusCode) else {
                 return nil
             }
-            
-            // Verify it's an image
-            let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type") ?? ""
-            guard contentType.contains("image") else {
+
+            // Accept image if Content-Type says image OR if no Content-Type header
+            // (many CDNs omit Content-Type or use application/octet-stream for images)
+            let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+            if !contentType.isEmpty &&
+               !contentType.contains("image") &&
+               !contentType.contains("octet-stream") &&
+               !contentType.contains("binary") {
                 return nil
             }
-            
+
+            // Sanity check: must have enough data to be an image
+            guard data.count > 100 else { return nil }
+
             return data
         } catch {
             print("🛡️ Failed to download image: \(error)")
             return nil
-        }
-    }
-    
-    /// Legacy method - kept for backward compatibility
-    /// Now uses extractNSFWScore and determineCategory instead
-    private func mapModelOutput(_ identifier: String) -> ImageContentCategory {
-        // Map common NSFW model output labels to our categories
-        let lowercased = identifier.lowercased()
-        
-        if lowercased.contains("porn") || lowercased.contains("explicit") || lowercased.contains("nsfw") {
-            return .explicit
-        } else if lowercased.contains("sexy") || lowercased.contains("suggestive") || lowercased.contains("hentai") {
-            return .suggestive
-        } else if lowercased.contains("violence") || lowercased.contains("gore") {
-            return .violence
-        } else if lowercased.contains("drug") {
-            return .drugs
-        } else if lowercased.contains("weapon") || lowercased.contains("gun") {
-            return .weapons
-        } else if lowercased.contains("neutral") || lowercased.contains("drawing") {
-            return .neutral
-        } else {
-            return .safe
         }
     }
     
@@ -484,13 +647,13 @@ final class ImageFilterService: ObservableObject {
         }
     }
     
-    private func analyzeSkinToneRatio(image: UIImage) -> Double {
+    private nonisolated func analyzeSkinToneRatio(image: UIImage) -> Double {
         // Basic skin tone detection using average color analysis
         guard let cgImage = image.cgImage else { return 0 }
-        
+
         let width = min(cgImage.width, 100)  // Sample at lower resolution
         let height = min(cgImage.height, 100)
-        
+
         guard let context = CGContext(
             data: nil,
             width: width,
@@ -500,82 +663,87 @@ final class ImageFilterService: ObservableObject {
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else { return 0 }
-        
+
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
-        
+
         guard let data = context.data else { return 0 }
-        
+
         let pointer = data.bindMemory(to: UInt8.self, capacity: width * height * 4)
-        
+
         var skinPixels = 0
         let totalPixels = width * height
-        
+
         for i in 0..<totalPixels {
             let offset = i * 4
             let r = Int(pointer[offset])
             let g = Int(pointer[offset + 1])
             let b = Int(pointer[offset + 2])
-            
-            // Simple skin tone detection (RGB ranges)
-            if r > 95 && g > 40 && b > 20 &&
-               r > g && r > b &&
-               abs(r - g) > 15 &&
-               r - b > 15 && r - g < 100 {
+
+            // Skin tone detection covering diverse skin tones
+            // Tightened rules to reduce false positives on warm surfaces (wood, sand, terracotta)
+
+            // Rule 1: light to medium skin — require sufficient color variance
+            // and exclude uniform warm tones (wood/sand have r≈g≈b in warm range)
+            let rule1 = r > 95 && g > 40 && b > 20 &&
+                        r > g && r > b &&
+                        abs(r - g) > 15 && r - b > 20 &&
+                        b < g  // skin has b < g; wood/sand often have b ≈ g
+
+            // Rule 2: darker skin tones — tighter channel spread to exclude brown surfaces
+            let rule2 = r > 60 && g > 35 && b > 15 &&
+                        r > g && g > b &&
+                        (r - g) > 5 && (r - g) < 60 && (g - b) > 5 && (g - b) < 50
+
+            if rule1 || rule2 {
                 skinPixels += 1
             }
         }
-        
+
         return Double(skinPixels) / Double(totalPixels)
     }
     
-    private func createDefaultLogo() -> UIImage? {
+    private nonisolated static func createDefaultLogo() -> UIImage? {
         // Create a simple placeholder logo if no image is available
         let size = CGSize(width: 200, height: 200)
-        UIGraphicsBeginImageContextWithOptions(size, false, 0)
-        
-        guard let context = UIGraphicsGetCurrentContext() else {
-            UIGraphicsEndImageContext()
-            return nil
+        let renderer = UIGraphicsImageRenderer(size: size)
+
+        return renderer.image { rendererContext in
+            let context = rendererContext.cgContext
+
+            // Pink gradient background
+            let colors = [
+                UIColor(red: 1.0, green: 0.96, blue: 0.97, alpha: 1.0).cgColor,
+                UIColor(red: 1.0, green: 0.89, blue: 0.93, alpha: 1.0).cgColor
+            ]
+
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors as CFArray, locations: nil) {
+                context.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: size.width, y: size.height), options: [])
+            }
+
+            // Draw shield emoji
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = .center
+
+            let shieldAttributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 60),
+                .paragraphStyle: paragraphStyle
+            ]
+
+            let shieldText = "🛡️"
+            let shieldRect = CGRect(x: 0, y: 50, width: size.width, height: 80)
+            shieldText.draw(in: shieldRect, withAttributes: shieldAttributes)
+
+            // Draw text
+            let textAttributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 14, weight: .semibold),
+                .foregroundColor: UIColor(red: 0.83, green: 0.65, blue: 0.65, alpha: 1.0),
+                .paragraphStyle: paragraphStyle
+            ]
+
+            let text = "Protected by Komal"
+            let textRect = CGRect(x: 0, y: 140, width: size.width, height: 30)
+            text.draw(in: textRect, withAttributes: textAttributes)
         }
-        
-        // Pink gradient background
-        let colors = [
-            UIColor(red: 1.0, green: 0.96, blue: 0.97, alpha: 1.0).cgColor,
-            UIColor(red: 1.0, green: 0.89, blue: 0.93, alpha: 1.0).cgColor
-        ]
-        
-        if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors as CFArray, locations: nil) {
-            context.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: size.width, y: size.height), options: [])
-        }
-        
-        // Draw shield emoji
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .center
-        
-        let shieldAttributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 60),
-            .paragraphStyle: paragraphStyle
-        ]
-        
-        let shieldText = "🛡️"
-        let shieldRect = CGRect(x: 0, y: 50, width: size.width, height: 80)
-        shieldText.draw(in: shieldRect, withAttributes: shieldAttributes)
-        
-        // Draw text
-        let textAttributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 14, weight: .semibold),
-            .foregroundColor: UIColor(red: 0.83, green: 0.65, blue: 0.65, alpha: 1.0),
-            .paragraphStyle: paragraphStyle
-        ]
-        
-        let text = "Protected by Komal"
-        let textRect = CGRect(x: 0, y: 140, width: size.width, height: 30)
-        text.draw(in: textRect, withAttributes: textAttributes)
-        
-        let image = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
-        
-        return image
     }
 }
 
@@ -606,3 +774,4 @@ struct ImageAnalysisResult {
     }
 }
 #endif
+

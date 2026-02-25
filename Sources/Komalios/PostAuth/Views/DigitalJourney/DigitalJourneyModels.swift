@@ -38,4 +38,33 @@ struct HistoryItem: Identifiable {
         self.pageTitle = event.pageTitle
         self.childName = event.childName
     }
+
+    /// Initialize from a local BrowsingEvent (fallback when Firestore is empty)
+    init(fromLocal event: BrowsingEvent) {
+        self.id = event.id.uuidString
+        self.url = event.url.absoluteString
+        // Normalize action to BLOCK/GATE/ALLOW
+        if let filterAction = event.action {
+            self.action = filterAction.rawValue.uppercased()
+        } else {
+            switch event.eventType {
+            case .blocked: self.action = "BLOCK"
+            case .gated:   self.action = "GATE"
+            default:        self.action = "ALLOW"
+            }
+        }
+        // Split "Category:Subcategory" format
+        if let cat = event.category, cat.contains(":") {
+            let parts = cat.split(separator: ":", maxSplits: 1)
+            self.category = String(parts[0])
+            self.subcategory = parts.count > 1 ? String(parts[1]) : nil
+        } else {
+            self.category = event.category
+            self.subcategory = nil
+        }
+        self.timestamp = event.timestamp
+        self.emojiResponse = nil
+        self.pageTitle = event.pageTitle
+        self.childName = nil
+    }
 }

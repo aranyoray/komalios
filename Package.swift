@@ -12,27 +12,21 @@ let package = Package(
     ],
     dependencies: [
         // Firebase dependencies
-        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "11.0.0"),
+        .package(url: "https://github.com/firebase/firebase-ios-sdk.git", from: "12.8.0"),
         // Google Sign-In
-        .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "8.0.0")
+        .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "9.1.0")
     ],
     targets: [
         .target(
             name: "Komalios",
             dependencies: [
                 .product(name: "FirebaseAuth", package: "firebase-ios-sdk"),
+                .product(name: "FirebaseCore", package: "firebase-ios-sdk"),
                 .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
                 .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),
                 .product(name: "GoogleSignInSwift", package: "GoogleSignIn-iOS")
             ],
             path: "Sources/Komalios",
-            exclude: [
-                "BUILD_FIX_GUIDE.md",
-                "BUILD_FAILURE_ANALYSIS.md",
-                "QUICK_FIX.md",
-                "complete_rebuild.sh",
-                "fix_build_errors.sh"
-            ],
             resources: [
                 .process("Resources"),
                 .process("Assets.xcassets"),

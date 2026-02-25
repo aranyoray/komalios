@@ -7,11 +7,19 @@ struct ParentInsightsDashboardView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject private var moodService = MoodTrackingService.shared
     @ObservedObject private var growthService = GrowthTrackingService.shared
+    @State private var geminiService = GeminiChatService()
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
 
     @State private var conversationStarter: String? = nil
     @State private var dailyInsight: String? = nil
     @State private var isLoadingStarter = false
     @State private var isLoadingInsight = false
+    @State private var aiTasks: [Task<Void, Never>] = []
 
     var body: some View {
         NavigationView {
@@ -48,17 +56,17 @@ struct ParentInsightsDashboardView: View {
                         // Alerts
                         alertsSection
 
-                        Spacer().frame(height: 40)
+                        Spacer().frame(height: 20)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
                 }
             }
-            .navigationTitle("Child Wellness")
+            .navigationTitle(LanguageManager.shared.localized("insights.dashboard.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button(LanguageManager.shared.localized("common.done")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                 }
             }
@@ -72,6 +80,10 @@ struct ParentInsightsDashboardView: View {
                 loadConversationStarter()
                 loadDailyInsight()
             }
+            .onDisappear {
+                aiTasks.forEach { $0.cancel() }
+                aiTasks.removeAll()
+            }
         }
     }
 
@@ -80,15 +92,15 @@ struct ParentInsightsDashboardView: View {
     private var growthDeltasSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "arrow.up.arrow.down", title: "This Week vs Last", color: KomalColors.pearlAqua)
+                CardHeader(icon: "arrow.up.arrow.down", title: LanguageManager.shared.localized("insights.dashboard.this_week_vs_last"), color: KomalColors.pearlAqua)
 
                 let delta = growthService.getWeekOverWeekDelta()
 
                 HStack(spacing: 12) {
-                    DeltaStatView(label: "Chats", delta: delta.chatDelta, color: KomalColors.bubblegumPink)
-                    DeltaStatView(label: "Reflections", delta: delta.reflectionDelta, color: KomalColors.lavenderPurple)
-                    DeltaStatView(label: "Moods", delta: delta.moodDelta, color: .orange)
-                    DeltaStatView(label: "Active Days", delta: delta.activeDaysDelta, color: KomalColors.pearlAqua)
+                    DeltaStatView(label: LanguageManager.shared.localized("insights.dashboard.chats"), delta: delta.chatDelta, color: KomalColors.bubblegumPink)
+                    DeltaStatView(label: LanguageManager.shared.localized("insights.dashboard.reflections"), delta: delta.reflectionDelta, color: KomalColors.lavenderPurple)
+                    DeltaStatView(label: LanguageManager.shared.localized("insights.dashboard.moods"), delta: delta.moodDelta, color: .orange)
+                    DeltaStatView(label: LanguageManager.shared.localized("insights.dashboard.active_days"), delta: delta.activeDaysDelta, color: KomalColors.pearlAqua)
                 }
             }
         }
@@ -99,13 +111,13 @@ struct ParentInsightsDashboardView: View {
     private var conversationStarterSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 12) {
-                CardHeader(icon: "text.bubble.fill", title: "Tonight's Conversation Starter", color: KomalColors.lavenderPurple)
+                CardHeader(icon: "text.bubble.fill", title: LanguageManager.shared.localized("insights.dashboard.conversation_starter"), color: KomalColors.lavenderPurple)
 
                 if isLoadingStarter {
                     HStack(spacing: 8) {
                         ProgressView()
                             .scaleEffect(0.8)
-                        Text("Generating a conversation starter...")
+                        Text(LanguageManager.shared.localized("insights.dashboard.generating_starter"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -115,7 +127,7 @@ struct ParentInsightsDashboardView: View {
                         .foregroundColor(KomalColors.textPrimary)
                         .lineSpacing(4)
                 } else {
-                    Text("Use the app for a few days to get personalized conversation starters.")
+                    Text(LanguageManager.shared.localized("insights.dashboard.starter_placeholder"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -128,13 +140,13 @@ struct ParentInsightsDashboardView: View {
     private var dailyInsightSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 12) {
-                CardHeader(icon: "lightbulb.fill", title: "Daily Insight", color: .orange)
+                CardHeader(icon: "lightbulb.fill", title: LanguageManager.shared.localized("insights.dashboard.daily_insight"), color: .orange)
 
                 if isLoadingInsight {
                     HStack(spacing: 8) {
                         ProgressView()
                             .scaleEffect(0.8)
-                        Text("Generating insight...")
+                        Text(LanguageManager.shared.localized("insights.dashboard.generating_insight"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -144,7 +156,7 @@ struct ParentInsightsDashboardView: View {
                         .foregroundColor(KomalColors.textPrimary)
                         .lineSpacing(4)
                 } else {
-                    Text("Insights will appear as your child uses the app more.")
+                    Text(LanguageManager.shared.localized("insights.dashboard.insight_placeholder"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -157,13 +169,13 @@ struct ParentInsightsDashboardView: View {
     private var emotionalWellnessSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "heart.circle.fill", title: "Emotional Wellness", color: KomalColors.bubblegumPink)
+                CardHeader(icon: "heart.circle.fill", title: LanguageManager.shared.localized("insights.dashboard.emotional_wellness"), color: KomalColors.bubblegumPink)
 
                 // Mood trend (last 7 days)
                 let trend = moodService.getMoodTrend(days: 7)
                 if !trend.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Last 7 Days")
+                        Text(LanguageManager.shared.localized("insights.dashboard.last_7_days"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -186,7 +198,7 @@ struct ParentInsightsDashboardView: View {
                 let distribution = moodService.getEmotionDistribution(days: 30)
                 if !distribution.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("30-Day Emotion Distribution")
+                        Text(LanguageManager.shared.localized("insights.dashboard.emotion_distribution"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -216,7 +228,7 @@ struct ParentInsightsDashboardView: View {
                 }
 
                 if trend.isEmpty && distribution.isEmpty {
-                    Text("No mood data yet. Mood entries will appear here as your child uses the app.")
+                    Text(LanguageManager.shared.localized("insights.dashboard.no_mood_data"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -229,7 +241,7 @@ struct ParentInsightsDashboardView: View {
     private var conversationInsightsSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "bubble.left.and.bubble.right.fill", title: "Conversation Insights", color: KomalColors.lavenderPurple)
+                CardHeader(icon: "bubble.left.and.bubble.right.fill", title: LanguageManager.shared.localized("insights.dashboard.conversation_insights"), color: KomalColors.lavenderPurple)
 
                 let memoryService = ConversationMemoryService.shared
                 let totalMessages = memoryService.totalMessageCount()
@@ -239,7 +251,7 @@ struct ParentInsightsDashboardView: View {
                         Text("\(totalMessages)")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.lavenderPurple)
-                        Text("Messages")
+                        Text(LanguageManager.shared.localized("insights.dashboard.messages"))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -249,7 +261,7 @@ struct ParentInsightsDashboardView: View {
                         Text("\(memoryService.getUniqueCharacterCount())")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.bubblegumPink)
-                        Text("Characters Used")
+                        Text(LanguageManager.shared.localized("insights.dashboard.characters_used"))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -260,7 +272,7 @@ struct ParentInsightsDashboardView: View {
                 let topics = memoryService.getConversationTopics(days: 30)
                 if !topics.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Popular Topics")
+                        Text(LanguageManager.shared.localized("insights.dashboard.popular_topics"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -286,24 +298,14 @@ struct ParentInsightsDashboardView: View {
     private var growthMetricsSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "flame.fill", title: "Growth Metrics", color: .orange)
+                CardHeader(icon: "flame.fill", title: LanguageManager.shared.localized("insights.dashboard.growth_metrics"), color: .orange)
 
                 HStack(spacing: 16) {
-                    VStack(spacing: 4) {
-                        Text("\(growthService.currentStreak)")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                            .foregroundColor(.orange)
-                        Text("Current Streak")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(KomalColors.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity)
-
                     VStack(spacing: 4) {
                         Text("\(growthService.getEarnedMilestones().count)")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.pearlAqua)
-                        Text("Milestones")
+                        Text(LanguageManager.shared.localized("insights.dashboard.milestones"))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -313,7 +315,7 @@ struct ParentInsightsDashboardView: View {
                         Text("\(growthService.getActiveDaysCount())")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.lavenderPurple)
-                        Text("Active Days (30d)")
+                        Text(LanguageManager.shared.localized("insights.dashboard.active_days_30d"))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -324,7 +326,7 @@ struct ParentInsightsDashboardView: View {
                 let activities = growthService.getDailyActivities(days: 30)
                 if !activities.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("30-Day Activity")
+                        Text(LanguageManager.shared.localized("insights.dashboard.activity_30d"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -332,9 +334,7 @@ struct ParentInsightsDashboardView: View {
                             ForEach(0..<30, id: \.self) { dayOffset in
                                 let calendar = Calendar.current
                                 let date = calendar.date(byAdding: .day, value: -(29 - dayOffset), to: Date()) ?? Date()
-                                let formatter = DateFormatter()
-                                let _ = formatter.dateFormat = "yyyy-MM-dd"
-                                let dateStr = formatter.string(from: date)
+                                let dateStr = Self.dayFormatter.string(from: date)
                                 let activity = activities.first(where: { $0.date == dateStr })
                                 let isActive = activity?.isActive ?? false
 
@@ -354,7 +354,7 @@ struct ParentInsightsDashboardView: View {
     private var retentionMetricsSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "chart.line.uptrend.xyaxis", title: "Engagement Quality", color: KomalColors.pearlAqua)
+                CardHeader(icon: "chart.line.uptrend.xyaxis", title: LanguageManager.shared.localized("insights.dashboard.engagement_quality"), color: KomalColors.pearlAqua)
 
                 let state = appState.retentionState
 
@@ -363,7 +363,7 @@ struct ParentInsightsDashboardView: View {
                         Text("\(Int(state.voluntaryReturnRate * 100))%")
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.pearlAqua)
-                        Text("Voluntary Returns")
+                        Text(LanguageManager.shared.localized("insights.dashboard.voluntary_returns"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -374,7 +374,7 @@ struct ParentInsightsDashboardView: View {
                         Text(String(format: "%.1f", state.averageReflectionDepth))
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.lavenderPurple)
-                        Text("Avg Reflection Depth")
+                        Text(LanguageManager.shared.localized("insights.dashboard.avg_reflection_depth"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -385,7 +385,7 @@ struct ParentInsightsDashboardView: View {
                         Text("\(state.childInitiatedSessionCount)")
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.bubblegumPink)
-                        Text("Total Sessions")
+                        Text(LanguageManager.shared.localized("insights.dashboard.total_sessions"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -393,7 +393,7 @@ struct ParentInsightsDashboardView: View {
                     .frame(maxWidth: .infinity)
                 }
 
-                Text("Higher voluntary return rates indicate genuine engagement rather than notification-driven usage.")
+                Text(LanguageManager.shared.localized("insights.dashboard.voluntary_returns_explanation"))
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(KomalColors.textSecondary)
                     .lineSpacing(2)
@@ -406,7 +406,7 @@ struct ParentInsightsDashboardView: View {
     private var anchorComplianceSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "clock.fill", title: "Daily Check-ins", color: KomalColors.pearlAqua)
+                CardHeader(icon: "clock.fill", title: LanguageManager.shared.localized("insights.dashboard.daily_checkins"), color: KomalColors.pearlAqua)
 
                 let compliance = growthService.getAnchorComplianceRate()
 
@@ -425,7 +425,7 @@ struct ParentInsightsDashboardView: View {
                                 .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
                         }
-                        Text("Morning")
+                        Text(LanguageManager.shared.localized("insights.dashboard.morning"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -445,7 +445,7 @@ struct ParentInsightsDashboardView: View {
                                 .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
                         }
-                        Text("Evening")
+                        Text(LanguageManager.shared.localized("insights.dashboard.evening"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -462,9 +462,9 @@ struct ParentInsightsDashboardView: View {
             if moodService.hasConsecutiveSadEntries() {
                 SettingsCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        CardHeader(icon: "exclamationmark.triangle.fill", title: "Wellness Alert", color: .orange)
+                        CardHeader(icon: "exclamationmark.triangle.fill", title: LanguageManager.shared.localized("insights.dashboard.wellness_alert"), color: .orange)
 
-                        Text("Your child has reported feeling sad for 3 or more consecutive check-ins. Consider having a gentle conversation about how they're feeling.")
+                        Text(LanguageManager.shared.localized("insights.dashboard.wellness_alert_message"))
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                             .lineSpacing(4)
@@ -476,6 +476,7 @@ struct ParentInsightsDashboardView: View {
 
     // MARK: - AI Content Loading
 
+    @MainActor
     private func loadConversationStarter() {
         let topics = ConversationMemoryService.shared.getRecentTopics(days: 7)
         let recentMoods = moodService.recentEntries.prefix(5).map { $0.emotion }
@@ -484,11 +485,11 @@ struct ParentInsightsDashboardView: View {
 
         isLoadingStarter = true
         let ageGroup = appState.activeProfile.ageGroup
+        let service = geminiService
 
-        Task {
+        let task = Task {
             do {
-                let gemini = GeminiChatService()
-                let starter = try await gemini.generateConversationStarter(
+                let starter = try await service.generateConversationStarter(
                     childTopics: topics,
                     recentMoods: Array(recentMoods),
                     ageGroup: ageGroup
@@ -503,18 +504,20 @@ struct ParentInsightsDashboardView: View {
                 }
             }
         }
+        aiTasks.append(task)
     }
 
+    @MainActor
     private func loadDailyInsight() {
         let delta = growthService.getWeekOverWeekDelta()
-        let weeklyData = "Chats: \(delta.chatDelta >= 0 ? "+\(delta.chatDelta)" : "\(delta.chatDelta)"), Reflections: \(delta.reflectionDelta >= 0 ? "+\(delta.reflectionDelta)" : "\(delta.reflectionDelta)"), Active days: \(delta.activeDaysDelta >= 0 ? "+\(delta.activeDaysDelta)" : "\(delta.activeDaysDelta)"), Streak: \(growthService.currentStreak)"
+        let weeklyData = "Chats: \(delta.chatDelta >= 0 ? "+\(delta.chatDelta)" : "\(delta.chatDelta)"), Reflections: \(delta.reflectionDelta >= 0 ? "+\(delta.reflectionDelta)" : "\(delta.reflectionDelta)"), Active days: \(delta.activeDaysDelta >= 0 ? "+\(delta.activeDaysDelta)" : "\(delta.activeDaysDelta)")"
 
         isLoadingInsight = true
+        let service = geminiService
 
-        Task {
+        let task = Task {
             do {
-                let gemini = GeminiChatService()
-                let insight = try await gemini.generateDailyParentInsight(weeklyData: weeklyData)
+                let insight = try await service.generateDailyParentInsight(weeklyData: weeklyData)
                 await MainActor.run {
                     isLoadingInsight = false
                     dailyInsight = insight
@@ -525,6 +528,7 @@ struct ParentInsightsDashboardView: View {
                 }
             }
         }
+        aiTasks.append(task)
     }
 }
 

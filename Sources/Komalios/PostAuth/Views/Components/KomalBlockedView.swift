@@ -11,16 +11,17 @@ import SwiftUI
 struct KomalBlockedView: View {
     let category: ContentCategory
     let reason: String
+    @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @State private var showMessage = false
     
     private var friendlyMessage: String {
-        // Generate respectful, child-friendly messages based on category
+        let lang = LanguageManager.shared
         let messages = [
-            "I'm sorry, but this content isn't available right now. Let's find something else fun to explore together! 🌟",
-            "This isn't quite right for us right now. How about we look for something else that's awesome? 💙",
-            "Let's skip this one and find something even better! I'm here to help you discover great things! 🎈",
-            "This content isn't available at the moment. Want to explore something else together? 😊"
+            lang.localized("blocked.friendly_1"),
+            lang.localized("blocked.friendly_2"),
+            lang.localized("blocked.friendly_3"),
+            lang.localized("blocked.friendly_4")
         ]
         return messages.randomElement() ?? messages[0]
     }
@@ -32,8 +33,8 @@ struct KomalBlockedView: View {
             VStack(spacing: 24) {
                 Spacer()
                 
-                // Komal Elephant with gentle animation
-                Image("animal10") // Ellie the Elephant
+                // Selected avatar with gentle animation
+                Image("animal\(appState.activeProfile.selectedAvatarIndex)")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 160, height: 160)
@@ -48,7 +49,7 @@ struct KomalBlockedView: View {
                 
                 BubblyCard {
                     VStack(spacing: 20) {
-                        Text("Hi there! 👋")
+                        Text(LanguageManager.shared.localized("blocked.hi_there"))
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                         
@@ -72,7 +73,7 @@ struct KomalBlockedView: View {
                                 Image(systemName: "magnifyingglass")
                                     .font(.system(size: 16, weight: .semibold))
                                 
-                                Text("Let's find something else!")
+                                Text(LanguageManager.shared.localized("blocked.find_something_else"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                             }
                             .foregroundColor(.white)

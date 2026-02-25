@@ -67,11 +67,11 @@ struct InsightsView: View {
                 .padding(.top, 16)
             }
             .background(GradientBackground())
-            .navigationTitle("Insights")
+            .navigationTitle(LanguageManager.shared.localized("insights.view.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(LanguageManager.shared.localized("common.done")) {
                         dismiss()
                     }
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
@@ -86,6 +86,7 @@ struct InsightsView: View {
 }
 
 // MARK: - ViewModel
+@MainActor
 final class InsightsViewModel: ObservableObject {
     @Published var insights: SessionInsights = .empty
     @Published var categoryData: [CategoryChartData] = []
@@ -138,7 +139,7 @@ struct SummaryStatsSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Overview")
+            Text(LanguageManager.shared.localized("insights.overview"))
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
             
@@ -147,28 +148,28 @@ struct SummaryStatsSection: View {
                 GridItem(.flexible())
             ], spacing: 12) {
                 StatCard(
-                    title: "Sites Visited",
+                    title: LanguageManager.shared.localized("insights.sites_visited"),
                     value: "\(insights.totalEvents)",
                     icon: "globe",
                     color: KomalColors.pearlAqua
                 )
-                
+
                 StatCard(
-                    title: "Blocked",
+                    title: LanguageManager.shared.localized("insights.blocked"),
                     value: "\(insights.totalBlockedCount)",
                     icon: "xmark.shield.fill",
                     color: Color.red
                 )
-                
+
                 StatCard(
-                    title: "Gated",
+                    title: LanguageManager.shared.localized("insights.gated"),
                     value: "\(insights.totalGatedCount)",
                     icon: "exclamationmark.triangle.fill",
                     color: Color.orange
                 )
-                
+
                 StatCard(
-                    title: "Sessions",
+                    title: LanguageManager.shared.localized("insights.sessions"),
                     value: "\(insights.totalSessions)",
                     icon: "clock.fill",
                     color: KomalColors.bubblegumPink
@@ -221,7 +222,7 @@ struct CategoryBreakdownSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Content Categories")
+            Text(LanguageManager.shared.localized("insights.content_categories"))
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
             
@@ -273,7 +274,7 @@ struct TimelineActivitySection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Activity Timeline")
+            Text(LanguageManager.shared.localized("insights.activity_timeline"))
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
             
@@ -325,7 +326,7 @@ struct RecentSessionsSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Recent Sessions")
+            Text(LanguageManager.shared.localized("insights.recent_sessions"))
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
             
@@ -335,7 +336,7 @@ struct RecentSessionsSection: View {
                         .font(.system(size: 40, weight: .light))
                         .foregroundColor(KomalColors.textSecondary.opacity(0.5))
                     
-                    Text("No browsing sessions yet")
+                    Text(LanguageManager.shared.localized("insights.no_sessions"))
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -417,7 +418,7 @@ struct SessionRow: View {
                     // Show engagement stats if available
                     if session.averageDwellTime > 0 {
                         HStack {
-                            Label("Avg time per page", systemImage: "clock")
+                            Label(LanguageManager.shared.localized("insights.avg_time_per_page"), systemImage: "clock")
                             Spacer()
                             Text(formatDwellTime(session.averageDwellTime))
                         }
@@ -432,7 +433,7 @@ struct SessionRow: View {
                                 .font(.system(size: 13, weight: .medium, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
                             Spacer()
-                            Text("\(item.count) visits")
+                            Text(LanguageManager.shared.localized("insights.visits", item.count))
                                 .font(.system(size: 12, weight: .regular, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
                         }
@@ -470,24 +471,24 @@ struct ProtectionStatsSection: View {
                 Image(systemName: "shield.checkered")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(KomalColors.bubblegumPink)
-                Text("Protection Summary")
+                Text(LanguageManager.shared.localized("insights.protection_summary"))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
             }
             
             HStack(spacing: 12) {
                 ProtectionStatCard(
-                    title: "Images Protected",
+                    title: LanguageManager.shared.localized("insights.images_protected"),
                     value: "\(imagesFiltered)",
-                    subtitle: "of \(imagesScanned) scanned",
+                    subtitle: LanguageManager.shared.localized("insights.of_scanned", imagesScanned),
                     icon: "photo.badge.checkmark.fill",
                     color: KomalColors.bubblegumPink
                 )
-                
+
                 ProtectionStatCard(
-                    title: "Sites Blocked",
+                    title: LanguageManager.shared.localized("insights.sites_blocked"),
                     value: "\(sitesBlocked)",
-                    subtitle: "harmful content",
+                    subtitle: LanguageManager.shared.localized("insights.harmful_content"),
                     icon: "xmark.shield.fill",
                     color: .red
                 )
@@ -546,7 +547,7 @@ struct EngagementOverviewSection: View {
                 Image(systemName: "chart.bar.doc.horizontal")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(KomalColors.pearlAqua)
-                Text("Engagement")
+                Text(LanguageManager.shared.localized("insights.engagement"))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
             }
@@ -554,7 +555,7 @@ struct EngagementOverviewSection: View {
             VStack(spacing: 16) {
                 // Dwell Time
                 EngagementMetricRow(
-                    title: "Average Time per Page",
+                    title: LanguageManager.shared.localized("insights.avg_time_page"),
                     value: formatDwellTime(avgDwellTime),
                     icon: "clock.fill",
                     color: KomalColors.pearlAqua
@@ -562,7 +563,7 @@ struct EngagementOverviewSection: View {
                 
                 // Scroll Depth
                 EngagementMetricRow(
-                    title: "Average Scroll Depth",
+                    title: LanguageManager.shared.localized("insights.avg_scroll_depth"),
                     value: "\(avgScrollDepth)%",
                     icon: "arrow.down.doc.fill",
                     color: KomalColors.bubblegumPink,
@@ -571,7 +572,7 @@ struct EngagementOverviewSection: View {
                 
                 // Meaningful Engagement
                 EngagementMetricRow(
-                    title: "Meaningful Engagement",
+                    title: LanguageManager.shared.localized("insights.meaningful_engagement"),
                     value: "\(Int(meaningfulRate * 100))%",
                     icon: "hand.thumbsup.fill",
                     color: .green,
@@ -649,7 +650,7 @@ struct TopEngagedSitesSection: View {
                 Image(systemName: "star.fill")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.orange)
-                Text("Most Engaged Sites")
+                Text(LanguageManager.shared.localized("insights.most_engaged"))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
             }
@@ -673,7 +674,7 @@ struct TopEngagedSitesSection: View {
                                 .foregroundColor(KomalColors.textPrimary)
                                 .lineLimit(1)
                             
-                            Text("\(site.visitCount) visits")
+                            Text(LanguageManager.shared.localized("insights.visits", site.visitCount))
                                 .font(.system(size: 12, weight: .medium, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
                         }
@@ -685,7 +686,7 @@ struct TopEngagedSitesSection: View {
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
                             
-                            Text("avg time")
+                            Text(LanguageManager.shared.localized("insights.avg_time"))
                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
                         }
@@ -717,32 +718,32 @@ struct NavigationPatternsSection: View {
                 Image(systemName: "arrow.triangle.branch")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.purple)
-                Text("Browsing Patterns")
+                Text(LanguageManager.shared.localized("insights.browsing_patterns"))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
             }
             
             VStack(spacing: 12) {
                 NavigationPatternRow(
-                    title: "Session Depth",
-                    value: "\(patterns.averageSessionDepth) pages",
+                    title: LanguageManager.shared.localized("insights.session_depth"),
+                    value: LanguageManager.shared.localized("insights.pages", patterns.averageSessionDepth),
                     icon: "arrow.down.right",
-                    description: "How deep into sites"
+                    description: LanguageManager.shared.localized("insights.how_deep")
                 )
-                
+
                 NavigationPatternRow(
-                    title: "Back Navigation",
+                    title: LanguageManager.shared.localized("insights.back_navigation"),
                     value: "\(Int(patterns.backNavigationRate * 100))%",
                     icon: "arrow.uturn.backward",
-                    description: "Returning to previous pages"
+                    description: LanguageManager.shared.localized("insights.returning_pages")
                 )
-                
+
                 if patterns.rapidSwitchingCount > 0 {
                     NavigationPatternRow(
-                        title: "Quick Visits",
+                        title: LanguageManager.shared.localized("insights.quick_visits"),
                         value: "\(patterns.rapidSwitchingCount)",
                         icon: "bolt.fill",
-                        description: "Pages viewed < 10 seconds",
+                        description: LanguageManager.shared.localized("insights.pages_under_10s"),
                         isWarning: patterns.rapidSwitchingCount > 10
                     )
                 }
@@ -806,7 +807,7 @@ struct ContentViewedSection: View {
                 Image(systemName: "eye.fill")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.cyan)
-                Text("Content Viewed")
+                Text(LanguageManager.shared.localized("insights.content_viewed"))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
             }
@@ -816,44 +817,44 @@ struct ContentViewedSection: View {
                 HStack(spacing: 16) {
                     ContentStatBubble(
                         value: "\(contentInsights.estimatedWordsRead)",
-                        label: "Words Read",
+                        label: LanguageManager.shared.localized("insights.words_read"),
                         icon: "text.alignleft",
                         color: .blue
                     )
-                    
+
                     ContentStatBubble(
                         value: "\(contentInsights.totalImagesViewed)",
-                        label: "Images",
+                        label: LanguageManager.shared.localized("insights.images"),
                         icon: "photo.fill",
                         color: .green
                     )
-                    
+
                     ContentStatBubble(
                         value: "\(contentInsights.totalVideosViewed)",
-                        label: "Videos",
+                        label: LanguageManager.shared.localized("insights.videos"),
                         icon: "play.rectangle.fill",
                         color: .red
                     )
                 }
-                
+
                 HStack(spacing: 16) {
                     ContentStatBubble(
                         value: "\(contentInsights.uniqueHeadingsViewed)",
-                        label: "Topics",
+                        label: LanguageManager.shared.localized("insights.topics"),
                         icon: "list.bullet",
                         color: .purple
                     )
-                    
+
                     ContentStatBubble(
                         value: contentInsights.avgReadingTimeFormatted,
-                        label: "Avg Time",
+                        label: LanguageManager.shared.localized("insights.avg_time_short"),
                         icon: "clock.fill",
                         color: .orange
                     )
-                    
+
                     ContentStatBubble(
                         value: contentInsights.estimatedReadingLevel,
-                        label: "Reading",
+                        label: LanguageManager.shared.localized("insights.reading"),
                         icon: "book.fill",
                         color: .cyan
                     )
@@ -927,7 +928,7 @@ struct FlaggedContentAlert: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.orange)
                 
-                Text("Concerning Content Detected")
+                Text(LanguageManager.shared.localized("insights.concerning_content"))
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
                 
@@ -939,13 +940,13 @@ struct FlaggedContentAlert: View {
             }
             
             if !keywords.isEmpty {
-                Text("Keywords: " + keywords.prefix(5).joined(separator: ", "))
+                Text(LanguageManager.shared.localized("insights.keywords", keywords.prefix(5).joined(separator: ", ")))
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
                     .lineLimit(2)
             }
             
-            Text("Found on \(pagesAffected) page\(pagesAffected == 1 ? "" : "s")")
+            Text(LanguageManager.shared.localized("insights.found_on_pages", pagesAffected))
                 .font(.system(size: 11, weight: .medium, design: .rounded))
                 .foregroundColor(KomalColors.textSecondary)
         }
@@ -966,7 +967,7 @@ struct RecentPagesSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Recent Pages Viewed")
+            Text(LanguageManager.shared.localized("insights.recent_pages"))
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .foregroundColor(KomalColors.textSecondary)
             
@@ -1035,7 +1036,7 @@ struct PageSummaryRow: View {
                     
                     if !page.headingsViewed.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Topics Viewed:")
+                            Text(LanguageManager.shared.localized("insights.topics_viewed"))
                                 .font(.system(size: 11, weight: .semibold, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
                             
@@ -1054,7 +1055,7 @@ struct PageSummaryRow: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 10))
                                 .foregroundColor(.orange)
-                            Text("Flagged: \(page.flaggedContent.joined(separator: ", "))")
+                            Text(LanguageManager.shared.localized("insights.flagged", page.flaggedContent.joined(separator: ", ")))
                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                 .foregroundColor(.orange)
                         }

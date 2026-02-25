@@ -10,20 +10,23 @@ import os.log
 
 private let debugLog = OSLog(subsystem: "com.komalkids.komal", category: "NetworkDebug")
 
-/// Writes debug lines to both os_log and a file in the app's Documents directory
+/// Writes debug lines to os_log only. File logging only in DEBUG builds.
 func debugLogLine(_ message: String) {
+    guard Config.debugAPILogging else { return }
     os_log("%{public}@", log: debugLog, type: .default, message)
+    #if DEBUG
     let line = "\(Date()): \(message)\n"
     if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
         let logFile = docs.appendingPathComponent("komal_debug.log")
         if let handle = try? FileHandle(forWritingTo: logFile) {
             handle.seekToEndOfFile()
-            handle.write(line.data(using: .utf8)!)
+            if let data = line.data(using: .utf8) { handle.write(data) }
             handle.closeFile()
         } else {
             try? line.data(using: .utf8)?.write(to: logFile)
         }
     }
+    #endif
 }
 
 // MARK: - Scan Result (supports both API formats)
@@ -116,8 +119,63 @@ class ScanNetworkService {
         switch result {
         case .legacy(let response):
             return response
-        case .unified:
-            throw ScanNetworkError.decodingError
+        case .unified(let unified):
+            // Convert unified response to legacy ScanResponse format
+            var ageGroupScores: [String: AgeGroupScore] = [:]
+            for (key, ageAction) in unified.ageActions {
+                ageGroupScores[key] = AgeGroupScore(
+                    score: Int(ageAction.score * 100),
+                    action: ageAction.action,
+                    reason: ageAction.reason ?? "Converted from unified format",
+                    risks: ageAction.risks ?? []
+                )
+            }
+            return ScanResponse(
+                url: unified.url,
+                overallScore: Int(unified.overallSafetyScore * 100),
+                ageGroupScores: ageGroupScores,
+                contentAnalysis: ContentAnalysis(
+                    textAnalysis: TextAnalysis(
+                        sentiment: "neutral",
+                        keyTopics: unified.topicTags,
+                        languageScore: Int(unified.languageSafetyScore * 100),
+                        entities: nil,
+                        unsafeKeywordsFound: [],
+                        safeKeywordsFound: []
+                    ),
+                    visualAnalysis: VisualAnalysis(
+                        detectedObjects: [],
+                        safetyScore: Int(unified.visualSafetyScore * 100),
+                        concerns: [],
+                        labels: nil
+                    ),
+                    multimediaAnalysis: nil,
+                    metadata: nil
+                ),
+                childSafetyAnalysis: ChildSafetyAnalysis(
+                    overallRisk: unified.overallSafetyScore >= 0.7 ? .safe : unified.overallSafetyScore >= 0.4 ? .caution : .unsafe,
+                    riskCategories: unified.majorCategories.map { cat in
+                        RiskCategory(
+                            category: cat.name,
+                            severity: cat.probability > 0.7 ? "high" : cat.probability > 0.4 ? "medium" : "low",
+                            matchCount: Int(cat.probability * 10),
+                            matchedKeywords: [],
+                            contextSnippets: []
+                        )
+                    },
+                    depthAnalysis: DepthAnalysis(
+                        titleSafe: unified.overallSafetyScore >= 0.5,
+                        metadataSafe: unified.overallSafetyScore >= 0.5,
+                        contentSafe: unified.overallSafetyScore >= 0.5,
+                        mediaSafe: unified.visualSafetyScore >= 0.5
+                    )
+                ),
+                timestamp: unified.timestamp,
+                analysisMethod: nil,
+                usedSearchFallback: nil,
+                performanceMetrics: nil,
+                pythonDebug: nil
+            )
         }
     }
 }

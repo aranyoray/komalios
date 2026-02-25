@@ -16,7 +16,16 @@ struct LocalHistoryEvent: Identifiable {
     init(from event: BrowsingEvent) {
         self.id = event.id
         self.url = event.url.absoluteString
-        self.action = event.action?.rawValue.uppercased() ?? event.eventType.displayName.uppercased()
+        // Normalize action to BLOCK/GATE/ALLOW to match filter expectations
+        if let filterAction = event.action {
+            self.action = filterAction.rawValue.uppercased()
+        } else {
+            switch event.eventType {
+            case .blocked: self.action = "BLOCK"
+            case .gated:   self.action = "GATE"
+            default:        self.action = "ALLOW"
+            }
+        }
         // Split "Category:Subcategory" format
         if let cat = event.category, cat.contains(":") {
             let parts = cat.split(separator: ":", maxSplits: 1)

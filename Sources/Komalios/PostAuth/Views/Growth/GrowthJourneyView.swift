@@ -23,26 +23,23 @@ struct GrowthJourneyView: View {
                         // Identity Section
                         identitySection
 
-                        // Streak Section
-                        streakSection
-
                         // Milestones Section
                         milestonesSection
 
                         // Weekly Activity
                         weeklyActivitySection
 
-                        Spacer().frame(height: 40)
+                        Spacer().frame(height: 20)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
                 }
             }
-            .navigationTitle("My Journey")
+            .navigationTitle(LanguageManager.shared.localized("growth.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button(LanguageManager.shared.localized("common.done")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                 }
             }
@@ -116,7 +113,7 @@ struct GrowthJourneyView: View {
                 // Observed traits
                 if !progression.observedTraits.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("What we've noticed about you:")
+                        Text(LanguageManager.shared.localized("growth.noticed_about_you"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -136,67 +133,12 @@ struct GrowthJourneyView: View {
         }
     }
 
-    // MARK: - Streak Section
-
-    private var streakSection: some View {
-        SettingsCard {
-            VStack(spacing: 16) {
-                HStack(spacing: 12) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 36))
-                        .foregroundColor(.orange)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("\(growthService.currentStreak)")
-                            .font(.system(size: 36, weight: .bold, design: .rounded))
-                            .foregroundColor(KomalColors.textPrimary)
-                        Text("Day Streak")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(KomalColors.textSecondary)
-                    }
-
-                    Spacer()
-                }
-
-                // Streak dots for the week
-                HStack(spacing: 8) {
-                    ForEach(0..<7, id: \.self) { dayOffset in
-                        let activities = growthService.getDailyActivities(days: 7)
-                        let calendar = Calendar.current
-                        let date = calendar.date(byAdding: .day, value: -(6 - dayOffset), to: Date()) ?? Date()
-                        let formatter = DateFormatter()
-                        let _ = formatter.dateFormat = "yyyy-MM-dd"
-                        let dateStr = formatter.string(from: date)
-                        let isActive = activities.contains { $0.date == dateStr && $0.isActive }
-
-                        VStack(spacing: 4) {
-                            Circle()
-                                .fill(isActive ? KomalColors.pearlAqua : Color.gray.opacity(0.15))
-                                .frame(width: 28, height: 28)
-                                .overlay(
-                                    isActive ?
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(.white)
-                                    : nil
-                                )
-
-                            Text(dayLabel(for: date))
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(KomalColors.textSecondary)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     // MARK: - Milestones Section
 
     private var milestonesSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "trophy.fill", title: "Milestones", color: KomalColors.bubblegumPink)
+                CardHeader(icon: "trophy.fill", title: LanguageManager.shared.localized("growth.milestones"), color: KomalColors.bubblegumPink)
 
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 12),
@@ -215,7 +157,7 @@ struct GrowthJourneyView: View {
     private var weeklyActivitySection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "chart.bar.fill", title: "This Week", color: KomalColors.pearlAqua)
+                CardHeader(icon: "chart.bar.fill", title: LanguageManager.shared.localized("growth.this_week"), color: KomalColors.pearlAqua)
 
                 let activities = growthService.getDailyActivities(days: 7)
                 let totalChats = activities.reduce(0) { $0 + $1.chatCount }
@@ -224,22 +166,16 @@ struct GrowthJourneyView: View {
                 let activeDays = activities.filter { $0.isActive }.count
 
                 HStack(spacing: 16) {
-                    WeekStatBubble(value: "\(activeDays)", label: "Active Days", color: KomalColors.pearlAqua)
-                    WeekStatBubble(value: "\(totalChats)", label: "Chats", color: KomalColors.bubblegumPink)
-                    WeekStatBubble(value: "\(totalReflections)", label: "Reflections", color: KomalColors.lavenderPurple)
-                    WeekStatBubble(value: "\(totalMoods)", label: "Moods", color: .orange)
+                    WeekStatBubble(value: "\(activeDays)", label: LanguageManager.shared.localized("growth.active_days"), color: KomalColors.pearlAqua)
+                    WeekStatBubble(value: "\(totalChats)", label: LanguageManager.shared.localized("growth.chats"), color: KomalColors.bubblegumPink)
+                    WeekStatBubble(value: "\(totalReflections)", label: LanguageManager.shared.localized("growth.reflections"), color: KomalColors.lavenderPurple)
+                    WeekStatBubble(value: "\(totalMoods)", label: LanguageManager.shared.localized("growth.moods"), color: .orange)
                 }
             }
         }
     }
 
     // MARK: - Helpers
-
-    private func dayLabel(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE"
-        return String(formatter.string(from: date).prefix(2))
-    }
 
     private func stageColor(_ stage: IdentityStage) -> Color {
         switch stage {

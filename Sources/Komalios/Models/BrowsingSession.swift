@@ -69,10 +69,10 @@ struct BrowsingSession: Codable, Identifiable {
     
     /// Top domains by visit count
     var topDomains: [(domain: String, count: Int)] {
-        events.countByDomain
+        Array(events.countByDomain
             .sorted { $0.value > $1.value }
             .prefix(10)
-            .map { (domain: $0.key, count: $0.value) }
+            .map { (domain: $0.key, count: $0.value) })
     }
     
     /// Is session currently active
@@ -80,12 +80,16 @@ struct BrowsingSession: Codable, Identifiable {
         endTime == nil
     }
     
+    private static let displayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+
     /// Date formatted for display
     var dateFormatted: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: startTime)
+        BrowsingSession.displayFormatter.string(from: startTime)
     }
     
     // MARK: - Digital Guardian Enhancement: Engagement Metrics
@@ -152,13 +156,12 @@ struct BrowsingSession: Codable, Identifiable {
         let pageLoads = events.filter { $0.eventType == .pageLoad }
         let byDomain = Dictionary(grouping: pageLoads, by: { $0.domain })
         
-        return byDomain.map { domain, events in
+        return Array(byDomain.map { domain, events in
             let avgDwell = events.compactMap { $0.dwellTimeSeconds }.reduce(0, +) / max(Double(events.count), 1)
             return (domain: domain, avgDwellTime: avgDwell, visits: events.count)
         }
         .sorted { $0.avgDwellTime > $1.avgDwellTime }
-        .prefix(5)
-        .map { $0 }
+        .prefix(5))
     }
     
     /// Image filter breakdown by category
@@ -265,7 +268,7 @@ struct SessionInsights: Codable {
         let totalScanned = allEvents.compactMap { $0.imagesScanned }.reduce(0, +)
         let totalFiltered = allImageFilterEvents.filteredCount
         
-        let rapidCount = allEvents.filter { ($0.dwellTimeSeconds ?? Double.infinity) < 10 && $0.dwellTimeSeconds != nil }.count
+        let rapidCount = allEvents.filter { guard let dwell = $0.dwellTimeSeconds else { return false }; return dwell < 10 }.count
         let backCount = allEvents.filter { $0.wasBackNavigation }.count
         
         let maxDepths = sessions.map { $0.maxNavigationDepth }

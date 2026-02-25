@@ -25,6 +25,7 @@ struct UnifiedDecisionResponse: Codable {
     let timestamp: String
     let historyCategory: String? // For parent viewing later
     let historySubcategory: String? // For grouping similar URLs
+    let revealingLevel: Int? // 0-5 revealing level from body region analysis (nil if not applicable)
 }
 
 struct AgeAction: Codable {
@@ -206,58 +207,3 @@ enum MajorCategoryType: String, Codable, CaseIterable {
     case unknown = "Unknown"
 }
 
-// MARK: - Decision Merger
-
-struct DecisionMerger {
-    /// Merge all decision sources using most restrictive rule
-    static func mergeDecisions(
-        textDecision: AgeAction?,
-        visionDecision: AgeAction?,
-        audioDecision: AgeAction?,
-        linksDecision: AgeAction?,
-        cloudDecision: AgeAction?,
-        customDecision: AgeAction? // From parent rules
-    ) -> AgeAction {
-        let decisions = [textDecision, visionDecision, audioDecision, linksDecision, cloudDecision, customDecision]
-            .compactMap { $0 }
-        
-        guard !decisions.isEmpty else {
-            // All unknown - default to GATE for safety
-            return AgeAction(action: .gate, score: 0.5, reason: "Low confidence - defaulting to gate", risks: nil)
-        }
-        
-        // Most restrictive: BLOCK > GATE > ALLOW
-        if decisions.contains(where: { $0.action == .block }) {
-            let blockDecisions = decisions.filter { $0.action == .block }
-            let highestScore = blockDecisions.map { $0.score }.max() ?? 0.0
-            let reasons = blockDecisions.compactMap { $0.reason }.joined(separator: "; ")
-            return AgeAction(
-                action: .block,
-                score: highestScore,
-                reason: reasons.isEmpty ? "Content blocked" : reasons,
-                risks: blockDecisions.flatMap { $0.risks ?? [] }
-            )
-        }
-        
-        if decisions.contains(where: { $0.action == .gate }) {
-            let gateDecisions = decisions.filter { $0.action == .gate }
-            let highestScore = gateDecisions.map { $0.score }.max() ?? 0.0
-            let reasons = gateDecisions.compactMap { $0.reason }.joined(separator: "; ")
-            return AgeAction(
-                action: .gate,
-                score: highestScore,
-                reason: reasons.isEmpty ? "Content requires approval" : reasons,
-                risks: gateDecisions.flatMap { $0.risks ?? [] }
-            )
-        }
-        
-        // All are ALLOW
-        let highestScore = decisions.map { $0.score }.max() ?? 0.0
-        return AgeAction(
-            action: .allow,
-            score: highestScore,
-            reason: "Content approved",
-            risks: nil
-        )
-    }
-}

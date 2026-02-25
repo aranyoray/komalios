@@ -1,9 +1,12 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
+import os.log
 #if canImport(UIKit)
 import UIKit
 #endif
+
+private let historyLog = Logger(subsystem: "com.komalkids.komal", category: "AppHistory")
 
 struct AppHistoryEvent: Identifiable {
     let id: String
@@ -35,9 +38,12 @@ actor AppHistoryService {
         childName: String? = nil, ageGroup: String? = nil,
         emojiResponse: String? = nil, pageTitle: String? = nil
     ) async -> String? {
-        guard let user = Auth.auth().currentUser else { return nil }
+        guard let user = Auth.auth().currentUser else {
+            historyLog.debug("logEvent skipped — no authenticated user")
+            return nil
+        }
         #if os(iOS)
-        let deviceId = await UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+        let deviceId = await MainActor.run { UIDevice.current.identifierForVendor?.uuidString } ?? "unknown"
         #else
         let deviceId = "unknown"
         #endif
@@ -53,15 +59,24 @@ actor AppHistoryService {
         if let v = pageTitle { data["pageTitle"] = v }
 
         do {
-            return try await db.collection("app-history").document(user.uid).collection("events").addDocument(data: data).documentID
-        } catch { return nil }
+            let docID = try await db.collection("app-history").document(user.uid).collection("events").addDocument(data: data).documentID
+            historyLog.debug("logEvent OK — \(docID)")
+            return docID
+        } catch {
+            historyLog.error("logEvent failed: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     func fetchHistory(limit: Int = 200) async -> [AppHistoryEvent] {
-        guard let user = Auth.auth().currentUser else { return [] }
+        guard let user = Auth.auth().currentUser else {
+            historyLog.debug("fetchHistory skipped — no authenticated user")
+            return []
+        }
         do {
             let snap = try await db.collection("app-history").document(user.uid).collection("events")
                 .order(by: "timestamp", descending: true).limit(to: limit).getDocuments()
+            historyLog.debug("fetchHistory OK — \(snap.documents.count) docs")
             return snap.documents.compactMap { doc in
                 let d = doc.data()
                 guard let url = d["url"] as? String, let action = d["action"] as? String,
@@ -73,18 +88,29 @@ actor AppHistoryService {
                     ageGroup: d["ageGroup"] as? String, emojiResponse: d["emojiResponse"] as? String, pageTitle: d["pageTitle"] as? String,
                     timezone: d["timezone"] as? String)
             }
-        } catch { return [] }
+        } catch {
+            historyLog.error("fetchHistory failed: \(error.localizedDescription)")
+            return []
+        }
     }
 
     func updateEmojiResponse(documentId: String, emoji: String) async {
         guard let user = Auth.auth().currentUser else { return }
-        try? await db.collection("app-history").document(user.uid).collection("events")
-            .document(documentId).updateData(["emojiResponse": emoji, "emojiTimestamp": Timestamp()] as [String: Any])
+        do {
+            try await db.collection("app-history").document(user.uid).collection("events")
+                .document(documentId).updateData(["emojiResponse": emoji, "emojiTimestamp": Timestamp()] as [String: Any])
+        } catch {
+            historyLog.error("updateEmojiResponse failed for \(documentId): \(error.localizedDescription)")
+        }
     }
 
     func updateAction(documentId: String, newAction: String) async {
         guard let user = Auth.auth().currentUser else { return }
-        try? await db.collection("app-history").document(user.uid).collection("events")
-            .document(documentId).updateData(["action": newAction] as [String: Any])
+        do {
+            try await db.collection("app-history").document(user.uid).collection("events")
+                .document(documentId).updateData(["action": newAction] as [String: Any])
+        } catch {
+            historyLog.error("updateAction failed for \(documentId): \(error.localizedDescription)")
+        }
     }
 }

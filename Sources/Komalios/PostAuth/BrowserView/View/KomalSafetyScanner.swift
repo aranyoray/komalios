@@ -9,13 +9,15 @@ import SwiftUI
 
 #if os(iOS)
 
+// MARK: - Entry Point
+
 struct KomalSafetyScannerView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel: KomalSafetyScannerViewModel
+    @Environment(\.scenePhase) private var scenePhase
 
-    init() {
-        let tempAppState = AppState()
-        _viewModel = StateObject(wrappedValue: KomalSafetyScannerViewModel(appState: tempAppState))
+    init(appState: AppState) {
+        _viewModel = StateObject(wrappedValue: KomalSafetyScannerViewModel(appState: appState))
     }
 
     var body: some View {
@@ -28,8 +30,22 @@ struct KomalSafetyScannerView: View {
             .onDisappear {
                 BrowsingHistoryService.shared.endSession()
             }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .background {
+                    BrowsingHistoryService.shared.endSession()
+                } else if newPhase == .active, BrowsingHistoryService.shared.currentSession == nil {
+                    BrowsingHistoryService.shared.startSession()
+                }
+            }
+            .onReceive(appState.$pendingBrowserURL) { url in
+                guard let url else { return }
+                appState.pendingBrowserURL = nil
+                Task { await viewModel.navigateToURL(url) }
+            }
     }
 }
+
+// MARK: - Content View
 
 private struct KomalSafetyScannerContentView: View {
     @ObservedObject var viewModel: KomalSafetyScannerViewModel
@@ -45,13 +61,10 @@ private struct KomalSafetyScannerContentView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Chrome top toolbar
                 chromeToolbar
-
-                // Progress bar — thin line under toolbar
                 progressBar
 
-                // Web content — fills all remaining space
+                // Web content area
                 if let url = viewModel.currentURL,
                    !viewModel.showGate,
                    !viewModel.showBlocked,
@@ -69,19 +82,18 @@ private struct KomalSafetyScannerContentView: View {
                             viewModel.interventionTrigger = trigger
                             viewModel.currentSubcategory = trigger.searchTerm
                             viewModel.currentURL = nil
-                            // Clear lastSafeURL if it's the page that was just flagged,
-                            // to prevent an infinite reload→flag→popup loop.
                             viewModel.clearLastSafeURLIfMatches(blockedURL)
-                            // Do NOT set pendingURL to the flagged URL — we don't want to
-                            // navigate there after emoji check-in. pendingURL stays nil so
-                            // handleInterventionDismissed redirects to the safe page.
                             viewModel.triggerBlockedEmojiPopup()
                         },
                         onPageFinished: { url, title in
                             viewModel.handlePageFinished(url: url, title: title)
                         },
+                        onSearchNeedsScan: { query, url in
+                            Task { await viewModel.backgroundScanSearchQuery(query, url: url) }
+                        },
                         navigator: navigator
                     )
+                    .ignoresSafeArea(.keyboard)
                 } else if !viewModel.loading {
                     newTabPage
                 } else {
@@ -89,7 +101,7 @@ private struct KomalSafetyScannerContentView: View {
                         Spacer()
                         ProgressView()
                             .scaleEffect(1.2)
-                        Text("Komal is checking this page...")
+                        Text(LanguageManager.shared.localized("browser.checking_page"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
                         Spacer()
@@ -97,18 +109,17 @@ private struct KomalSafetyScannerContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .padding(.bottom, 70) // Space for app floating nav
-            .allowsHitTesting(!viewModel.showEmojiCheckIn) // Block all browser interaction while emoji popup is active
+            .padding(.bottom, 70)
+            .allowsHitTesting(!viewModel.showEmojiCheckIn)
 
-            // Mandatory emoji check-in popup — blocks browsing until emoji selected
+            // Emoji check-in overlay
             if viewModel.showEmojiCheckIn {
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
-                    .onTapGesture {} // swallow taps
+                    .onTapGesture {}
                     .transition(.opacity)
 
                 VStack(spacing: 20) {
-                    // Animal avatar
                     if let uiImage = UIImage(named: "animal\(viewModel.gateAvatarIndex)") {
                         Image(uiImage: uiImage)
                             .resizable().aspectRatio(contentMode: .fit)
@@ -119,10 +130,10 @@ private struct KomalSafetyScannerContentView: View {
                     }
 
                     VStack(spacing: 6) {
-                        Text("Quick check-in!")
+                        Text(LanguageManager.shared.localized("browser.quick_checkin"))
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
-                        Text("How are you feeling right now?")
+                        Text(LanguageManager.shared.localized("checkin.how_are_you"))
                             .font(.system(size: 15, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -142,6 +153,7 @@ private struct KomalSafetyScannerContentView: View {
                 .transition(.scale(scale: 0.8).combined(with: .opacity))
             }
         }
+        // Gate sheet
         .sheet(isPresented: $viewModel.showGate, onDismiss: {
             viewModel.handleGateDismissed()
         }) {
@@ -156,10 +168,10 @@ private struct KomalSafetyScannerContentView: View {
                 }
 
                 VStack(spacing: 6) {
-                    Text("Before you go...")
+                    Text(LanguageManager.shared.localized("browser.before_you_go"))
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
-                    Text("How are you feeling right now?")
+                    Text(LanguageManager.shared.localized("checkin.how_are_you"))
                         .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -175,11 +187,14 @@ private struct KomalSafetyScannerContentView: View {
             .interactiveDismissDisabled()
             .presentationDetents([.medium])
         }
+        // Blocked fullscreen cover
         .fullScreenCover(isPresented: $viewModel.showBlocked, onDismiss: {
             viewModel.handleBlockedDismissed()
         }) {
             KomalBlockedView(category: viewModel.category, reason: viewModel.blockReason)
+                .environmentObject(appState)
         }
+        // Blocked emoji popup fullscreen cover
         .fullScreenCover(isPresented: $viewModel.showBlockedEmojiPopup) {
             BlockedEmojiPopup(
                 subcategory: viewModel.currentSubcategory,
@@ -187,39 +202,37 @@ private struct KomalSafetyScannerContentView: View {
                 showTalkFeature: viewModel.shouldShowTalkFeature,
                 onDismiss: {
                     viewModel.showBlockedEmojiPopup = false
-                    // Blocked content: redirect back to source (no exploration)
                     viewModel.handleInterventionDismissed(allowContinue: false)
                 },
                 onEmojiSelected: { emoji in
                     viewModel.handleEmojiResponse(emoji: emoji, forDocumentId: viewModel.lastLoggedDocumentId)
                 }
             )
+            .environmentObject(appState)
         }
+        // Reflection time
         .fullScreenCover(isPresented: $showReflectionTime) {
             ReflectionTimeView()
                 .environmentObject(appState)
         }
+        // Tab switcher
         .sheet(isPresented: $showTabSwitcher) {
             TabSwitcherView(viewModel: viewModel, isPresented: $showTabSwitcher)
         }
     }
 
     // MARK: - Chrome Top Toolbar
-    //
-    // Compact:  [←] [→]  [ 🔒 domain.com  ↻ ]  [🍃] [⋮]
-    // Editing:  [ 🔍  Search or type URL       ✕ ]  [Cancel]
-    //
+
     private var chromeToolbar: some View {
         VStack(spacing: 0) {
             if isOmniboxEditing {
-                // Expanded editing row
                 HStack(spacing: 8) {
                     omniboxEditing
                     Button {
+                        omniboxFocused = false
                         isOmniboxEditing = false
-                        UIApplication.shared.hideKeyboard()
                     } label: {
-                        Text("Cancel")
+                        Text(LanguageManager.shared.localized("common.cancel"))
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(Color(hex: "4285F4"))
                     }
@@ -227,7 +240,6 @@ private struct KomalSafetyScannerContentView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
             } else {
-                // Compact toolbar row
                 HStack(spacing: 6) {
                     // Back
                     Button(action: { navigator.goBack() }) {
@@ -247,11 +259,11 @@ private struct KomalSafetyScannerContentView: View {
                     }
                     .disabled(!navigator.canGoForward)
 
-                    // Omnibox (takes remaining space)
+                    // Omnibox
                     omniboxCompact
                         .frame(maxWidth: .infinity)
 
-                    // Tab switcher (Chrome-style square with count)
+                    // Tab switcher
                     Button(action: {
                         viewModel.saveCurrentTabState()
                         showTabSwitcher = true
@@ -267,33 +279,26 @@ private struct KomalSafetyScannerContentView: View {
                         .frame(width: 36, height: 36)
                     }
 
-                    // More menu
+                    // Overflow menu
                     Menu {
                         Button(action: { navigator.reload() }) {
-                            Label("Reload", systemImage: "arrow.clockwise")
+                            Label(LanguageManager.shared.localized("browser.reload"), systemImage: "arrow.clockwise")
                         }
-
                         Button(action: { shareCurrentPage() }) {
-                            Label("Share", systemImage: "square.and.arrow.up")
+                            Label(LanguageManager.shared.localized("browser.share"), systemImage: "square.and.arrow.up")
                         }
-
                         Button(action: { showReflectionTime = true }) {
-                            Label("Reflection Time", systemImage: "leaf.fill")
+                            Label(LanguageManager.shared.localized("reflect.title"), systemImage: "leaf.fill")
                         }
-
                         Divider()
-
-                        Button(action: {
-                            viewModel.addNewTab()
-                        }) {
-                            Label("New Tab", systemImage: "plus")
+                        Button(action: { viewModel.addNewTab() }) {
+                            Label(LanguageManager.shared.localized("browser.new_tab"), systemImage: "plus")
                         }
-
                         if viewModel.tabCount > 1 {
                             Button(role: .destructive, action: {
                                 viewModel.closeTab(at: viewModel.activeTabIndex)
                             }) {
-                                Label("Close Tab", systemImage: "xmark")
+                                Label(LanguageManager.shared.localized("browser.close_tab"), systemImage: "xmark")
                             }
                         }
                     } label: {
@@ -311,6 +316,7 @@ private struct KomalSafetyScannerContentView: View {
     }
 
     // MARK: - Omnibox Compact
+
     private var omniboxCompact: some View {
         let displayDomain: String = {
             guard let url = navigator.currentDisplayURL ?? viewModel.currentURL,
@@ -324,11 +330,7 @@ private struct KomalSafetyScannerContentView: View {
             isOmniboxEditing = true
         } label: {
             HStack(spacing: 0) {
-                // Balance spacer for centering
-                if hasURL {
-                    Color.clear.frame(width: 28)
-                }
-
+                if hasURL { Color.clear.frame(width: 28) }
                 Spacer(minLength: 0)
 
                 HStack(spacing: 6) {
@@ -341,8 +343,7 @@ private struct KomalSafetyScannerContentView: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(Color(UIColor.secondaryLabel))
                     }
-
-                    Text(hasURL ? displayDomain : "Search or type URL")
+                    Text(hasURL ? displayDomain : LanguageManager.shared.localized("browser.search_or_url"))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(hasURL ? Color(UIColor.label) : Color(UIColor.placeholderText))
                         .lineLimit(1)
@@ -350,7 +351,6 @@ private struct KomalSafetyScannerContentView: View {
 
                 Spacer(minLength: 0)
 
-                // Reload / Stop
                 if hasURL {
                     if viewModel.loading {
                         Button(action: { navigator.stopLoading() }) {
@@ -381,6 +381,7 @@ private struct KomalSafetyScannerContentView: View {
     }
 
     // MARK: - Omnibox Editing
+
     @FocusState private var omniboxFocused: Bool
 
     private var omniboxEditing: some View {
@@ -389,16 +390,19 @@ private struct KomalSafetyScannerContentView: View {
                 .foregroundColor(Color(UIColor.secondaryLabel))
                 .font(.system(size: 15, weight: .medium))
 
-            TextField("Search or type URL", text: $viewModel.urlInput)
+            TextField(LanguageManager.shared.localized("browser.search_or_url"), text: $viewModel.urlInput)
                 .font(.system(size: 16))
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
                 .focused($omniboxFocused)
                 .onSubmit {
+                    omniboxFocused = false
                     isOmniboxEditing = false
-                    Task {
-                        await viewModel.handleUrlSubmit()
+                    // Small delay lets SwiftUI's focus system fully resign
+                    // before WKWebView needs keyboard input
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        Task { await viewModel.handleUrlSubmit() }
                     }
                 }
                 .onAppear { omniboxFocused = true }
@@ -418,9 +422,14 @@ private struct KomalSafetyScannerContentView: View {
             RoundedRectangle(cornerRadius: 18)
                 .fill(Color(UIColor.tertiarySystemFill))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
+        )
     }
 
     // MARK: - Progress Bar
+
     private var progressBar: some View {
         GeometryReader { geo in
             let show = viewModel.loading || (navigator.estimatedProgress > 0 && navigator.estimatedProgress < 1)
@@ -438,6 +447,7 @@ private struct KomalSafetyScannerContentView: View {
     }
 
     // MARK: - New Tab Page
+
     private var newTabPage: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -451,7 +461,7 @@ private struct KomalSafetyScannerContentView: View {
                         .opacity(0.35)
                 }
 
-                Text("Search or type URL")
+                Text(LanguageManager.shared.localized("browser.search_or_url"))
                     .font(.system(size: 15, weight: .regular))
                     .foregroundColor(Color(UIColor.placeholderText))
             }
@@ -464,6 +474,7 @@ private struct KomalSafetyScannerContentView: View {
     }
 
     // MARK: - Share
+
     private func shareCurrentPage() {
         guard let url = viewModel.currentURL else { return }
         let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
@@ -474,7 +485,7 @@ private struct KomalSafetyScannerContentView: View {
     }
 }
 
-// MARK: - Tab Switcher View (Chrome-style)
+// MARK: - Tab Switcher View
 
 private struct TabSwitcherView: View {
     @ObservedObject var viewModel: KomalSafetyScannerViewModel
@@ -491,7 +502,7 @@ private struct TabSwitcherView: View {
                         Image(systemName: "square.on.square.dashed")
                             .font(.system(size: 48, weight: .light))
                             .foregroundColor(Color(UIColor.tertiaryLabel))
-                        Text("No open tabs")
+                        Text(LanguageManager.shared.localized("browser.no_open_tabs"))
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(Color(UIColor.secondaryLabel))
                     }
@@ -508,11 +519,11 @@ private struct TabSwitcherView: View {
                     }
                 }
             }
-            .navigationTitle("Tabs")
+            .navigationTitle(LanguageManager.shared.localized("browser.tabs"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
+                    Button(LanguageManager.shared.localized("common.done")) {
                         isPresented = false
                     }
                     .font(.system(size: 16, weight: .medium))
@@ -536,7 +547,6 @@ private struct TabSwitcherView: View {
             isPresented = false
         } label: {
             HStack(spacing: 12) {
-                // Site icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color(UIColor.tertiarySystemFill))
@@ -546,9 +556,8 @@ private struct TabSwitcherView: View {
                         .foregroundColor(Color(UIColor.secondaryLabel))
                 }
 
-                // Title + URL
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(tab.title.isEmpty ? "New Tab" : tab.title)
+                    Text(tab.title.isEmpty ? LanguageManager.shared.localized("browser.new_tab") : tab.title)
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(Color(UIColor.label))
                         .lineLimit(1)
@@ -562,14 +571,12 @@ private struct TabSwitcherView: View {
 
                 Spacer()
 
-                // Active indicator
                 if index == viewModel.activeTabIndex {
                     Circle()
                         .fill(Color(hex: "4285F4"))
                         .frame(width: 8, height: 8)
                 }
 
-                // Close button
                 if viewModel.tabCount > 1 {
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -580,10 +587,7 @@ private struct TabSwitcherView: View {
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(Color(UIColor.tertiaryLabel))
                             .frame(width: 28, height: 28)
-                            .background(
-                                Circle()
-                                    .fill(Color(UIColor.tertiarySystemFill))
-                            )
+                            .background(Circle().fill(Color(UIColor.tertiarySystemFill)))
                     }
                 }
             }

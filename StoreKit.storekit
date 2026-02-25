@@ -1,0 +1,103 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "5666CED3",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6757139754",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "NXS4B9HC6S",
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 793381806.84343898,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21942290",
+      "localizations" : [
+
+      ],
+      "name" : "komal_monthly",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6759476490",
+          "introductoryOffer" : null,
+          "localizations" : [
+
+          ],
+          "productID" : "grow_month_999",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "grow_monthly",
+          "subscriptionGroupID" : "21942290",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "14.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6759450605",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "your monthly thrive access to komal",
+              "displayName" : "thrive monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "thrive_monthly_1449",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "thrive_monthly",
+          "subscriptionGroupID" : "21942290",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

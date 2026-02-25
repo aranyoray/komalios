@@ -7,6 +7,14 @@
     if (window.komalViewportTracker) {
         return;
     }
+
+    // Skip on trusted domains — native handler ignores these anyway
+    var _host = (window.location.hostname || '').toLowerCase();
+    var _trusted = TRUSTED_DOMAINS_PLACEHOLDER;
+    if (_trusted.some(function(d) { return _host === d || _host === 'www.' + d || _host.endsWith('.' + d); })) {
+        window.komalViewportTracker = { sendSnapshot: function(){}, getStats: function(){ return {}; } };
+        return;
+    }
     
     const komalViewportTracker = {
         lastSnapshotTime: 0,
@@ -18,19 +26,12 @@
         totalSnapshots: 0,
         
         // Keywords to flag (will be extended by native code)
+        // Only the most extreme content — native side handles comprehensive filtering
         flaggedKeywords: [
-            // Violence
-            'kill', 'murder', 'death', 'blood', 'gore', 'violent', 'attack', 'weapon',
-            // Adult
-            'xxx', 'porn', 'nude', 'naked', 'sex', 'adult only', 'nsfw', '18+',
-            // Drugs
-            'cocaine', 'heroin', 'meth', 'drugs', 'weed', 'marijuana',
-            // Self-harm
-            'suicide', 'self-harm', 'cutting', 'kill myself',
-            // Gambling
-            'bet now', 'casino', 'gambling', 'poker', 'slots',
-            // Scams
-            'get rich quick', 'make money fast', 'crypto invest', 'guaranteed returns'
+            'xxx', 'porn', 'nsfw', '18+',
+            'cocaine', 'heroin', 'meth', 'fentanyl',
+            'suicide', 'self-harm', 'kill myself',
+            'get rich quick', 'guaranteed returns'
         ],
         
         // Check if element is in viewport
@@ -125,19 +126,30 @@
             return text || null;
         },
         
-        // Check text for flagged keywords
+        // Check text for flagged keywords using word-boundary regex
+        // Prevents false positives: "skills" won't match "kill", "sexuality" won't match "sex"
         checkForFlaggedKeywords: function(text) {
             if (!text) return [];
-            
-            const lowerText = text.toLowerCase();
-            const found = [];
-            
-            for (const keyword of this.flaggedKeywords) {
-                if (lowerText.includes(keyword.toLowerCase())) {
-                    found.push(keyword);
+
+            var lowerText = text.toLowerCase();
+            var found = [];
+
+            for (var i = 0; i < this.flaggedKeywords.length; i++) {
+                var keyword = this.flaggedKeywords[i];
+                try {
+                    var escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    // Use \b at end only if keyword ends with a word char (letter/digit/_).
+                    // Keywords like "18+" end with non-word chars where \b won't fire.
+                    var endBound = /\w$/.test(keyword) ? '\\b' : '';
+                    var pattern = new RegExp('\\b' + escaped + endBound, 'i');
+                    if (pattern.test(lowerText)) {
+                        found.push(keyword);
+                    }
+                } catch (e) {
+                    // Fallback: if regex construction fails, skip this keyword
                 }
             }
-            
+
             return found;
         },
         

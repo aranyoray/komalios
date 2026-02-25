@@ -14,6 +14,7 @@ struct ChildSurveyData {
     var customDislike: String = ""
     var screenTimeGoal: ScreenTimeGoal = .moderate
     var parentConcerns: Set<String> = []
+    var selectedAvatarIndex: Int = 1
 }
 
 enum ScreenTimeGoal: String, CaseIterable {
@@ -35,10 +36,11 @@ struct PostAuthOnboardingView: View {
     @State private var pinConfirm: String = ""
     @State private var pinMismatchError: Bool = false
     @State private var enableBiometric: Bool = false
+    @State private var showPlanSelection = false
 
     var onComplete: () -> Void
 
-    private let totalPages = 10
+    private let totalPages = 12
 
     var body: some View {
         ZStack {
@@ -70,7 +72,9 @@ struct PostAuthOnboardingView: View {
                     parentConcernsScreen.tag(6)
                     filterPreferencesScreen.tag(7)
                     pinSetupScreen.tag(8)
-                    completionScreen.tag(9)
+                    guidedAccessScreen.tag(9)
+                    avatarSelectionScreen.tag(10)
+                    completionScreen.tag(11)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.easeInOut(duration: 0.3), value: currentPage)
@@ -81,80 +85,89 @@ struct PostAuthOnboardingView: View {
     // MARK: - Screen 1: Welcome
     
     private var welcomeScreen: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                Spacer().frame(height: 20)
-                
-                // Professional header
-                VStack(spacing: 16) {
-                    if let uiImage = UIImage(named: "komaliconnobg") {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 80, height: 80)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    Spacer().frame(height: 20)
+
+                    // Professional header
+                    VStack(spacing: 16) {
+                        if let uiImage = UIImage(named: "komaliconnobg") {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 80, height: 80)
+                        }
+
+                        VStack(spacing: 8) {
+                            Text(lang.localized("onboarding.welcome.title"))
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundColor(KomalColors.textPrimary)
+
+                            Text(lang.localized("onboarding.welcome.subtitle"))
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(KomalColors.textSecondary)
+                        }
                     }
-                    
-                    VStack(spacing: 8) {
-                        Text(lang.localized("onboarding.welcome.title"))
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
-                            .foregroundColor(KomalColors.textPrimary)
 
-                        Text(lang.localized("onboarding.welcome.subtitle"))
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(KomalColors.textSecondary)
+                    // Research-backed info cards
+                    VStack(spacing: 16) {
+                        InfoCard(
+                            icon: "brain.head.profile",
+                            title: lang.localized("onboarding.welcome.card1.title"),
+                            description: lang.localized("onboarding.welcome.card1.desc"),
+                            color: KomalColors.lavenderPurple
+                        )
+
+                        InfoCard(
+                            icon: "chart.line.uptrend.xyaxis",
+                            title: lang.localized("onboarding.welcome.card2.title"),
+                            description: lang.localized("onboarding.welcome.card2.desc"),
+                            color: KomalColors.pearlAqua
+                        )
+
+                        InfoCard(
+                            icon: "shield.lefthalf.filled",
+                            title: lang.localized("onboarding.welcome.card3.title"),
+                            description: lang.localized("onboarding.welcome.card3.desc"),
+                            color: KomalColors.bubblegumPink
+                        )
+
+                        InfoCard(
+                            icon: "brain",
+                            title: "What is SEL?",
+                            description: "Social-Emotional Learning helps children develop self-awareness, social skills, and decision-making. Research shows children with strong SEL skills are 11% more likely to succeed academically.",
+                            color: KomalColors.lavenderPurple
+                        )
                     }
-                }
-                
-                // Research-backed info cards
-                VStack(spacing: 16) {
-                    InfoCard(
-                        icon: "brain.head.profile",
-                        title: lang.localized("onboarding.welcome.card1.title"),
-                        description: lang.localized("onboarding.welcome.card1.desc"),
-                        color: KomalColors.lavenderPurple
-                    )
+                    .padding(.horizontal, 24)
 
-                    InfoCard(
-                        icon: "chart.line.uptrend.xyaxis",
-                        title: lang.localized("onboarding.welcome.card2.title"),
-                        description: lang.localized("onboarding.welcome.card2.desc"),
-                        color: KomalColors.pearlAqua
-                    )
-
-                    InfoCard(
-                        icon: "shield.lefthalf.filled",
-                        title: lang.localized("onboarding.welcome.card3.title"),
-                        description: lang.localized("onboarding.welcome.card3.desc"),
-                        color: KomalColors.bubblegumPink
-                    )
+                    // Time estimate
+                    HStack(spacing: 8) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 14))
+                        Text(lang.localized("onboarding.welcome.time_estimate"))
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundColor(KomalColors.textSecondary)
+                    .padding(.top, 8)
                 }
-                .padding(.horizontal, 24)
-                
-                // Time estimate
-                HStack(spacing: 8) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 14))
-                    Text(lang.localized("onboarding.welcome.time_estimate"))
-                        .font(.system(size: 13, weight: .medium))
-                }
-                .foregroundColor(KomalColors.textSecondary)
-                .padding(.top, 8)
-                
-                Spacer().frame(height: 20)
-                
-                // Start button
-                Button(action: { withAnimation { currentPage = 1 } }) {
-                    Text(lang.localized("onboarding.welcome.begin"))
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(KomalColors.lavenderPurple)
-                        .cornerRadius(14)
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 40)
+                .padding(.bottom, 60)
             }
+
+            // Fixed bottom button
+            Button(action: { withAnimation { currentPage = 1 } }) {
+                Text(lang.localized("onboarding.welcome.begin"))
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(KomalColors.lavenderPurple)
+                    .cornerRadius(14)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 16)
+            .background(Color(UIColor.systemGroupedBackground))
         }
     }
 
@@ -163,7 +176,7 @@ struct PostAuthOnboardingView: View {
     private var childInfoScreen: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(spacing: 28) {
+                VStack(spacing: 20) {
                     // Header
                     SurveyHeader(
                         step: lang.localized("onboarding.info.step"),
@@ -174,7 +187,7 @@ struct PostAuthOnboardingView: View {
                     VStack(spacing: 24) {
                         // Name input
                         VStack(alignment: .leading, spacing: 10) {
-                            Text(lang.localized("onboarding.info.name_label"))
+                            Text("* " + lang.localized("onboarding.info.name_label"))
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
 
@@ -186,13 +199,13 @@ struct PostAuthOnboardingView: View {
                                 .cornerRadius(12)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                        .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
                                 )
                         }
                         
                         // Age group
                         VStack(alignment: .leading, spacing: 10) {
-                            Text(lang.localized("onboarding.info.age_label"))
+                            Text("* " + lang.localized("onboarding.info.age_label"))
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
 
@@ -201,7 +214,7 @@ struct PostAuthOnboardingView: View {
                                 .foregroundColor(KomalColors.textSecondary)
                             
                             VStack(spacing: 10) {
-                                ForEach(AgeGroup.allCases) { group in
+                                ForEach(AgeGroup.allCases.filter { $0 != .eighteenPlus }) { group in
                                     AgeGroupButton(
                                         group: group,
                                         isSelected: surveyData.ageGroup == group,
@@ -218,7 +231,7 @@ struct PostAuthOnboardingView: View {
                     }
                     .padding(.horizontal, 24)
                 }
-                .padding(.bottom, 120)
+                .padding(.bottom, 60)
             }
             
             // Navigation
@@ -238,22 +251,56 @@ struct PostAuthOnboardingView: View {
     // MARK: - Screen 3: Favorite Websites
     
     private var websitesScreen: some View {
-        let websites = [
-            ("Google", "google"),
-            ("Roblox", "roblox"),
-            ("Minecraft", "minecraft"),
-            ("Netflix", "netflix"),
-            ("Disney+", "disney"),
-            ("PBS Kids", "pbs"),
-            ("National Geographic Kids", "natgeo"),
-            ("Scratch", "scratch"),
-            ("Khan Academy Kids", "khan"),
-            ("ABCmouse", "abc"),
-            ("Coolmath Games", "coolmath"),
-            ("Funbrain", "funbrain"),
-            ("Starfall", "starfall")
+        let websiteCategories: [(String, String, [(String, String)])] = [
+            ("Websites & Search", "globe", [
+                ("Google", "google"),
+                ("YouTube Kids", "youtubekids"),
+                ("PBS Kids", "pbs"),
+                ("National Geographic Kids", "natgeo"),
+                ("NASA Kids", "nasakids")
+            ]),
+            ("Streaming & Entertainment", "play.tv.fill", [
+                ("Netflix", "netflix"),
+                ("Disney+", "disney"),
+                ("Nick Jr.", "nickjr"),
+                ("Cartoon Network", "cartoonnetwork"),
+                ("Sesame Street", "sesamestreet")
+            ]),
+            ("Learning & Education", "book.fill", [
+                ("Khan Academy Kids", "khan"),
+                ("ABCmouse", "abc"),
+                ("Duolingo", "duolingo"),
+                ("BrainPOP", "brainpop"),
+                ("Epic! Books", "epic"),
+                ("Starfall", "starfall"),
+                ("Prodigy Math", "prodigy"),
+                ("Coolmath Games", "coolmath"),
+                ("Funbrain", "funbrain")
+            ]),
+            ("Coding & Creativity", "chevron.left.forwardslash.chevron.right", [
+                ("Scratch", "scratch"),
+                ("Tynker", "tynker"),
+                ("Code.org", "codeorg"),
+                ("LEGO", "lego")
+            ]),
+            ("Social Media", "person.2.fill", [
+                ("Instagram", "instagram"),
+                ("Facebook", "facebook"),
+                ("X (Twitter)", "twitter")
+            ]),
+            ("Gaming", "gamecontroller.fill", [
+                ("Roblox", "roblox"),
+                ("Minecraft", "minecraft"),
+                ("Fortnite", "fortnite"),
+                ("Among Us", "amongus"),
+                ("Brawl Stars", "brawlstars"),
+                ("Clash Royale", "clashroyale"),
+                ("Pokemon GO", "pokemongo"),
+                ("Animal Crossing", "animalcrossing"),
+                ("Subway Surfers", "subwaysurfers")
+            ])
         ]
-        
+
         return VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 24) {
@@ -267,35 +314,51 @@ struct PostAuthOnboardingView: View {
                         .font(.system(size: 13, weight: .regular))
                         .foregroundColor(KomalColors.textSecondary)
                         .padding(.horizontal, 24)
-                    
-                    // Website grid
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 12) {
-                        ForEach(websites, id: \.1) { website in
-                            SelectableChip(
-                                text: website.0,
-                                isSelected: surveyData.favoriteWebsites.contains(website.1),
-                                onTap: {
-                                    if surveyData.favoriteWebsites.contains(website.1) {
-                                        surveyData.favoriteWebsites.remove(website.1)
-                                    } else if surveyData.favoriteWebsites.count < 5 {
-                                        surveyData.favoriteWebsites.insert(website.1)
+
+                    // Categorized website grid
+                    VStack(spacing: 20) {
+                        ForEach(websiteCategories, id: \.0) { category in
+                            VStack(alignment: .leading, spacing: 10) {
+                                // Category header
+                                HStack(spacing: 8) {
+                                    Image(systemName: category.1)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(KomalColors.lavenderPurple)
+                                    Text(category.0)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(KomalColors.textPrimary)
+                                }
+
+                                LazyVGrid(columns: [
+                                    GridItem(.flexible()),
+                                    GridItem(.flexible()),
+                                    GridItem(.flexible())
+                                ], spacing: 10) {
+                                    ForEach(category.2, id: \.1) { website in
+                                        SelectableChip(
+                                            text: website.0,
+                                            isSelected: surveyData.favoriteWebsites.contains(website.1),
+                                            onTap: {
+                                                if surveyData.favoriteWebsites.contains(website.1) {
+                                                    surveyData.favoriteWebsites.remove(website.1)
+                                                } else if surveyData.favoriteWebsites.count < 5 {
+                                                    surveyData.favoriteWebsites.insert(website.1)
+                                                }
+                                            }
+                                        )
                                     }
                                 }
-                            )
+                            }
                         }
                     }
                     .padding(.horizontal, 24)
-                    
+
                     // Selection count
                     Text(lang.localized("common.selected_count", surveyData.favoriteWebsites.count, 5))
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(surveyData.favoriteWebsites.count == 5 ? KomalColors.pearlAqua : KomalColors.textSecondary)
+                        .foregroundColor(surveyData.favoriteWebsites.count == 5 ? KomalColors.lavenderPurple : KomalColors.textSecondary)
                 }
-                .padding(.bottom, 120)
+                .padding(.bottom, 60)
             }
             
             SurveyNavigation(
@@ -328,7 +391,22 @@ struct PostAuthOnboardingView: View {
             (lang.localized("onboarding.interest.dinosaurs"), "fossil.shell.fill"),
             (lang.localized("onboarding.interest.vehicles"), "car.fill"),
             (lang.localized("onboarding.interest.fashion"), "tshirt.fill"),
-            (lang.localized("onboarding.interest.dance"), "figure.dance")
+            (lang.localized("onboarding.interest.dance"), "figure.dance"),
+            (lang.localized("onboarding.interest.photography"), "camera.fill"),
+            (lang.localized("onboarding.interest.travel"), "airplane"),
+            (lang.localized("onboarding.interest.math"), "function"),
+            (lang.localized("onboarding.interest.puzzles"), "puzzlepiece.fill"),
+            (lang.localized("onboarding.interest.robots"), "gearshape.2.fill"),
+            (lang.localized("onboarding.interest.magic"), "wand.and.stars"),
+            (lang.localized("onboarding.interest.superheroes"), "bolt.fill"),
+            (lang.localized("onboarding.interest.gardening"), "leaf.arrow.circlepath"),
+            (lang.localized("onboarding.interest.astronomy"), "telescope.fill"),
+            (lang.localized("onboarding.interest.languages"), "character.bubble.fill"),
+            (lang.localized("onboarding.interest.boardgames"), "dice.fill"),
+            (lang.localized("onboarding.interest.swimming"), "figure.pool.swim"),
+            (lang.localized("onboarding.interest.comics"), "text.bubble.fill"),
+            (lang.localized("onboarding.interest.yoga"), "figure.yoga"),
+            (lang.localized("onboarding.interest.theater"), "theatermasks.fill")
         ]
         
         return VStack(spacing: 0) {
@@ -336,7 +414,7 @@ struct PostAuthOnboardingView: View {
                 VStack(spacing: 24) {
                     SurveyHeader(
                         step: lang.localized("onboarding.interests.step"),
-                        title: lang.localized("onboarding.interests.title"),
+                        title: "* " + lang.localized("onboarding.interests.title"),
                         subtitle: lang.localized("onboarding.interests.subtitle")
                     )
 
@@ -369,9 +447,9 @@ struct PostAuthOnboardingView: View {
                     
                     Text(lang.localized("common.selected_count", surveyData.interests.count, 5))
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(surveyData.interests.count >= 3 ? KomalColors.pearlAqua : KomalColors.textSecondary)
+                        .foregroundColor(surveyData.interests.count >= 3 ? KomalColors.lavenderPurple : KomalColors.textSecondary)
                 }
-                .padding(.bottom, 120)
+                .padding(.bottom, 60)
             }
             
             SurveyNavigation(
@@ -398,7 +476,21 @@ struct PostAuthOnboardingView: View {
             lang.localized("onboarding.like.puzzles"),
             lang.localized("onboarding.like.funny"),
             lang.localized("onboarding.like.stories"),
-            lang.localized("onboarding.like.making_videos")
+            lang.localized("onboarding.like.making_videos"),
+            lang.localized("onboarding.like.drawing"),
+            lang.localized("onboarding.like.photography"),
+            lang.localized("onboarding.like.coding"),
+            lang.localized("onboarding.like.reading_comics"),
+            lang.localized("onboarding.like.collecting"),
+            lang.localized("onboarding.like.building"),
+            lang.localized("onboarding.like.cooking_videos"),
+            lang.localized("onboarding.like.science_experiments"),
+            lang.localized("onboarding.like.dancing"),
+            lang.localized("onboarding.like.trivia"),
+            lang.localized("onboarding.like.anime"),
+            lang.localized("onboarding.like.podcasts"),
+            lang.localized("onboarding.like.shopping"),
+            lang.localized("onboarding.like.live_streams")
         ]
         
         return VStack(spacing: 0) {
@@ -406,7 +498,7 @@ struct PostAuthOnboardingView: View {
                 VStack(spacing: 24) {
                     SurveyHeader(
                         step: lang.localized("onboarding.likes.step"),
-                        title: lang.localized("onboarding.likes.title"),
+                        title: "* " + lang.localized("onboarding.likes.title"),
                         subtitle: lang.localized("onboarding.likes.subtitle")
                     )
 
@@ -445,12 +537,12 @@ struct PostAuthOnboardingView: View {
                             .cornerRadius(10)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                    .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
                             )
                     }
                     .padding(.horizontal, 24)
                 }
-                .padding(.bottom, 120)
+                .padding(.bottom, 60)
             }
             
             SurveyNavigation(
@@ -525,7 +617,7 @@ struct PostAuthOnboardingView: View {
                             .cornerRadius(10)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                    .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
                             )
                     }
                     .padding(.horizontal, 24)
@@ -535,7 +627,7 @@ struct PostAuthOnboardingView: View {
                     )
                     .padding(.horizontal, 24)
                 }
-                .padding(.bottom, 120)
+                .padding(.bottom, 60)
             }
             
             SurveyNavigation(
@@ -566,7 +658,7 @@ struct PostAuthOnboardingView: View {
                 VStack(spacing: 24) {
                     SurveyHeader(
                         step: lang.localized("onboarding.concerns.step"),
-                        title: lang.localized("onboarding.concerns.title"),
+                        title: "* " + lang.localized("onboarding.concerns.title"),
                         subtitle: lang.localized("onboarding.concerns.subtitle")
                     )
 
@@ -595,7 +687,7 @@ struct PostAuthOnboardingView: View {
                     }
                     .padding(.horizontal, 24)
                 }
-                .padding(.bottom, 120)
+                .padding(.bottom, 60)
             }
             
             SurveyNavigation(
@@ -634,7 +726,7 @@ struct PostAuthOnboardingView: View {
                     }
                     .padding(.horizontal, 24)
                 }
-                .padding(.bottom, 120)
+                .padding(.bottom, 60)
             }
 
             SurveyNavigation(
@@ -663,7 +755,7 @@ struct PostAuthOnboardingView: View {
 
                     VStack(spacing: 20) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(lang.localized("onboarding.pin.enter"))
+                            Text("* " + lang.localized("onboarding.pin.enter"))
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
 
@@ -676,15 +768,15 @@ struct PostAuthOnboardingView: View {
                                 .cornerRadius(12)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                        .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
                                 )
-                                .onChange(of: pinEntry) { _, newValue in
-                                    if newValue.count > 4 { pinEntry = String(newValue.prefix(4)) }
+                                .onChange(of: pinEntry) {
+                                    if pinEntry.count > 4 { pinEntry = String(pinEntry.prefix(4)) }
                                 }
                         }
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(lang.localized("onboarding.pin.confirm"))
+                            Text("* " + lang.localized("onboarding.pin.confirm"))
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(KomalColors.textPrimary)
 
@@ -697,10 +789,10 @@ struct PostAuthOnboardingView: View {
                                 .cornerRadius(12)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(pinMismatchError ? Color.red : Color.gray.opacity(0.2), lineWidth: pinMismatchError ? 2 : 1)
+                                        .stroke(pinMismatchError ? Color.red : Color.black.opacity(0.1), lineWidth: pinMismatchError ? 2 : 0.5)
                                 )
-                                .onChange(of: pinConfirm) { _, newValue in
-                                    if newValue.count > 4 { pinConfirm = String(newValue.prefix(4)) }
+                                .onChange(of: pinConfirm) {
+                                    if pinConfirm.count > 4 { pinConfirm = String(pinConfirm.prefix(4)) }
                                 }
 
                             if pinMismatchError {
@@ -748,7 +840,7 @@ struct PostAuthOnboardingView: View {
                     )
                     .padding(.horizontal, 24)
                 }
-                .padding(.bottom, 120)
+                .padding(.bottom, 60)
             }
 
             SurveyNavigation(
@@ -762,7 +854,7 @@ struct PostAuthOnboardingView: View {
                         KeychainService.savePin(pinEntry)
                         BiometricAuthService.isBiometricEnabled = enableBiometric
                         appState.parentSettings.biometricEnabled = enableBiometric
-                        withAnimation { currentPage = 9 }
+                        withAnimation { currentPage = 9 }  // Go to avatar selection
                     } else {
                         pinMismatchError = true
                     }
@@ -771,12 +863,177 @@ struct PostAuthOnboardingView: View {
         }
     }
 
-    // MARK: - Screen 10: Completion
+    // MARK: - Screen 10: Guided Access Setup
+
+    private var guidedAccessScreen: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    Spacer().frame(height: 20)
+
+                    // Shield + lock icon header
+                    ZStack {
+                        Circle()
+                            .fill(KomalColors.lavenderPurple.opacity(0.15))
+                            .frame(width: 90, height: 90)
+
+                        Image(systemName: "lock.shield.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(KomalColors.lavenderPurple)
+                    }
+
+                    VStack(spacing: 8) {
+                        Text(lang.localized("onboarding.guided_access.title"))
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(KomalColors.textPrimary)
+
+                        Text(lang.localized("onboarding.guided_access.explanation"))
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(KomalColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 24)
+
+                    // Step cards
+                    VStack(spacing: 12) {
+                        GuidedAccessStepCard(
+                            stepNumber: 1,
+                            text: lang.localized("onboarding.guided_access.step1")
+                        )
+                        GuidedAccessStepCard(
+                            stepNumber: 2,
+                            text: lang.localized("onboarding.guided_access.step2")
+                        )
+                        GuidedAccessStepCard(
+                            stepNumber: 3,
+                            text: lang.localized("onboarding.guided_access.step3")
+                        )
+                    }
+                    .padding(.horizontal, 24)
+
+                    // Open Settings button
+                    Button(action: {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "gear")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text(lang.localized("onboarding.guided_access.open_settings"))
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .foregroundColor(KomalColors.lavenderPurple)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(KomalColors.lavenderPurple.opacity(0.1))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(KomalColors.lavenderPurple, lineWidth: 1)
+                        )
+                    }
+                    .padding(.horizontal, 24)
+
+                    ResearchNote(
+                        text: lang.localized("onboarding.guided_access.research_note")
+                    )
+                    .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 60)
+            }
+
+            SurveyNavigation(
+                canGoBack: true,
+                canGoNext: true,
+                onBack: { withAnimation { currentPage = 8 } },
+                onNext: { withAnimation { currentPage = 10 } }
+            )
+        }
+    }
+
+    // MARK: - Screen 11: Avatar Selection
+
+    private var avatarSelectionScreen: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    SurveyHeader(
+                        step: "10",
+                        title: lang.localized("onboarding.avatar.title"),
+                        subtitle: lang.localized("onboarding.avatar.subtitle")
+                    )
+
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
+                    ], spacing: 12) {
+                        ForEach(RikiCharacter.allCharacters) { character in
+                            Button {
+                                withAnimation(.spring(response: 0.3)) {
+                                    surveyData.selectedAvatarIndex = character.id
+                                }
+                            } label: {
+                                VStack(spacing: 8) {
+                                    if let uiImage = UIImage(named: character.imageName) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(width: 64, height: 64)
+                                            .clipShape(Circle())
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(
+                                                        surveyData.selectedAvatarIndex == character.id ? KomalColors.lavenderPurple : Color.clear,
+                                                        lineWidth: 3
+                                                    )
+                                            )
+                                    }
+
+                                    Text(character.name)
+                                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                        .foregroundColor(
+                                            surveyData.selectedAvatarIndex == character.id ? KomalColors.lavenderPurple : KomalColors.textPrimary
+                                        )
+                                }
+                                .padding(.vertical, 12)
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(surveyData.selectedAvatarIndex == character.id ? KomalColors.lavenderPurple.opacity(0.1) : Color.white)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(
+                                            surveyData.selectedAvatarIndex == character.id ? KomalColors.lavenderPurple : Color.gray.opacity(0.2),
+                                            lineWidth: surveyData.selectedAvatarIndex == character.id ? 2 : 1
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+                .padding(.bottom, 60)
+            }
+
+            SurveyNavigation(
+                canGoBack: true,
+                canGoNext: true,
+                onBack: { withAnimation { currentPage = 9 } },
+                onNext: { withAnimation { currentPage = 11 } }
+            )
+        }
+    }
+
+    // MARK: - Screen 12: Completion
 
     private var completionScreen: some View {
         ScrollView {
-            VStack(spacing: 28) {
-                Spacer().frame(height: 40)
+            VStack(spacing: 20) {
+                Spacer().frame(height: 20)
                 
                 // Success icon
                 ZStack {
@@ -830,20 +1087,13 @@ struct PostAuthOnboardingView: View {
                 
                 // Complete button
                 Button(action: {
-                    // Save all data
-                    appState.activeProfile = ChildProfile(name: surveyData.name, ageGroup: surveyData.ageGroup)
+                    // Save profile & preferences first
+                    appState.activeProfile = ChildProfile(name: surveyData.name, ageGroup: surveyData.ageGroup, selectedAvatarIndex: surveyData.selectedAvatarIndex)
                     appState.contentFilterPreferences = preferences
-                    appState.hasCompletedOnboarding = true
-
-                    // Save preferences
                     appState.savePreferences()
-                    
-                    // Call the completion handler
-                    onComplete()
-                    
-                    // Navigate to RootView using PathManager
-                    pathManager.popToRoot()
-                    pathManager.push(Routes.rootView)
+
+                    // Show plan selection
+                    showPlanSelection = true
                 }) {
                     Text(lang.localized("onboarding.complete.start"))
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
@@ -854,13 +1104,26 @@ struct PostAuthOnboardingView: View {
                         .cornerRadius(14)
                 }
                 .padding(.horizontal, 24)
-                
-                Button(action: { withAnimation { currentPage = 8 } }) {
+
+                Button(action: { withAnimation { currentPage = 10 } }) {
                     Text(lang.localized("onboarding.complete.review"))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
-                .padding(.bottom, 40)
+                .padding(.bottom, 20)
+            }
+        }
+        .fullScreenCover(isPresented: $showPlanSelection) {
+            PlanSelectionView { plan in
+                appState.subscriptionState.currentPlan = plan
+                if let productID = plan.productID {
+                    appState.subscriptionState.purchasedProductID = productID
+                }
+                appState.hasSelectedPlan = true
+                appState.hasCompletedOnboarding = true
+                appState.savePreferences()
+                showPlanSelection = false
+                onComplete()
             }
         }
     }
@@ -868,24 +1131,42 @@ struct PostAuthOnboardingView: View {
     // MARK: - Helper Functions
     
     private func applyParentConcernsToFilters() {
-        // Adjust filter preferences based on selected concerns
-        if surveyData.parentConcerns.contains("Cyberbullying") {
+        // B27 fix: parentConcerns stores localized display strings (from lang.localized()),
+        // which differ by language. We match against the localization *keys* instead of
+        // hardcoded English strings, so the mapping works regardless of the active locale.
+        // Each canonical key corresponds to the key used in parentConcernsScreen's concerns array.
+        let canonicalKeys: [(key: String, localized: String)] = [
+            ("onboarding.concern.cyberbullying", lang.localized("onboarding.concern.cyberbullying")),
+            ("onboarding.concern.inappropriate", lang.localized("onboarding.concern.inappropriate")),
+            ("onboarding.concern.mental", lang.localized("onboarding.concern.mental")),
+            ("onboarding.concern.addiction", lang.localized("onboarding.concern.addiction")),
+            ("onboarding.concern.scams", lang.localized("onboarding.concern.scams")),
+        ]
+
+        // Build a set of canonical keys that the user selected
+        let selectedKeys: Set<String> = Set(
+            canonicalKeys
+                .filter { surveyData.parentConcerns.contains($0.localized) }
+                .map { $0.key }
+        )
+
+        if selectedKeys.contains("onboarding.concern.cyberbullying") {
             preferences.discriminationHateSpeech = .block
         }
-        if surveyData.parentConcerns.contains("Inappropriate Content") {
+        if selectedKeys.contains("onboarding.concern.inappropriate") {
             preferences.graphicViolence = .block
             preferences.explicitSexual = .block
             preferences.matureContent = .block
         }
-        if surveyData.parentConcerns.contains("Mental Health") {
+        if selectedKeys.contains("onboarding.concern.mental") {
             preferences.parasocialContent = .block
             preferences.beautyFilters = .block
         }
-        if surveyData.parentConcerns.contains("Screen Addiction") {
+        if selectedKeys.contains("onboarding.concern.addiction") {
             preferences.shortFormVideos = .block
             preferences.gamingContent = .gate
         }
-        if surveyData.parentConcerns.contains("Financial Scams") {
+        if selectedKeys.contains("onboarding.concern.scams") {
             preferences.speculativeFinance = .block
             preferences.getRichQuick = .block
             preferences.subscriptionPages = .block
@@ -911,7 +1192,7 @@ struct SurveyProgressBar: View {
                 
                 Rectangle()
                     .fill(KomalColors.lavenderPurple)
-                    .frame(width: geometry.size.width * CGFloat(current) / CGFloat(total - 1), height: 4)
+                    .frame(width: geometry.size.width * min(CGFloat(current) / CGFloat(max(total, 1)), 1.0), height: 4)
                     .cornerRadius(2)
                     .animation(.easeInOut(duration: 0.3), value: current)
             }
@@ -962,14 +1243,14 @@ struct SurveyNavigation: View {
                         Text("common.back".localized)
                             .font(.system(size: 16, weight: .medium))
                     }
-                    .foregroundColor(KomalColors.textSecondary)
+                    .foregroundColor(KomalColors.textPrimary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(Color.white)
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                            .stroke(Color.gray.opacity(0.35), lineWidth: 1)
                     )
                 }
             }
@@ -981,11 +1262,15 @@ struct SurveyNavigation: View {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(.white)
+                .foregroundColor(canGoNext ? .white : Color.gray.opacity(0.6))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(canGoNext ? KomalColors.lavenderPurple : Color.gray.opacity(0.3))
+                .background(canGoNext ? KomalColors.lavenderPurple : Color.gray.opacity(0.15))
                 .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(canGoNext ? Color.clear : Color.gray.opacity(0.3), lineWidth: 1)
+                )
             }
             .disabled(!canGoNext)
         }
@@ -1018,6 +1303,35 @@ struct InfoCard: View {
                     .foregroundColor(KomalColors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .cornerRadius(14)
+        .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
+    }
+}
+
+struct GuidedAccessStepCard: View {
+    let stepNumber: Int
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(KomalColors.lavenderPurple)
+                    .frame(width: 32, height: 32)
+
+                Text("\(stepNumber)")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.white)
+            }
+
+            Text(text)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(KomalColors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1079,9 +1393,9 @@ struct AgeGroupButton: View {
                 
                 ZStack {
                     Circle()
-                        .stroke(isSelected ? KomalColors.lavenderPurple : Color.gray.opacity(0.3), lineWidth: 2)
+                        .stroke(isSelected ? KomalColors.lavenderPurple : Color.gray.opacity(0.45), lineWidth: 2)
                         .frame(width: 22, height: 22)
-                    
+
                     if isSelected {
                         Circle()
                             .fill(KomalColors.lavenderPurple)
@@ -1094,7 +1408,7 @@ struct AgeGroupButton: View {
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? KomalColors.lavenderPurple : Color.gray.opacity(0.15), lineWidth: 1)
+                    .stroke(isSelected ? KomalColors.lavenderPurple : Color.gray.opacity(0.3), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -1118,7 +1432,7 @@ struct SelectableChip: View {
                 .cornerRadius(20)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
-                        .stroke(isSelected ? color : Color.gray.opacity(0.2), lineWidth: 1)
+                        .stroke(isSelected ? color : Color.gray.opacity(0.35), lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
@@ -1133,22 +1447,24 @@ struct InterestTile: View {
     
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 10) {
+            HStack(spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 26))
+                    .font(.system(size: 22))
                     .foregroundColor(isSelected ? KomalColors.lavenderPurple : KomalColors.textSecondary)
-                
+                    .frame(width: 28)
+
                 Text(title)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(isSelected ? KomalColors.lavenderPurple : KomalColors.textPrimary)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 14)
             .background(isSelected ? KomalColors.lavenderPurple.opacity(0.1) : Color.white)
             .cornerRadius(14)
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .stroke(isSelected ? KomalColors.lavenderPurple : Color.gray.opacity(0.15), lineWidth: isSelected ? 2 : 1)
+                    .stroke(isSelected ? KomalColors.lavenderPurple : Color.gray.opacity(0.3), lineWidth: isSelected ? 2 : 1)
             )
         }
         .buttonStyle(.plain)
@@ -1184,14 +1500,14 @@ struct ConcernRow: View {
                 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 22))
-                    .foregroundColor(isSelected ? KomalColors.bubblegumPink : Color.gray.opacity(0.3))
+                    .foregroundColor(isSelected ? KomalColors.bubblegumPink : Color.gray.opacity(0.45))
             }
             .padding(14)
             .background(isSelected ? KomalColors.bubblegumPink.opacity(0.08) : Color.white)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? KomalColors.bubblegumPink : Color.gray.opacity(0.15), lineWidth: 1)
+                    .stroke(isSelected ? KomalColors.bubblegumPink : Color.gray.opacity(0.3), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

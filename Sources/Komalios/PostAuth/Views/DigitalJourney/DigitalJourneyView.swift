@@ -11,12 +11,19 @@ import SwiftUI
 struct DigitalJourneyView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel = DigitalJourneyViewModel()
-    @StateObject private var historyViewModel = BrowsingHistoryViewModel()
+    @StateObject private var historyViewModel = BrowsingHistoryViewModel(showAllByDefault: true)
     @Environment(\.dismiss) private var dismiss
 
     enum JourneyTab: String, CaseIterable {
-        case insights = "AI Insights"
-        case history = "History"
+        case insights = "ai_insights"
+        case history = "history"
+
+        var displayName: String {
+            switch self {
+            case .insights: return LanguageManager.shared.localized("journey.tab.insights")
+            case .history: return LanguageManager.shared.localized("journey.tab.history")
+            }
+        }
     }
 
     @State private var selectedTab: JourneyTab = .insights
@@ -32,7 +39,7 @@ struct DigitalJourneyView: View {
                     // Segmented tab picker
                     Picker("", selection: $selectedTab) {
                         ForEach(JourneyTab.allCases, id: \.self) { tab in
-                            Text(tab.rawValue).tag(tab)
+                            Text(tab.displayName).tag(tab)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -48,7 +55,7 @@ struct DigitalJourneyView: View {
                     }
                 }
             }
-            .navigationTitle("Digital Journey")
+            .navigationTitle(LanguageManager.shared.localized("journey.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -61,15 +68,14 @@ struct DigitalJourneyView: View {
             }
             .fullScreenCover(item: $selectedBatch) { batch in
                 HistoryBatchDetailView(batch: batch)
+                    .environmentObject(appState)
             }
         }
-        .onAppear {
-            viewModel.loadHistory()
-        }
         .task {
+            viewModel.loadHistory()
             await historyViewModel.loadHistory()
         }
-        .onChange(of: historyViewModel.selectedTimeRange) { _ in historyViewModel.onFilterChanged() }
+        .onChange(of: historyViewModel.selectedTimeRange) { historyViewModel.onFilterChanged() }
     }
 
     // MARK: - AI Insights Content
@@ -80,7 +86,7 @@ struct DigitalJourneyView: View {
                 VStack(spacing: 16) {
                     ProgressView()
                         .scaleEffect(1.2)
-                    Text("Analyzing browsing activity...")
+                    Text(LanguageManager.shared.localized("journey.analyzing"))
                         .font(.system(size: 15, weight: .medium, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -90,17 +96,19 @@ struct DigitalJourneyView: View {
                     Image(systemName: "globe")
                         .font(.system(size: 48))
                         .foregroundColor(KomalColors.textSecondary.opacity(0.5))
-                    Text("No browsing history yet")
+                    Text(LanguageManager.shared.localized("journey.no_history"))
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
-                    Text("History will appear here as your child browses")
+                    Text(LanguageManager.shared.localized("journey.history_will_appear"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
                 }
                 .frame(maxHeight: .infinity)
             } else {
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 16) {
                         // Filter pills
                         filterPills
                             .padding(.horizontal, 16)
@@ -111,7 +119,7 @@ struct DigitalJourneyView: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .foregroundColor(.orange)
-                                    Text("Needs Attention")
+                                    Text(LanguageManager.shared.localized("journey.needs_attention"))
                                         .font(.system(size: 18, weight: .bold, design: .rounded))
                                         .foregroundColor(KomalColors.textPrimary)
                                 }
@@ -131,7 +139,7 @@ struct DigitalJourneyView: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundColor(KomalColors.pearlAqua)
-                                    Text("Allowed Links")
+                                    Text(LanguageManager.shared.localized("journey.allowed_links"))
                                         .font(.system(size: 18, weight: .bold, design: .rounded))
                                         .foregroundColor(KomalColors.textPrimary)
                                 }
@@ -145,7 +153,7 @@ struct DigitalJourneyView: View {
                             }
                         }
 
-                        Color.clear.frame(height: 40)
+                        Color.clear.frame(height: 20)
                     }
                     .padding(.top, 12)
                 }
@@ -161,7 +169,7 @@ struct DigitalJourneyView: View {
                 VStack(spacing: 16) {
                     ProgressView()
                         .scaleEffect(1.2)
-                    Text("Loading browsing history...")
+                    Text(LanguageManager.shared.localized("journey.loading_history"))
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -171,16 +179,16 @@ struct DigitalJourneyView: View {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 48, weight: .light))
                         .foregroundColor(KomalColors.textSecondary.opacity(0.5))
-                    Text("No browsing history yet")
+                    Text(LanguageManager.shared.localized("journey.no_history"))
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
-                    Text("History will appear here as your child browses.")
+                    Text(LanguageManager.shared.localized("journey.history_will_appear"))
                         .font(.system(size: 14, weight: .regular, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxHeight: .infinity)
-                .padding(.horizontal, 40)
+                .padding(.horizontal, 24)
             } else {
                 ScrollView {
                     VStack(spacing: 12) {
@@ -196,7 +204,7 @@ struct DigitalJourneyView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 20)
                 }
             }
         }
@@ -211,7 +219,7 @@ struct DigitalJourneyView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
 
-                Text("Time Range")
+                Text(LanguageManager.shared.localized("journey.time_range"))
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
 
@@ -223,7 +231,7 @@ struct DigitalJourneyView: View {
                             historyViewModel.selectedTimeRange = option
                         }) {
                             HStack {
-                                Text(option.rawValue)
+                                Text(option.displayName)
                                 if historyViewModel.selectedTimeRange == option {
                                     Image(systemName: "checkmark")
                                 }
@@ -232,7 +240,7 @@ struct DigitalJourneyView: View {
                     }
                 } label: {
                     HStack(spacing: 6) {
-                        Text(historyViewModel.selectedTimeRange.rawValue)
+                        Text(historyViewModel.selectedTimeRange.displayName)
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                         Image(systemName: "chevron.up.chevron.down")
@@ -258,7 +266,7 @@ struct DigitalJourneyView: View {
                         viewModel.selectedFilter = filter
                     }
                 }) {
-                    Text(filter.rawValue)
+                    Text(filter.displayName)
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(viewModel.selectedFilter == filter ? .white : KomalColors.textPrimary)
                         .padding(.horizontal, 16)
@@ -316,7 +324,7 @@ struct TopicGroupCard: View {
                             Text("\(group.items.count)")
                                 .font(.system(size: 18, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.lavenderPurple)
-                            Text("links")
+                            Text(LanguageManager.shared.localized("journey.links"))
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(KomalColors.textSecondary)
                         }
@@ -400,9 +408,9 @@ struct HistoryItemRow: View {
 
                 // Parent action buttons
                 HStack(spacing: 6) {
-                    actionButton("Allow", action: "ALLOW", color: KomalColors.pearlAqua)
-                    actionButton("Gate", action: "GATE", color: .orange)
-                    actionButton("Block", action: "BLOCK", color: .red)
+                    actionButton(LanguageManager.shared.localized("filter.allow"), action: "ALLOW", color: KomalColors.pearlAqua)
+                    actionButton(LanguageManager.shared.localized("filter.gate"), action: "GATE", color: .orange)
+                    actionButton(LanguageManager.shared.localized("filter.block"), action: "BLOCK", color: .red)
                 }
             }
         }
@@ -438,10 +446,42 @@ struct HistoryItemRow: View {
         return shortened
     }
 
+    private static let relativeDateFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return f
+    }()
+
     private func formatDate(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
+        Self.relativeDateFormatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+
+// MARK: - ActionFilter Display Name Extension
+
+extension DigitalJourneyViewModel.ActionFilter {
+    var displayName: String {
+        switch self {
+        case .all: return LanguageManager.shared.localized("journey.filter.all")
+        case .blocked: return LanguageManager.shared.localized("journey.filter.blocked")
+        case .gated: return LanguageManager.shared.localized("journey.filter.gated")
+        case .allowed: return LanguageManager.shared.localized("journey.filter.allowed")
+        }
+    }
+}
+
+// MARK: - TimeRangeOption Display Name Extension
+
+extension TimeRangeOption {
+    var displayName: String {
+        switch self {
+        case .oneHour: return LanguageManager.shared.localized("journey.range.1h")
+        case .threeHours: return LanguageManager.shared.localized("journey.range.3h")
+        case .sixHours: return LanguageManager.shared.localized("journey.range.6h")
+        case .twelveHours: return LanguageManager.shared.localized("journey.range.12h")
+        case .twentyFourHours: return LanguageManager.shared.localized("journey.range.24h")
+        case .allTime: return LanguageManager.shared.localized("journey.range.all")
+        }
     }
 }
 #endif

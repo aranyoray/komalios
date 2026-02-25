@@ -2,6 +2,7 @@
 import SwiftUI
 import FirebaseCore
 import FirebaseAuth
+import os.log
 
 @main
 struct KomaliosApp: App {
@@ -11,7 +12,7 @@ struct KomaliosApp: App {
     @StateObject private var languageManager = LanguageManager.shared
     @UIApplicationDelegateAdaptor(AppDelegate.self)
     var appDelegate
-    
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -38,7 +39,7 @@ struct ContentView: View {
                     destinationView(for: route)
                 }
         }
-        .onChange(of: authViewModel.user) { _ in
+        .onChange(of: authViewModel.user) {
             guard !appState.isGuestUser else { return }
             if authViewModel.user == nil {
                 pathManager.popToRoot()
@@ -50,15 +51,22 @@ struct ContentView: View {
                 pathManager.popToRoot()
                 pathManager.push(Routes.onboardingView)
             }
+
+            // Trigger Firestore sync after login
+            if let uid = authViewModel.user?.uid {
+                Task {
+                    await FirestoreSyncService.shared.syncOnLogin(uid: uid, appState: appState)
+                }
+            }
         }
-        .onChange(of: appState.hasCompletedOnboarding) { newValue in
-            if newValue && (authViewModel.user != nil || appState.isGuestUser) {
+        .onChange(of: appState.hasCompletedOnboarding) {
+            if appState.hasCompletedOnboarding && (authViewModel.user != nil || appState.isGuestUser) {
                 pathManager.popToRoot()
                 pathManager.push(Routes.rootView)
             }
         }
-        .onChange(of: scenePhase) { newPhase in
-            if newPhase == .background || newPhase == .inactive {
+        .onChange(of: scenePhase) {
+            if scenePhase == .background {
                 if appState.accountMode == .guest {
                     appState.accountMode = .child
                 }
@@ -66,8 +74,24 @@ struct ContentView: View {
                 appState.retentionState.lastActiveDate = Date()
                 appState.retentionState.promptsShownThisSession = 0
                 appState.savePreferences()
+
+                // Commit eye tracking data and stop session
+                Task { @MainActor in
+                    if EyeTrackingService.shared.isTracking {
+                        EyeTrackingService.shared.commitDailySummary()
+                        EyeTrackingService.shared.stopTracking()
+                    }
+                }
             }
-            if newPhase == .active {
+            if scenePhase == .active {
+                // Resume eye tracking if enabled, supported, and user is authenticated
+                Task { @MainActor in
+                    if appState.parentSettings.eyeTrackingEnabled
+                        && EyeTrackingService.isSupported
+                        && (authViewModel.user != nil || appState.isGuestUser) {
+                        EyeTrackingService.shared.startTracking()
+                    }
+                }
                 // Update streak on app open
                 GrowthTrackingService.shared.updateStreakOnAppOpen(retentionState: &appState.retentionState)
 
@@ -91,6 +115,18 @@ struct ContentView: View {
             NotificationService.shared.requestPermission()
             // Schedule anchor notifications
             NotificationService.shared.updateSchedules(retentionState: appState.retentionState)
+        }
+        .task {
+            // Sync subscription state with StoreKit on launch
+            let subLog = Logger(subsystem: "com.komalkids.komal", category: "Subscription")
+            subLog.info("App launch: syncing subscription state (stored=\(appState.subscriptionState.currentPlan.displayName), hasSelectedPlan=\(appState.hasSelectedPlan))")
+            await SubscriptionService.shared.updatePurchasedProducts()
+            let currentPlan = SubscriptionService.shared.currentPlan()
+            subLog.info("App launch: StoreKit plan=\(currentPlan.displayName), stored plan=\(appState.subscriptionState.currentPlan.displayName)")
+            if currentPlan != appState.subscriptionState.currentPlan {
+                subLog.info("App launch: updating stored plan \(appState.subscriptionState.currentPlan.displayName) → \(currentPlan.displayName)")
+                appState.subscriptionState.currentPlan = currentPlan
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserDidSignOut"))) { _ in
             // Backup: Force update authViewModel state if notification is received
@@ -128,10 +164,6 @@ struct ContentView: View {
         case .rootView:
             RootView()
                 .navigationBarBackButtonHidden(true)
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserDidSignOut"))) { _ in
-                    pathManager.popToRoot()
-                    pathManager.push(Routes.loginView)
-                }
         case .onboardingView:
             PostAuthOnboardingView {
                 appState.savePreferences()

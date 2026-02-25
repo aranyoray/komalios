@@ -9,7 +9,6 @@
 import Foundation
 import NaturalLanguage
 import Vision
-import Speech
 import CoreML
 #if canImport(UIKit)
 import UIKit
@@ -18,15 +17,15 @@ import UIKit
 @MainActor
 final class ContentAnalysisService {
     static let shared = ContentAnalysisService()
-    
+
+    private static let iso8601Formatter = ISO8601DateFormatter()
+
     private init() {
         setupNLP()
     }
     
     // MARK: - NLP Setup
-    private var nlpSentimentAnalyzer: NLModel?
-    private let nlpQueue = DispatchQueue(label: "com.komalios.nlp", qos: .userInitiated)
-    
+
     // CoreML Model
     private var contentSafetyModel: ContentSafetyTextClassifier?
     
@@ -57,7 +56,8 @@ final class ContentAnalysisService {
         ageBand: AgeBand,
         customBlockedKeywords: [String],
         customBlockedHosts: [String],
-        filterPreferences: ContentFilterPreferences
+        filterPreferences: ContentFilterPreferences,
+        searchQuery: String? = nil
     ) async throws -> UnifiedDecisionResponse {
         
         // Step 1: Check custom blocked keywords/URLs FIRST (before any analysis)
@@ -111,9 +111,18 @@ final class ContentAnalysisService {
         if needsCloud {
             debugLogLine("[DEBUG-ANALYSIS] Calling cloud fallback for: \(url)")
             do {
-                let cloudResult = try await callCloudFallback(url: url, input: input)
+                let cloudResult = try await callCloudFallback(url: url, input: input, searchQuery: searchQuery)
                 debugLogLine("[DEBUG-ANALYSIS] Cloud result received - confidence: \(cloudResult.confidence), categories: \(cloudResult.majorCategories.map { $0.name })")
+
+                // When the cloud returned a full unified response, prefer it directly
+                // (the server crawled the page and has richer data than on-device merge)
+                if let serverResponse = cloudResult.unifiedResponse {
+                    debugLogLine("[DEBUG-ANALYSIS] Using server's full UnifiedDecisionResponse")
+                    return serverResponse
+                }
+
                 return mergeAllDecisions(
+                    url: url,
                     nlp: nlpResult,
                     vision: visionResult,
                     audio: audioResult,
@@ -212,9 +221,10 @@ final class ContentAnalysisService {
                 links: SourceInfo(used: false, confidence: 0.0),
                 cloud: SourceInfo(used: false, confidence: 0.0)
             ),
-            timestamp: ISO8601DateFormatter().string(from: Date()),
+            timestamp: ContentAnalysisService.iso8601Formatter.string(from: Date()),
             historyCategory: "Custom Rules",
-            historySubcategory: "Parent Blocked"
+            historySubcategory: "Parent Blocked",
+            revealingLevel: nil
         )
     }
     
@@ -263,24 +273,90 @@ final class ContentAnalysisService {
         )
     }
     
+    // MARK: - NLP Classification Thresholds
+
+    private struct NLPThresholds {
+        static let majorCategoryThreshold: Double = 0.30
+        static let banSensitiveThreshold: Double = 0.20
+        static let subcategoryThreshold: Double = 0.30
+        static let clusterTolerance: Double = 0.10 // ±10 percentage points
+        static let ambiguousSubcatLimit = 5
+        static let banSensitiveCategories: Set<MajorCategoryType> = [
+            .explicitBodyContent, .selfHarm, .extremism, .violence
+        ]
+        static let standardSubcatLimit = 6
+        static let banSensitiveSubcatLimit = 30
+    }
+
     private func detectMajorCategories(textBlocks: NLPTextBlocks) -> [MajorCategory] {
         // Use NaturalLanguage framework for improved detection
         let combinedText = "\(textBlocks.mainContent) \(textBlocks.creatorMetadata) \(textBlocks.sponsorMetadata)"
-        
+
         // Try CoreML models first (if available)
+        var rawCategories: [MajorCategory] = []
         do {
             let mlResult = try detectWithCoreML(text: combinedText)
             if !mlResult.isEmpty {
                 print("✅ Using CoreML model for category detection")
-                return mlResult
+                rawCategories = mlResult
             }
         } catch {
             print("⚠️ CoreML detection failed, using keyword fallback: \(error.localizedDescription)")
         }
-        
+
         // Fallback to enhanced keyword-based detection with NaturalLanguage
-        print("📝 Using enhanced keyword detection")
-        return enhancedKeywordDetection(textBlocks: textBlocks, combinedText: combinedText)
+        if rawCategories.isEmpty {
+            print("📝 Using enhanced keyword detection")
+            rawCategories = enhancedKeywordDetection(textBlocks: textBlocks, combinedText: combinedText)
+        }
+
+        // Apply Rule A/B/C structured classification
+        return classifyWithRules(rawCategories: rawCategories, textBlocks: textBlocks)
+    }
+
+    /// Structured Rule A/B/C classification logic
+    private func classifyWithRules(
+        rawCategories: [MajorCategory],
+        textBlocks: NLPTextBlocks
+    ) -> [MajorCategory] {
+        let maxProb = rawCategories.map { $0.probability }.max() ?? 0.0
+
+        // Rule C: Check ban-sensitive categories at lower threshold (0.20)
+        let banSensitiveHits = rawCategories.filter { category in
+            guard let categoryType = MajorCategoryType(rawValue: category.name) else { return false }
+            return NLPThresholds.banSensitiveCategories.contains(categoryType) &&
+                   category.probability >= NLPThresholds.banSensitiveThreshold
+        }
+
+        if !banSensitiveHits.isEmpty {
+            debugLogLine("[NLP-RULE-C] Ban-sensitive categories detected: \(banSensitiveHits.map { "\($0.name): \($0.probability)" })")
+            // Return ban-sensitive hits — subcategory exploration will use expanded limits
+            return banSensitiveHits.sorted { $0.probability > $1.probability }
+        }
+
+        // Rule B: Exactly one (or more) major category ≥ 0.30
+        let aboveThreshold = rawCategories.filter { $0.probability >= NLPThresholds.majorCategoryThreshold }
+        if !aboveThreshold.isEmpty {
+            debugLogLine("[NLP-RULE-B] Major categories above threshold: \(aboveThreshold.map { "\($0.name): \($0.probability)" })")
+            return aboveThreshold.sorted { $0.probability > $1.probability }
+        }
+
+        // Rule A: Max probability < 0.30 — can't find strong category
+        debugLogLine("[NLP-RULE-A] No strong category (max: \(maxProb)), attempting focused keyword re-scan")
+
+        // Re-run with focused keyword search
+        let combinedText = "\(textBlocks.mainContent) \(textBlocks.creatorMetadata) \(textBlocks.sponsorMetadata)"
+        let keywordRetry = enhancedKeywordDetection(textBlocks: textBlocks, combinedText: combinedText)
+        let retryAboveThreshold = keywordRetry.filter { $0.probability >= NLPThresholds.majorCategoryThreshold }
+
+        if !retryAboveThreshold.isEmpty {
+            debugLogLine("[NLP-RULE-A] Keyword re-scan found categories: \(retryAboveThreshold.map { "\($0.name): \($0.probability)" })")
+            return retryAboveThreshold.sorted { $0.probability > $1.probability }
+        }
+
+        // Still nothing — mark as low-confidence / unclassified (defer to vision/audio/cloud)
+        debugLogLine("[NLP-RULE-A] Low-confidence / unclassified — deferring to other analysis sources")
+        return rawCategories // Return raw for cloud fallback to evaluate
     }
     
     /// Attempt to use CoreML models for classification (if available)
@@ -330,8 +406,8 @@ final class ContentAnalysisService {
         if let labelFeature = prediction.featureValue(for: "label")?.stringValue {
             print("📋 Found label: \(labelFeature)")
             if let categoryType = mapLabelToCategoryType(label: labelFeature) {
-                let probability = prediction.featureValue(for: "labelProbability")?.doubleValue ?? 
-                                 prediction.featureValue(for: "probability")?.doubleValue ?? 0.8
+                let probability = prediction.featureValue(for: "labelProbability")?.doubleValue ??
+                                 prediction.featureValue(for: "probability")?.doubleValue ?? 0.3
                 
                 categories.append(MajorCategory(
                     name: categoryType.rawValue,
@@ -497,14 +573,15 @@ final class ContentAnalysisService {
                 if lowercased.contains(keyword) {
                     matchCount += 1
                     // Check for strong context indicators
-                    let keywordIndex = lowercased.range(of: keyword)!
-                    let contextStart = max(lowercased.startIndex, lowercased.index(keywordIndex.lowerBound, offsetBy: -20))
-                    let contextEnd = min(lowercased.endIndex, lowercased.index(keywordIndex.upperBound, offsetBy: 20))
-                    let context = String(lowercased[contextStart..<contextEnd])
-                    
-                    // Strong indicators increase probability
-                    if context.contains("warning") || context.contains("explicit") || context.contains("adult") {
-                        strongMatches += 1
+                    if let keywordIndex = lowercased.range(of: keyword) {
+                        let contextStart = lowercased.index(keywordIndex.lowerBound, offsetBy: -20, limitedBy: lowercased.startIndex) ?? lowercased.startIndex
+                        let contextEnd = lowercased.index(keywordIndex.upperBound, offsetBy: 20, limitedBy: lowercased.endIndex) ?? lowercased.endIndex
+                        let context = String(lowercased[contextStart..<contextEnd])
+
+                        // Strong indicators increase probability
+                        if context.contains("warning") || context.contains("explicit") || context.contains("adult") {
+                            strongMatches += 1
+                        }
                     }
                 }
             }
@@ -513,7 +590,7 @@ final class ContentAnalysisService {
                 // Calculate probability based on matches and context
                 let matchRatio = Double(matchCount) / Double(keywords.count)
                 let strongMatchBonus = Double(strongMatches) * 0.1
-                let sentimentAdjustment = abs(sentimentScore) * 0.05 // Negative sentiment increases risk
+                let sentimentAdjustment = max(0, -sentimentScore) * 0.05 // Only negative sentiment increases risk
                 
                 let probability = min(baseProbability * matchRatio + strongMatchBonus + sentimentAdjustment, 0.95)
                 
@@ -534,60 +611,135 @@ final class ContentAnalysisService {
     ) -> [Subcategory] {
         var subcategories: [Subcategory] = []
         let combinedText = "\(textBlocks.mainContent) \(textBlocks.creatorMetadata) \(textBlocks.sponsorMetadata)".lowercased()
-        
-        // Map major categories to their subcategories
+
+        // Extended subcategory map with more granular options for ban-sensitive expansion
         let subcategoryMap: [String: [(String, Double)]] = [
             MajorCategoryType.explicitBodyContent.rawValue: [
                 ("Sexual content", 0.8),
                 ("Nudity", 0.75),
-                ("Adult themes", 0.70)
+                ("Adult themes", 0.70),
+                ("Indecent clothing or speech", 0.65),
+                ("Suggestive content", 0.60),
+                ("Sexual education", 0.55),
+                ("Body modification", 0.50),
+                ("Beauty filters / unrealistic standards", 0.45)
             ],
             MajorCategoryType.violence.rawValue: [
                 ("Graphic violence", 0.85),
+                ("Non-graphic cartoon violence", 0.60),
                 ("Weapons", 0.75),
                 ("Gore", 0.80),
-                ("Physical harm", 0.70)
+                ("Physical harm", 0.70),
+                ("Heavy fighting (WWE/MMA)", 0.65),
+                ("Horror / Paranormal", 0.55),
+                ("Crime news", 0.50)
+            ],
+            MajorCategoryType.selfHarm.rawValue: [
+                ("Self-harm depiction", 0.90),
+                ("Suicide ideation", 0.90),
+                ("Self-harm recovery content", 0.60),
+                ("Mental health crisis", 0.70)
+            ],
+            MajorCategoryType.extremism.rawValue: [
+                ("Extremist content", 0.90),
+                ("Radicalization", 0.85),
+                ("Hate speech", 0.80),
+                ("Discrimination", 0.75),
+                ("Terrorist propaganda", 0.90)
             ],
             MajorCategoryType.substances.rawValue: [
                 ("Drug use", 0.80),
                 ("Alcohol", 0.70),
-                ("Substance abuse", 0.75)
+                ("Substance abuse", 0.75),
+                ("Tobacco / vaping", 0.65)
             ],
             MajorCategoryType.gambling.rawValue: [
                 ("Online gambling", 0.80),
                 ("Casino games", 0.75),
-                ("Betting", 0.70)
+                ("Betting", 0.70),
+                ("Loot boxes / gacha", 0.65)
             ],
             MajorCategoryType.parasocialManipulation.rawValue: [
                 ("FOMO tactics", 0.75),
                 ("Manipulative language", 0.70),
-                ("Pressure to subscribe", 0.65)
+                ("Pressure to subscribe", 0.65),
+                ("Parasocial relationship exploitation", 0.60)
             ],
             MajorCategoryType.financialFraud.rawValue: [
                 ("Investment scams", 0.80),
                 ("Cryptocurrency risks", 0.75),
-                ("MLM schemes", 0.70)
+                ("MLM schemes", 0.70),
+                ("Get-rich-quick", 0.75),
+                ("Online financial advice", 0.60),
+                ("Speculative finance", 0.65)
             ]
         ]
-        
+
+        // Subcategory-specific keyword lists
+        let subcatKeywords: [String: [String]] = [
+            "Sexual content": ["sexual", "intimate", "romance", "erotic"],
+            "Nudity": ["nude", "naked", "undressed", "nsfw"],
+            "Adult themes": ["adult", "mature", "18+"],
+            "Indecent clothing or speech": ["revealing", "indecent", "provocative"],
+            "Suggestive content": ["suggestive", "sexy", "sensual"],
+            "Sexual education": ["sex ed", "reproductive", "puberty", "sexual health"],
+            "Body modification": ["tattoo", "piercing", "modification"],
+            "Beauty filters / unrealistic standards": ["filter", "beauty", "body image"],
+            "Graphic violence": ["gore", "blood", "brutal", "graphic"],
+            "Non-graphic cartoon violence": ["cartoon", "animated", "slapstick"],
+            "Weapons": ["gun", "knife", "weapon", "firearm"],
+            "Gore": ["gore", "dismember", "mutilat"],
+            "Physical harm": ["assault", "attack", "beating"],
+            "Heavy fighting (WWE/MMA)": ["wrestling", "wwe", "mma", "ufc", "fighting"],
+            "Horror / Paranormal": ["horror", "ghost", "paranormal", "scary", "haunted"],
+            "Crime news": ["crime", "murder", "robbery", "arrest"],
+            "Self-harm depiction": ["self-harm", "cutting", "self harm"],
+            "Suicide ideation": ["suicide", "kill myself", "end my life"],
+            "Self-harm recovery content": ["recovery", "healing", "survived"],
+            "Mental health crisis": ["crisis", "breakdown", "despair"],
+            "Extremist content": ["extremist", "radical", "jihadist"],
+            "Radicalization": ["radicalize", "indoctrinate", "recruit"],
+            "Hate speech": ["hate speech", "slur", "bigot"],
+            "Discrimination": ["discrimination", "racist", "sexist"],
+            "Terrorist propaganda": ["terrorist", "bombing", "attack plan"],
+            "Drug use": ["drug", "substance", "illegal", "cocaine", "heroin"],
+            "Alcohol": ["alcohol", "beer", "wine", "drunk", "drinking"],
+            "Substance abuse": ["abuse", "addiction", "overdose"],
+            "Tobacco / vaping": ["tobacco", "vape", "vaping", "cigarette", "smoking"],
+            "Online gambling": ["gambling", "casino", "slot"],
+            "Casino games": ["casino", "blackjack", "roulette"],
+            "Betting": ["bet", "wager", "odds", "sportsbook"],
+            "Loot boxes / gacha": ["loot box", "gacha", "lootbox", "microtransaction"],
+            "FOMO tactics": ["limited", "exclusive", "now or never", "don't miss"],
+            "Manipulative language": ["you owe", "you need", "everyone is"],
+            "Pressure to subscribe": ["subscribe now", "join now", "sign up"],
+            "Parasocial relationship exploitation": ["personal connection", "just for you", "our relationship"],
+            "Investment scams": ["guaranteed return", "risk-free", "get rich", "double your money"],
+            "Cryptocurrency risks": ["crypto", "bitcoin", "token", "nft", "blockchain invest"],
+            "MLM schemes": ["mlm", "pyramid", "downline", "network marketing"],
+            "Get-rich-quick": ["get rich", "millionaire", "passive income", "financial freedom"],
+            "Online financial advice": ["financial advice", "stock tip", "investment advice"],
+            "Speculative finance": ["speculative", "high risk", "volatile"]
+        ]
+
         // Generate subcategories based on detected major categories
         for majorCategory in majorCategories {
+            // Determine subcategory limit based on ban-sensitive status
+            let isBanSensitive: Bool
+            if let categoryType = MajorCategoryType(rawValue: majorCategory.name) {
+                isBanSensitive = NLPThresholds.banSensitiveCategories.contains(categoryType)
+            } else {
+                isBanSensitive = false
+            }
+            let subcatLimit = isBanSensitive ? NLPThresholds.banSensitiveSubcatLimit : NLPThresholds.standardSubcatLimit
+
             if let subcats = subcategoryMap[majorCategory.name] {
-                for (subcatName, baseProb) in subcats {
+                var candidateSubcats: [Subcategory] = []
+
+                for (subcatName, baseProb) in subcats.prefix(subcatLimit) {
                     // Adjust probability based on major category confidence
                     let adjustedProb = majorCategory.probability * baseProb
-                    
-                    // Check for subcategory-specific keywords
-                    let subcatKeywords: [String: [String]] = [
-                        "Sexual content": ["sexual", "intimate", "romance"],
-                        "Nudity": ["nude", "naked", "undressed"],
-                        "Graphic violence": ["gore", "blood", "brutal"],
-                        "Weapons": ["gun", "knife", "weapon"],
-                        "Drug use": ["drug", "substance", "illegal"],
-                        "FOMO tactics": ["limited", "exclusive", "now"],
-                        "Investment scams": ["guaranteed", "risk-free", "get rich"]
-                    ]
-                    
+
                     var finalProb = adjustedProb
                     if let keywords = subcatKeywords[subcatName] {
                         let hasKeywords = keywords.contains { combinedText.contains($0) }
@@ -595,9 +747,10 @@ final class ContentAnalysisService {
                             finalProb = min(finalProb + 0.1, 0.95)
                         }
                     }
-                    
-                    if finalProb > 0.5 { // Only include if above threshold
-                        subcategories.append(Subcategory(
+
+                    // Use spec threshold of 0.30 (lowered from 0.5)
+                    if finalProb >= NLPThresholds.subcategoryThreshold {
+                        candidateSubcats.append(Subcategory(
                             name: subcatName,
                             source: .nlp,
                             probability: finalProb,
@@ -605,10 +758,90 @@ final class ContentAnalysisService {
                         ))
                     }
                 }
+
+                // Apply cluster rule to select the right subcategory
+                let (primary, isAmbiguous) = applyClusterRule(subcategories: candidateSubcats)
+
+                if isAmbiguous {
+                    // Case 3: Ambiguous — include all candidates and let cloud/vision resolve
+                    debugLogLine("[CLUSTER] Ambiguous subcategories for \(majorCategory.name) — deferring to multi-source analysis")
+                    subcategories.append(contentsOf: candidateSubcats)
+                } else if let primary = primary {
+                    // Case 1 or 2: Use primary (most restrictive in cluster, or single)
+                    subcategories.append(primary)
+                }
             }
         }
-        
+
         return subcategories.sorted { $0.probability > $1.probability }
+    }
+
+    /// Apply cluster rule per spec:
+    /// - Case 1: Multiple subcats in tight cluster (±10pp) → pick most restrictive
+    /// - Case 2: Single subcat above threshold → use directly
+    /// - Case 3: None above threshold OR > 5 above threshold → ambiguous
+    private func applyClusterRule(
+        subcategories: [Subcategory]
+    ) -> (primary: Subcategory?, isAmbiguous: Bool) {
+        guard !subcategories.isEmpty else {
+            return (nil, false)
+        }
+
+        // Case 3: Too many above threshold → ambiguous
+        if subcategories.count > NLPThresholds.ambiguousSubcatLimit {
+            return (nil, true)
+        }
+
+        // Case 2: Single subcategory
+        if subcategories.count == 1 {
+            return (subcategories.first, false)
+        }
+
+        // Case 1: Multiple subcategories — detect tight cluster
+        let sorted = subcategories.sorted { $0.probability > $1.probability }
+        guard let topProb = sorted.first?.probability else {
+            return (nil, false)
+        }
+
+        // Cluster: all subcats within ±10pp of top
+        let cluster = sorted.filter { topProb - $0.probability <= NLPThresholds.clusterTolerance }
+
+        if cluster.count > 1 {
+            // Pick the most restrictive subcategory in the cluster
+            // "Most restrictive" = the one whose name maps to the harshest filter action
+            // We rank by how likely the name maps to BLOCK vs GATE vs ALLOW
+            let ranked = cluster.sorted { a, b in
+                restrictiveRank(subcatName: a.name) > restrictiveRank(subcatName: b.name)
+            }
+            debugLogLine("[CLUSTER] Tight cluster of \(cluster.count) subcats, selected most restrictive: \(ranked.first?.name ?? "none")")
+            return (ranked.first, false)
+        }
+
+        // No tight cluster — just return top
+        return (sorted.first, false)
+    }
+
+    /// Rank how restrictive a subcategory name is (higher = more restrictive)
+    private func restrictiveRank(subcatName: String) -> Int {
+        let lower = subcatName.lowercased()
+        // Explicit/severe content → highest restriction rank
+        if lower.contains("explicit") || lower.contains("sexual content") || lower.contains("nudity") ||
+           lower.contains("graphic") || lower.contains("gore") || lower.contains("self-harm") ||
+           lower.contains("suicide") || lower.contains("extremist") || lower.contains("terrorist") {
+            return 3
+        }
+        // Moderate content
+        if lower.contains("weapon") || lower.contains("drug") || lower.contains("gambling") ||
+           lower.contains("scam") || lower.contains("violence") || lower.contains("hate") ||
+           lower.contains("fighting") || lower.contains("alcohol") || lower.contains("crime") {
+            return 2
+        }
+        // Mild content
+        if lower.contains("suggestive") || lower.contains("mature") || lower.contains("fomo") ||
+           lower.contains("beauty") || lower.contains("cartoon") || lower.contains("subscribe") {
+            return 1
+        }
+        return 0
     }
     
     // MARK: - Step 4: Vision Analysis
@@ -705,205 +938,14 @@ final class ContentAnalysisService {
     }
     #endif
 
-    /// Analyze image using Vision framework
-    #if os(iOS)
-    private func analyzeImageWithVision(image: UIImage) async -> (subcategories: [Subcategory], confidence: Double) {
-        guard let cgImage = image.cgImage else {
-            return ([], 0.0)
-        }
-        
-        var subcategories: [Subcategory] = []
-        var maxConfidence: Double = 0.0
-        
-        // Use Vision framework for object detection and classification
-        let requestHandler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        
-        // Request 1: Object detection (detect people, weapons, etc.)
-        let objectRequest = VNDetectHumanRectanglesRequest { request, error in
-            if let error = error {
-                print("⚠️ Human detection error: \(error.localizedDescription)")
-                return
-            }
-            
-            // VNDetectHumanRectanglesRequest returns VNHumanObservation results
-            let observations = request.results as? [VNHumanObservation] ?? []
-            
-            // Detected human figures - could indicate explicit content if combined with other signals
-            if observations.count > 0 {
-                // This alone doesn't mean explicit, but we note it
-                // In a full implementation, you might combine this with other signals
-                // For now, we just log it
-                print("📸 Detected \(observations.count) human figure(s) in image")
-            }
-        }
-        
-        // Request 2: Text recognition (check for inappropriate text in images)
-        let textRequest = VNRecognizeTextRequest { request, error in
-            if let observations = request.results as? [VNRecognizedTextObservation] {
-                let recognizedStrings = observations.compactMap { observation in
-                    observation.topCandidates(1).first?.string
-                }
-                
-                let combinedText = recognizedStrings.joined(separator: " ").lowercased()
-                
-                // Check for inappropriate text in images
-                if combinedText.contains("nsfw") || combinedText.contains("adult") || combinedText.contains("explicit") {
-                    subcategories.append(Subcategory(
-                        name: "Inappropriate text in image",
-                        source: .vision,
-                        probability: 0.75,
-                        majorCategory: MajorCategoryType.explicitBodyContent.rawValue
-                    ))
-                    maxConfidence = max(maxConfidence, 0.75)
-                }
-                
-                // Check for violence-related text
-                if combinedText.contains("violence") || combinedText.contains("weapon") || combinedText.contains("kill") {
-                    subcategories.append(Subcategory(
-                        name: "Violence-related text in image",
-                        source: .vision,
-                        probability: 0.70,
-                        majorCategory: MajorCategoryType.violence.rawValue
-                    ))
-                    maxConfidence = max(maxConfidence, 0.70)
-                }
-            }
-        }
-        textRequest.recognitionLevel = .accurate
-        
-        // Request 3: Image classification (using built-in models)
-        // Note: For NSFW detection, you would need a custom CoreML model
-        // For now, we use heuristics based on detected objects
-        
-        // Perform requests
-        do {
-            try requestHandler.perform([objectRequest, textRequest])
-        } catch {
-            print("⚠️ Vision analysis error: \(error.localizedDescription)")
-        }
-        
-        // Additional heuristic checks
-        // Check image properties that might indicate inappropriate content
-        let imageSize = image.size
-        _ = imageSize.width / imageSize.height
-        
-        // Very wide or very tall images might be banners/ads (less likely to be explicit)
-        // Square or portrait images are more common for explicit content
-        // This is a very weak signal, but we can use it as a minor factor
-        
-        // Color analysis - very dark or very bright images might indicate certain content types
-        // This would require more sophisticated analysis
-        
-        return (subcategories, maxConfidence)
-    }
-    #endif
-
     // MARK: - Step 5: Audio Analysis
-    
+    //
+    // Audio analysis via the JS bridge is not implemented: the JS bridge never
+    // populates AudioInfo.hasSpeech, so this pipeline never executes. It returns
+    // an empty result and is kept as a placeholder for future implementation.
+
     private func analyzeAudio(input: ContentAnalysisInput) async -> AudioResult {
-        guard let media = input.media,
-              let audio = media.audio.first(where: { $0.hasSpeech || $0.hasMusic }) else {
-            return AudioResult(subcategories: [], confidence: 0.0, used: false)
-        }
-        
-        // Transcribe audio using Speech framework
-        let transcriptionResult = await transcribeAudio(audio: audio)
-        
-        guard !transcriptionResult.isEmpty else {
-            return AudioResult(subcategories: [], confidence: 0.0, used: false)
-        }
-        
-        // Analyze transcribed text using NLP
-        let textBlocks = NLPTextBlocks(
-            mainContent: transcriptionResult,
-            creatorMetadata: "",
-            sponsorMetadata: "",
-            linkContext: ""
-        )
-        
-        // Use the same NLP analysis as text content
-        let majorCategories = detectMajorCategories(textBlocks: textBlocks)
-        let subcategories = detectSubcategories(
-            textBlocks: textBlocks,
-            majorCategories: majorCategories
-        )
-        
-        // Mark subcategories as coming from audio source
-        let audioSubcategories = subcategories.map { subcat in
-            Subcategory(
-                name: subcat.name,
-                source: .audio,
-                probability: subcat.probability,
-                majorCategory: subcat.majorCategory
-            )
-        }
-        
-        let confidence = audioSubcategories.isEmpty ? 0.0 : audioSubcategories.map { $0.probability }.max() ?? 0.0
-        
-        return AudioResult(
-            subcategories: audioSubcategories,
-            confidence: confidence,
-            used: !audioSubcategories.isEmpty
-        )
-    }
-    
-    /// Transcribe audio using Speech framework
-    private func transcribeAudio(audio: AudioInfo) async -> String {
-        guard let urlString = audio.url,
-              let audioURL = URL(string: urlString) else {
-            return ""
-        }
-        
-        // Request speech recognition authorization
-        let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
-        
-        guard let recognizer = speechRecognizer, recognizer.isAvailable else {
-            print("⚠️ Speech recognition not available")
-            return ""
-        }
-        
-        // Check authorization
-        let authStatus = SFSpeechRecognizer.authorizationStatus()
-        if authStatus != .authorized {
-            // Request authorization (this should be done at app startup)
-            print("⚠️ Speech recognition not authorized. Status: \(authStatus.rawValue)")
-            return ""
-        }
-        
-        // Create recognition request
-        let request = SFSpeechURLRecognitionRequest(url: audioURL)
-        request.shouldReportPartialResults = false
-        request.taskHint = .dictation
-        
-        // Perform recognition
-        return await withCheckedContinuation { continuation in
-            var finalTranscription = ""
-            
-            recognizer.recognitionTask(with: request) { result, error in
-                if let error = error {
-                    print("⚠️ Speech recognition error: \(error.localizedDescription)")
-                    continuation.resume(returning: finalTranscription)
-                    return
-                }
-                
-                if let result = result {
-                    finalTranscription = result.bestTranscription.formattedString
-                    
-                    if result.isFinal {
-                        continuation.resume(returning: finalTranscription)
-                    }
-                }
-            }
-            
-            // Timeout after 30 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
-                if !finalTranscription.isEmpty {
-                    continuation.resume(returning: finalTranscription)
-                } else {
-                    continuation.resume(returning: "")
-                }
-            }
-        }
+        return AudioResult(subcategories: [], confidence: 0.0, used: false)
     }
     
     // MARK: - Step 6: Links Analysis
@@ -966,7 +1008,6 @@ final class ContentAnalysisService {
     private func analyzeExternalLink(link: LinkInfo) -> Subcategory? {
         // Lightweight on-device classification
         let domain = link.domain.lowercased()
-        _ = (link.context ?? "").lowercased()
         
         // Check for known risky domains (could be expanded with a local database)
         if domain.contains("gambling") || domain.contains("casino") {
@@ -984,6 +1025,7 @@ final class ContentAnalysisService {
     // MARK: - Step 7: Merge Decisions
     
     private func mergeAllDecisions(
+        url: String = "",
         nlp: NLPResult,
         vision: VisionResult,
         audio: AudioResult,
@@ -992,38 +1034,53 @@ final class ContentAnalysisService {
         ageBand: AgeBand,
         filterPreferences: ContentFilterPreferences
     ) -> UnifiedDecisionResponse {
-        // Convert each source to age actions (using user's filter preferences)
-        let nlpActions = convertToAgeActions(nlp.subcategories, source: .nlp, ageBand: ageBand, filterPreferences: filterPreferences)
-        let visionActions = convertToAgeActions(vision.subcategories, source: .vision, ageBand: ageBand, filterPreferences: filterPreferences)
-        let audioActions = convertToAgeActions(audio.subcategories, source: .audio, ageBand: ageBand, filterPreferences: filterPreferences)
-        let linksActions = convertToAgeActions(links.subcategories, source: .links, ageBand: ageBand, filterPreferences: filterPreferences)
-        let cloudActions = cloud != nil ? convertToAgeActions(cloud!.subcategories, source: .cloud, ageBand: ageBand, filterPreferences: filterPreferences) : nil
-        
-        // Merge using most restrictive rule
-        let mergedAction = DecisionMerger.mergeDecisions(
-            textDecision: nlpActions[ageBand.rawValue],
-            visionDecision: visionActions[ageBand.rawValue],
-            audioDecision: audioActions[ageBand.rawValue],
-            linksDecision: linksActions[ageBand.rawValue],
-            cloudDecision: cloudActions?[ageBand.rawValue],
-            customDecision: nil // Already handled in step 1
-        )
-        
-        // Build all age actions (for now, use same decision for all)
+        // Build per-band decisions: each age band gets its own filter preferences
         var allAgeActions: [String: AgeAction] = [:]
+        var primaryMergedAction: AgeAction?
+
         for band in AgeBand.allCases {
+            // Resolve the correct ContentFilterPreferences for THIS age band
+            let bandPreferences = ContentFilterPreferences.defaults(for: band.toAgeGroup())
+
+            // Convert each source to age actions using this band's preferences
+            let nlpActions = convertToAgeActions(nlp.subcategories, source: .nlp, ageBand: band, filterPreferences: bandPreferences)
+            let visionActions = convertToAgeActions(vision.subcategories, source: .vision, ageBand: band, filterPreferences: bandPreferences)
+            let audioActions = convertToAgeActions(audio.subcategories, source: .audio, ageBand: band, filterPreferences: bandPreferences)
+            let linksActions = convertToAgeActions(links.subcategories, source: .links, ageBand: band, filterPreferences: bandPreferences)
+            let cloudActions = cloud != nil ? convertToAgeActions(cloud!.subcategories, source: .cloud, ageBand: band, filterPreferences: bandPreferences) : nil
+
+            // Merge using most restrictive rule (BLOCK > GATE > ALLOW) for THIS band
+            let candidates: [AgeAction] = [
+                nlpActions[band.rawValue],
+                visionActions[band.rawValue],
+                audioActions[band.rawValue],
+                linksActions[band.rawValue],
+                cloudActions?[band.rawValue]
+            ].compactMap { $0 }
+            let mergedAction: AgeAction = candidates.first(where: { $0.action == .block })
+                ?? candidates.first(where: { $0.action == .gate })
+                ?? candidates.first
+                ?? AgeAction(action: .allow, score: 0.0, reason: nil, risks: nil)
+
             allAgeActions[band.rawValue] = mergedAction
+
+            // Track the primary (requesting) band's action for overall score
+            if band == ageBand {
+                primaryMergedAction = mergedAction
+            }
         }
-        
+
+        let effectiveAction = primaryMergedAction ?? allAgeActions[ageBand.rawValue] ?? AgeAction(action: .gate, score: 0.5, reason: "Fallback", risks: nil)
+
         // Combine all subcategories
         let allSubcategories = nlp.subcategories + vision.subcategories + audio.subcategories + links.subcategories + (cloud?.subcategories ?? [])
-        
+
         // Combine all major categories
         let allMajorCategories = nlp.majorCategories + (cloud?.majorCategories ?? [])
-        
+
         return UnifiedDecisionResponse(
-            url: "", // Will be set by caller
-            overallSafetyScore: 1.0 - mergedAction.score,
+            url: url,
+            overallSafetyScore: 1.0 - effectiveAction.score,
             languageSafetyScore: nlp.used ? (1.0 - (nlp.confidence * 0.3)) : 0.0,
             visualSafetyScore: vision.used ? (1.0 - (vision.confidence * 0.3)) : 0.0,
             audioSafetyScore: audio.used ? (1.0 - (audio.confidence * 0.3)) : 0.0,
@@ -1040,66 +1097,62 @@ final class ContentAnalysisService {
                 links: SourceInfo(used: links.used, confidence: links.confidence),
                 cloud: SourceInfo(used: cloud != nil, confidence: cloud?.confidence ?? 0.0)
             ),
-            timestamp: ISO8601DateFormatter().string(from: Date()),
+            timestamp: ContentAnalysisService.iso8601Formatter.string(from: Date()),
             historyCategory: allMajorCategories.first?.name,
-            historySubcategory: allSubcategories.first?.name
+            historySubcategory: allSubcategories.first?.name,
+            revealingLevel: nil
         )
     }
-    
+
     private func convertToAgeActions(
         _ subcategories: [Subcategory],
         source: DecisionSourceType,
         ageBand: AgeBand,
         filterPreferences: ContentFilterPreferences
     ) -> [String: AgeAction] {
-        // Map subcategories to age-specific actions based on user's filter preferences
-        var actions: [String: AgeAction] = [:]
-        
-        for band in AgeBand.allCases {
-            let action: Action
-            let score: Double
-            var reason: String?
-            
-            if let topSubcat = subcategories.first {
-                score = topSubcat.probability
-                
-                // Map detected category/subcategory to user's filter preference
-                let userPreference = getFilterPreferenceForCategory(
-                    category: topSubcat.majorCategory ?? "",
-                    subcategory: topSubcat.name,
-                    preferences: filterPreferences
-                )
-                
-                // Use user's preference if available, otherwise use probability-based logic
-                if let userAction = userPreference {
-                    action = userAction.toAction()
-                    reason = "Based on your content filter settings"
-                } else {
-                    // Fallback: use probability-based logic
-                    if score > 0.7 {
-                        action = band == .below10 || band == .age10_13 ? .block : .gate
-                    } else if score > 0.5 {
-                        action = .gate
-                    } else {
-                        action = .allow
-                    }
-                    reason = topSubcat.name
-                }
-            } else {
-                action = .allow
-                score = 0.0
-                reason = nil
-            }
-            
-            actions[band.rawValue] = AgeAction(
-                action: action,
-                score: score,
-                reason: reason ?? subcategories.first?.name,
-                risks: subcategories.map { $0.name }
+        // Map subcategories to age-specific actions using the provided band's filter preferences
+        let action: Action
+        let score: Double
+        var reason: String?
+
+        if let topSubcat = subcategories.first {
+            score = topSubcat.probability
+
+            // Map detected category/subcategory to this band's filter preference
+            let userPreference = getFilterPreferenceForCategory(
+                category: topSubcat.majorCategory ?? "",
+                subcategory: topSubcat.name,
+                preferences: filterPreferences
             )
+
+            // Use preference if available, otherwise use probability-based logic
+            if let userAction = userPreference {
+                action = userAction.toAction()
+                reason = "Based on content filter settings for \(ageBand.displayName)"
+            } else {
+                // Fallback: use probability-based logic with age sensitivity
+                if score > 0.7 {
+                    action = ageBand == .below10 || ageBand == .age10_13 ? .block : .gate
+                } else if score > 0.5 {
+                    action = .gate
+                } else {
+                    action = .allow
+                }
+                reason = topSubcat.name
+            }
+        } else {
+            action = .allow
+            score = 0.0
+            reason = nil
         }
-        
-        return actions
+
+        // Return action keyed to THIS specific band only
+        return [ageBand.rawValue: AgeAction(
+            action: action,
+            score: score,
+            reason: reason ?? subcategories.first?.name,
+            risks: subcategories.map { $0.name }
+        )]
     }
     
     /// Map detected category/subcategory to user's ContentFilterPreferences
@@ -1239,7 +1292,6 @@ final class ContentAnalysisService {
         mergedDecision: UnifiedDecisionResponse,
         input: ContentAnalysisInput
     ) -> UnifiedDecisionResponse {
-        _ = mergedDecision
         // Update URL and context type
         // This is a workaround since Swift structs are value types
         return UnifiedDecisionResponse(
@@ -1257,10 +1309,11 @@ final class ContentAnalysisService {
             decisionSource: mergedDecision.decisionSource,
             timestamp: mergedDecision.timestamp,
             historyCategory: mergedDecision.historyCategory,
-            historySubcategory: mergedDecision.historySubcategory
+            historySubcategory: mergedDecision.historySubcategory,
+            revealingLevel: mergedDecision.revealingLevel
         )
     }
-    
+
     // MARK: - Step 8: Cloud Fallback
     
     private func shouldUseCloudFallback(
@@ -1269,10 +1322,17 @@ final class ContentAnalysisService {
         audio: AudioResult,
         links: LinksResult
     ) -> Bool {
+        // 0. Always use cloud if NO on-device source produced results
+        //    (e.g., search queries where htmlText is nil — CoreML on empty text is noise)
+        if !nlp.used && !vision.used && !audio.used && !links.used {
+            print("☁️ Cloud fallback: no on-device source produced results")
+            return true
+        }
+
         // Use cloud if:
         // 1. No major category reaches threshold (0.30)
         let maxNLPProb = nlp.majorCategories.map { $0.probability }.max() ?? 0.0
-        if maxNLPProb < 0.30 {
+        if maxNLPProb < 0.15 {
             return true
         }
         
@@ -1283,45 +1343,61 @@ final class ContentAnalysisService {
         
         // 3. Conflicting signals (many subcategories but unclear)
         let totalSubcats = nlp.subcategories.count + vision.subcategories.count + audio.subcategories.count
-        if totalSubcats > 5 {
+        if totalSubcats > 10 {
             return true
         }
         
         return false
     }
     
-    private func callCloudFallback(url: String, input: ContentAnalysisInput) async throws -> CloudResult {
-        // Call existing ScanNetworkService
-        let networkService = ScanNetworkService()
-        let scanResponse = try await networkService.scanURL(url, searchQuery: nil)
-        
-        // Convert ScanResponse to CloudResult
-        return convertScanResponseToCloudResult(scanResponse)
+    private lazy var scanNetworkService = ScanNetworkService()
+
+    private func callCloudFallback(url: String, input: ContentAnalysisInput, searchQuery: String? = nil) async throws -> CloudResult {
+        let apiResult = try await scanNetworkService.scanURLWithFormat(url, searchQuery: searchQuery)
+
+        switch apiResult {
+        case .unified(let decision):
+            return convertUnifiedToCloudResult(decision)
+        case .legacy(let response):
+            return convertScanResponseToCloudResult(response)
+        }
     }
-    
+
+    private func convertUnifiedToCloudResult(_ decision: UnifiedDecisionResponse) -> CloudResult {
+        return CloudResult(
+            majorCategories: decision.majorCategories.map {
+                MajorCategory(name: $0.name, probability: $0.probability, source: .cloud)
+            },
+            subcategories: decision.subcategories.map {
+                Subcategory(name: $0.name, source: .cloud, probability: $0.probability, majorCategory: $0.majorCategory)
+            },
+            confidence: 0.85,
+            unifiedResponse: decision
+        )
+    }
+
     private func convertScanResponseToCloudResult(_ response: ScanResponse) -> CloudResult {
-        // Convert existing ScanResponse format to new CloudResult
         let majorCategories = response.childSafetyAnalysis.riskCategories.map {
             MajorCategory(
                 name: $0.category,
-                probability: Double($0.matchCount) / 10.0, // Normalize
+                probability: min(Double($0.matchCount) / 10.0, 1.0), // Normalize, capped at 1.0
                 source: .cloud
             )
         }
-        
+
         let subcategories = response.childSafetyAnalysis.riskCategories.map {
             Subcategory(
                 name: $0.category,
                 source: .cloud,
-                probability: Double($0.matchCount) / 10.0,
+                probability: min(Double($0.matchCount) / 10.0, 1.0),
                 majorCategory: $0.category
             )
         }
-        
+
         return CloudResult(
             majorCategories: majorCategories,
             subcategories: subcategories,
-            confidence: 0.8 // Cloud is generally high confidence
+            confidence: 0.8
         )
     }
 }
@@ -1357,6 +1433,16 @@ struct CloudResult {
     let majorCategories: [MajorCategory]
     let subcategories: [Subcategory]
     let confidence: Double
+    /// When the cloud returned a full UnifiedDecisionResponse, preserve it so the
+    /// caller can use the server's pre-computed age actions directly.
+    let unifiedResponse: UnifiedDecisionResponse?
+
+    init(majorCategories: [MajorCategory], subcategories: [Subcategory], confidence: Double, unifiedResponse: UnifiedDecisionResponse? = nil) {
+        self.majorCategories = majorCategories
+        self.subcategories = subcategories
+        self.confidence = confidence
+        self.unifiedResponse = unifiedResponse
+    }
 }
 
 struct NLPTextBlocks {

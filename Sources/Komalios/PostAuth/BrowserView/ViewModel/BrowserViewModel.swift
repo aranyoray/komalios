@@ -6,14 +6,7 @@
 //
 import Combine
 import Foundation
-
-enum BrowserHandleState {
-    case notRunning
-    case loading
-    case success
-    case failure(String)
-}
-
+ 
 /// Type of content trigger for Komal intervention
 enum KomalInterventionTrigger: Equatable {
     case searchQuery(String)           // They searched for something
@@ -38,66 +31,147 @@ enum KomalInterventionTrigger: Equatable {
     }
 }
 
+@MainActor
 final class BrowserState: ObservableObject {
-    @Published var urlString = "https://www.google.com"
-    @Published var currentURL: URL?
-    @Published var category: ContentCategory = .unknown
-    @Published var blockReason: String = ""
-    @Published var showGate = false
-    @Published var showBlocked = false
-    @Published var loading = false
     @Published var tabHistory: [URL] = []
-    @Published var showPastTabs = false
-    @Published var browserHandleState: BrowserHandleState = .notRunning
-    
-    // MARK: - Komal Intervention System
-    @Published var showKomalIntervention = false
-    @Published var interventionTrigger: KomalInterventionTrigger?
-    @Published var pendingURL: URL?  // URL that triggered intervention
     
     // MARK: - Comprehensive Inappropriate Keywords
     // These are strict keywords - block even as part of domains/URLs
     static let strictKeywords: Set<String> = [
-        // Explicit adult sites
+        // Explicit adult sites & platforms
         "pornhub", "xvideos", "xnxx", "redtube", "brazzers", "onlyfans", "hentai",
-        "xhamster", "youporn", "tube8", "spankbang", "chaturbate",
+        "xhamster", "youporn", "tube8", "spankbang", "chaturbate", "livejasmin",
+        "stripchat", "bongacams", "cam4", "myfreecams", "flirt4free",
+        "realitykings", "bangbros", "naughtyamerica", "mofos", "fakehub",
+        "blacked", "tushy", "vixen", "deeper", "sexart", "metart",
+        "manyvids", "clips4sale", "fansly", "justforfans", "porntrex",
+        "eporner", "tnaflix", "motherless", "xtube", "porntube",
+        "4chan", "8chan", "8kun", "theync", "bestgore", "efukt",
 
         // Explicit terms (unlikely in legitimate URLs)
         "xxx", "nsfw", "milf", "blowjob", "handjob", "orgasm",
-        "stripper", "prostitut", "hooker", "slut", "whore",
+        "stripper", "hooker", "slut", "whore",
+        "cuckold", "creampie", "gangbang", "threesome", "foursome",
+        "deepthroat", "cumshot", "facial cum", "bukkake", "squirt",
+        "dildo", "vibrator", "fleshlight", "buttplug", "cockring",
+        "camgirl", "camboy", "webcam sex", "sexcam", "livesex",
+        "stepmom", "stepdad", "stepsister", "stepbrother", "stepson", "stepdaughter",
+        "incest", "taboo sex", "jailbait",
+        "dominatrix", "femdom", "findom", "shibari",
+        "ahegao", "futanari", "lolicon", "shotacon", "rule34",
+        "doujinshi", "nhentai", "hanime", "hentaihaven",
+        "fap", "fapping", "jackoff", "jerkoff", "wank",
+        "sexting", "dickpic", "nympho", "gigolo",
+        "swinger", "hotwife", "cuck",
+        "asshole", "anus", "anal", "analsex",
+        "porno",
 
         // Violence extremes
-        "beheading", "dismember", "decapitat", "gore",
+        "beheading", "gore", "snuff",
+        "livegore", "deathvideo", "watchpeopledie",
 
         // Hate groups
-        "nazi", "kkk", "white supremac"
+        "nazi", "kkk", "neonazi", "neo-nazi",
+
+        // Child exploitation (instant block)
+        "childporn", "kidporn", "pedo", "preteen",
+        "csam", "child exploitation", "child abuse",
+        "child trafficking", "child grooming"
+    ]
+
+    /// Prefix keywords checked against both URLs and search queries.
+    /// Uses leading word-boundary only (\bkeyword) to catch all suffixed forms.
+    static let strictPrefixKeywords: Set<String> = [
+        // Explicit content
+        "prostitut", "pornog", "masturbat",
+
+        // Violence
+        "decapitat", "dismember",
+
+        // Hate groups
+        "white supremac",
+
+        // Child exploitation
+        "pedophil", "childexploit", "childtraffick"
     ]
 
     // These keywords only trigger on search queries (not URLs)
     // because they can appear in legitimate URLs
     static let searchOnlyKeywords: Set<String> = [
-        // Sexual / Adult content
+        // Sexual / Adult content - core terms
         "porn", "pornography", "pornographic",
-        "sex", "sexual", "sexually",
-        "nude", "nudes", "nudity", "naked",
-        "adult content", "adult video", "adult film",
-        "boobs", "tits", "pussy", "dick", "penis", "vagina",
-        "erotic", "erotica", "sexy", "horny",
-        "fetish", "kink", "bdsm", "bondage",
-        "escort", "cam girl", "cam boy",
-        "r rated", "x rated", "18+",
+        "sex", "sexual", "sexually", "sex video", "sex tape",
+        "nude", "nudes", "nudity", "naked", "topless", "bottomless",
+        "adult content", "adult video", "adult film", "adult movie",
+        "boobs", "tits", "titties", "pussy", "dick", "penis", "vagina",
+        "clitoris", "scrotum", "testicle", "genital", "genitals",
+        "breast", "nipple", "areola",
+        "erotic", "erotica", "sexy", "horny", "aroused", "arousal",
+        "fetish", "kink", "kinky", "bdsm", "bondage", "sadomasochism",
+        "escort", "cam girl", "cam boy", "sugar daddy", "sugar baby",
+        "r rated", "x rated", "18+", "adults only",
+        "intercourse", "copulation", "fornication",
+        "lap dance", "pole dance", "striptease", "strip club",
+        "lingerie model", "playboy", "playmate", "centerfold",
+        "upskirt", "downblouse", "voyeur",
+        "grope", "groping",
+        "one night stand", "booty call", "hookup sex", "friends with benefits",
+        "hot girls", "hot babes", "sexy girls", "sexy women",
+        "hot pics", "hot photos", "hot pictures", "hot images", "hot videos",
+        "hot models", "hot actress", "hot body",
+        "sexy pics", "sexy photos", "sexy pictures", "sexy images", "sexy videos",
+        "leaked photos", "leaked pics", "leaked pictures", "leaked video", "leaked videos",
+        "leaked nudes", "leaked images",
+        "nip slip", "wardrobe malfunction",
+        "see through dress", "see through clothes",
+        "no clothes", "without clothes", "unclothed",
+        "dirty talk", "phone sex", "cybersex",
+        "viagra", "cialis", "erectile", "libido",
+        "sensual massage", "happy ending", "body rub",
+        "call girl", "brothel", "red light district",
+        "explicit content", "explicit video", "explicit image",
 
         // Violence terms
-        "murder", "suicide", "self harm", "torture",
+        "self harm", "self-harm",
         "violence", "violent", "kill", "killing",
         "weapon", "weapons", "gun", "guns",
+        "how to make a bomb", "how to kill", "how to poison",
+        "mass shooting", "school shooting",
+        "cutting myself", "want to die", "end my life",
+        "stab", "stabbing", "assault",
+        "terrorism", "terrorist",
 
         // Drug terms
         "weed", "marijuana", "cannabis", "cocaine", "heroin", "meth",
-        "drug", "drugs",
+        "drug", "drugs", "mdma", "ecstasy", "lsd", "acid trip",
+        "fentanyl", "opioid", "crack cocaine", "ketamine",
+        "buy drugs", "drug dealer",
 
         // Gambling
-        "gambling", "casino", "poker", "betting"
+        "gambling", "casino", "poker", "betting",
+        "slot machine", "sports betting", "online gambling",
+
+        // Profanity / slurs (commonly searched by kids)
+        "fuck", "fucking", "fucker",
+        "shit", "bullshit",
+        "bitch", "bastard", "cunt",
+        "ass", "asses",
+        "damn", "damnit",
+        "cock",
+        "racial slur", "n word",
+
+        // Hate groups
+        "hate group", "hate groups",
+        "neo nazi", "white power", "aryan"
+    ]
+
+    /// Prefix keywords checked only in search queries.
+    /// Uses leading word-boundary only to catch all suffixed forms.
+    static let searchOnlyPrefixKeywords: Set<String> = [
+        "sexualiz", "objectif",
+        "motherfuck", "cocksuck", "molest",
+        "murder", "suicid", "tortur",
+        "antisemit"
     ]
     
     // MARK: - Search Query Extraction
@@ -136,14 +210,21 @@ final class BrowserState: ObservableObject {
     /// Uses word boundary matching to avoid false positives (e.g., "class" matching "ass")
     static func checkForInappropriateContent(_ text: String, isSearchQuery: Bool = true) -> String? {
         let lowercased = text.lowercased()
-        
+
         // Always check strict keywords (site names, explicit terms)
         for keyword in strictKeywords {
             if matchesAsWord(keyword, in: lowercased) {
                 return keyword
             }
         }
-        
+
+        // Always check strict prefix keywords
+        for keyword in strictPrefixKeywords {
+            if matchesAsPrefix(keyword, in: lowercased) {
+                return keyword
+            }
+        }
+
         // Only check search-only keywords if this is a search query
         if isSearchQuery {
             for keyword in searchOnlyKeywords {
@@ -151,20 +232,36 @@ final class BrowserState: ObservableObject {
                     return keyword
                 }
             }
+            for keyword in searchOnlyPrefixKeywords {
+                if matchesAsPrefix(keyword, in: lowercased) {
+                    return keyword
+                }
+            }
         }
-        
+
         return nil
     }
-    
+
     /// Check if keyword appears as a word (not part of another word)
     private static func matchesAsWord(_ keyword: String, in text: String) -> Bool {
         // Use regex with word boundaries
         let pattern = "\\b\(NSRegularExpression.escapedPattern(for: keyword))\\b"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
-            // Fallback to simple contains if regex fails
-            return text.contains(keyword)
+            // Fail closed: if regex can't be created, treat as match (block)
+            return true
         }
-        
+
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.firstMatch(in: text, options: [], range: range) != nil
+    }
+
+    /// Check if keyword appears as a prefix (word boundary at start only).
+    /// Catches all suffixed forms, e.g. "pedophil" matches "pedophile", "pedophilia".
+    private static func matchesAsPrefix(_ keyword: String, in text: String) -> Bool {
+        let pattern = "\\b\(NSRegularExpression.escapedPattern(for: keyword))"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return true // fail closed
+        }
         let range = NSRange(text.startIndex..., in: text)
         return regex.firstMatch(in: text, options: [], range: range) != nil
     }
@@ -218,15 +315,4 @@ final class BrowserState: ObservableObject {
         }
     }
     
-    func triggerIntervention(for trigger: KomalInterventionTrigger, pendingURL: URL?) {
-        self.interventionTrigger = trigger
-        self.pendingURL = pendingURL
-        self.showKomalIntervention = true
-    }
-    
-    func clearIntervention() {
-        showKomalIntervention = false
-        interventionTrigger = nil
-        pendingURL = nil
-    }
 }

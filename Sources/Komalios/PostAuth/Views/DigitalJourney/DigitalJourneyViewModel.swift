@@ -24,6 +24,7 @@ final class DigitalJourneyViewModel: ObservableObject {
     }
 
     private let appHistoryService = AppHistoryService.shared
+    private let historyService = BrowsingHistoryService.shared
     private let geminiService = GeminiChatService()
 
     var filteredFlaggedGroups: [TopicGroup] { filterGroups(flaggedGroups) }
@@ -42,8 +43,14 @@ final class DigitalJourneyViewModel: ObservableObject {
     func loadHistory() {
         isLoading = true
         Task {
-            let events = await appHistoryService.fetchHistory(limit: 200)
-            let items = events.map { HistoryItem(from: $0) }
+            // Try Firestore first, fall back to local BrowsingHistoryService
+            let firestoreEvents = await appHistoryService.fetchHistory(limit: 200)
+            let items: [HistoryItem]
+            if !firestoreEvents.isEmpty {
+                items = firestoreEvents.map { HistoryItem(from: $0) }
+            } else {
+                items = buildItemsFromLocalHistory()
+            }
             self.allItems = items
 
             guard !items.isEmpty else { isLoading = false; return }
@@ -65,6 +72,19 @@ final class DigitalJourneyViewModel: ObservableObject {
             }
             isLoading = false
         }
+    }
+
+    /// Build HistoryItems from local BrowsingHistoryService when Firestore is empty
+    private func buildItemsFromLocalHistory() -> [HistoryItem] {
+        var allEvents: [BrowsingEvent] = []
+        for session in historyService.allSessions {
+            allEvents.append(contentsOf: session.events)
+        }
+        if let current = historyService.currentSession {
+            allEvents.append(contentsOf: current.events)
+        }
+        allEvents.sort { $0.timestamp > $1.timestamp }
+        return Array(allEvents.prefix(200)).map { HistoryItem(fromLocal: $0) }
     }
 
     private func parseGeminiSummary(_ json: String, items: [HistoryItem]) {

@@ -2,6 +2,12 @@
 import SwiftUI
 
 struct EveningAnchorView: View {
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @State private var currentStep = 0
@@ -50,13 +56,13 @@ struct EveningAnchorView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 20)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Skip") { dismiss() }
+                    Button(LanguageManager.shared.localized("common.skip")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.white.opacity(0.7))
                 }
@@ -75,11 +81,11 @@ struct EveningAnchorView: View {
                     .frame(width: 80, height: 80)
             }
 
-            Text("Good Evening!")
+            Text(LanguageManager.shared.localized("anchor.evening.greeting"))
                 .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
 
-            Text("Let's wind down together")
+            Text(LanguageManager.shared.localized("anchor.evening.wind_down"))
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.white.opacity(0.7))
         }
@@ -89,7 +95,7 @@ struct EveningAnchorView: View {
 
     private var emotionPickerSection: some View {
         VStack(spacing: 20) {
-            Text("How are you feeling tonight?")
+            Text(LanguageManager.shared.localized("anchor.evening.how_feeling"))
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .foregroundColor(.white)
 
@@ -129,12 +135,12 @@ struct EveningAnchorView: View {
             if selectedEmotion != nil {
                 // Intensity slider
                 HStack {
-                    Text("A little")
+                    Text(LanguageManager.shared.localized("common.a_little"))
                         .font(.system(size: 12))
                         .foregroundColor(.white.opacity(0.6))
                     Slider(value: $emotionIntensity, in: 1...10, step: 1)
                         .tint(KomalColors.lavenderPurple)
-                    Text("A lot")
+                    Text(LanguageManager.shared.localized("common.a_lot"))
                         .font(.system(size: 12))
                         .foregroundColor(.white.opacity(0.6))
                 }
@@ -143,7 +149,7 @@ struct EveningAnchorView: View {
                 .cornerRadius(12)
 
                 Button(action: { withAnimation { currentStep = 1 } }) {
-                    Text("Next")
+                    Text(LanguageManager.shared.localized("common.next"))
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -159,22 +165,22 @@ struct EveningAnchorView: View {
 
     private var reflectionSection: some View {
         VStack(spacing: 20) {
-            Text("What was the best part of your day?")
+            Text(LanguageManager.shared.localized("anchor.evening.best_part"))
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .foregroundColor(.white)
 
-            TextField("Tell me about it...", text: $bestPart)
+            TextField(LanguageManager.shared.localized("anchor.evening.best_part_placeholder"), text: $bestPart)
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .padding(16)
                 .background(Color.white.opacity(0.15))
                 .cornerRadius(16)
                 .foregroundColor(.white)
 
-            Text("Anything bothering you?")
+            Text(LanguageManager.shared.localized("anchor.evening.anything_bothering"))
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .foregroundColor(.white.opacity(0.8))
 
-            TextField("It's okay to share...", text: $anythingBothering)
+            TextField(LanguageManager.shared.localized("anchor.evening.bothering_placeholder"), text: $anythingBothering)
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .padding(16)
                 .background(Color.white.opacity(0.15))
@@ -182,7 +188,7 @@ struct EveningAnchorView: View {
                 .foregroundColor(.white)
 
             Button(action: { withAnimation { currentStep = 2 } }) {
-                Text("Next")
+                Text(LanguageManager.shared.localized("common.next"))
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -199,20 +205,20 @@ struct EveningAnchorView: View {
         VStack(spacing: 24) {
             // Brief breathing exercise
             VStack(spacing: 16) {
-                Text("Take 3 deep breaths")
+                Text(LanguageManager.shared.localized("anchor.evening.deep_breaths"))
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
 
                 BreathingCircle(size: 100, color: KomalColors.pearlAqua.opacity(0.6))
 
-                Text("Breathe in... and out...")
+                Text(LanguageManager.shared.localized("anchor.evening.breathe_in_out"))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.6))
             }
             .padding(.vertical, 20)
 
             Button(action: saveAndDismiss) {
-                Text("Good Night!")
+                Text(LanguageManager.shared.localized("anchor.evening.good_night"))
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
                     .frame(maxWidth: .infinity)
@@ -228,9 +234,7 @@ struct EveningAnchorView: View {
     private func saveAndDismiss() {
         guard let emotion = selectedEmotion else { dismiss(); return }
 
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let todayStr = dateFormatter.string(from: Date())
+        let todayStr = Self.dayFormatter.string(from: Date())
 
         let reflectionNote = [bestPart, anythingBothering].filter { !$0.isEmpty }.joined(separator: " | ")
 

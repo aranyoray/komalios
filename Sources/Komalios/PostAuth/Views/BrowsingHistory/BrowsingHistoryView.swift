@@ -2,6 +2,7 @@
 import SwiftUI
 
 struct BrowsingHistoryView: View {
+    @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel = BrowsingHistoryViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var selectedBatch: HistoryBatch?
@@ -16,7 +17,7 @@ struct BrowsingHistoryView: View {
                     VStack(spacing: 16) {
                         ProgressView()
                             .scaleEffect(1.2)
-                        Text("Loading browsing history...")
+                        Text(LanguageManager.shared.localized("history.loading"))
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -25,15 +26,15 @@ struct BrowsingHistoryView: View {
                         Image(systemName: "clock.arrow.circlepath")
                             .font(.system(size: 48, weight: .light))
                             .foregroundColor(KomalColors.textSecondary.opacity(0.5))
-                        Text("No browsing history yet")
+                        Text(LanguageManager.shared.localized("history.no_history"))
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
-                        Text("History will appear here as your child browses.")
+                        Text(LanguageManager.shared.localized("history.empty_message"))
                             .font(.system(size: 14, weight: .regular, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
                     }
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, 24)
                 } else {
                     ScrollView {
                         VStack(spacing: 12) {
@@ -49,11 +50,11 @@ struct BrowsingHistoryView: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 20)
                     }
                 }
             }
-            .navigationTitle("Browsing History")
+            .navigationTitle(LanguageManager.shared.localized("history.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -61,7 +62,7 @@ struct BrowsingHistoryView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 14, weight: .semibold))
-                            Text("Settings")
+                            Text(LanguageManager.shared.localized("common.settings"))
                                 .font(.system(size: 16, weight: .medium))
                         }
                         .foregroundColor(KomalColors.lavenderPurple)
@@ -70,12 +71,13 @@ struct BrowsingHistoryView: View {
             }
             .fullScreenCover(item: $selectedBatch) { batch in
                 HistoryBatchDetailView(batch: batch)
+                    .environmentObject(appState)
             }
         }
         .task {
             await viewModel.loadHistory()
         }
-        .onChange(of: viewModel.selectedTimeRange) { _ in viewModel.onFilterChanged() }
+        .onChange(of: viewModel.selectedTimeRange) { viewModel.onFilterChanged() }
     }
 
     // MARK: - Time Range Bar
@@ -87,7 +89,7 @@ struct BrowsingHistoryView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
 
-                Text("Time Range")
+                Text(LanguageManager.shared.localized("history.time_range"))
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
 
@@ -212,7 +214,7 @@ struct TopicBoxCard: View {
 
                         Spacer()
 
-                        Text("\(batch.events.count) pages")
+                        Text("\(batch.events.count) \(LanguageManager.shared.localized("history.pages"))")
                             .font(.system(size: 12, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.lavenderPurple)
                     }
@@ -229,7 +231,7 @@ struct TopicBoxCard: View {
 
     private var previewItems: [PreviewItem] {
         batch.events
-            .filter { $0.pageTitle != nil && !$0.pageTitle!.isEmpty }
+            .filter { !($0.pageTitle ?? "").isEmpty }
             .prefix(3)
             .map { event in
                 let domain = event.domain

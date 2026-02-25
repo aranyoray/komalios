@@ -3,22 +3,26 @@ import SwiftUI
 
 struct EmojiCheckInBubble: View {
     let onEmojiSelected: (String) -> Void
+    let avatarIndex: Int
     @State private var isExpanded = true
-    @State private var selectedAvatar: String
 
     private let emojis: [String]
 
-    init(subcategory: String = "", onEmojiSelected: @escaping (String) -> Void) {
+    private var selectedAvatar: String {
+        "animal\(avatarIndex)"
+    }
+
+    init(subcategory: String = "", avatarIndex: Int = 1, onEmojiSelected: @escaping (String) -> Void) {
         self.onEmojiSelected = onEmojiSelected
+        self.avatarIndex = avatarIndex
         self.emojis = EmojiMapper.emojisForSubcategory(subcategory)
-        _selectedAvatar = State(initialValue: "animal\(Int.random(in: 1...11))")
     }
 
     var body: some View {
         VStack(alignment: .trailing, spacing: 8) {
             if isExpanded {
                 VStack(spacing: 10) {
-                    Text("How're you feeling exploring this?")
+                    Text(LanguageManager.shared.localized("checkin.how_are_you"))
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 
@@ -58,7 +62,7 @@ struct EmojiCheckInBubble: View {
             .scaleEffect(isExpanded ? 1.1 : 1.0)
             .animation(KomalAnimations.spring, value: isExpanded)
         }
-        .padding(.trailing, 16).padding(.bottom, 100)
+        .padding(.trailing, 16).padding(.bottom, 64)
     }
 }
 #endif

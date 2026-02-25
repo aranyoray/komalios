@@ -64,65 +64,79 @@ extension ContextualPromptTrigger: Hashable {}
 final class ContextualPromptEngine {
     static let shared = ContextualPromptEngine()
     private let maxPromptsPerSession = 5
+    private let lastShownKey = "komal.contextualPrompt.lastShown"
 
     /// Cooldown tracking: templateId -> last shown date
-    private var lastShown: [String: Date] = [:]
+    private var lastShown: [String: Date] = [:] {
+        didSet {
+            if let data = try? JSONEncoder().encode(lastShown) {
+                UserDefaults.standard.set(data, forKey: lastShownKey)
+            }
+        }
+    }
 
-    private init() {}
+    private init() {
+        if let data = UserDefaults.standard.data(forKey: lastShownKey),
+           let decoded = try? JSONDecoder().decode([String: Date].self, from: data) {
+            lastShown = decoded
+        }
+    }
 
     // MARK: - Prompt Templates (20+)
 
-    private let templates: [PromptTemplate] = [
+    private var templates: [PromptTemplate] {
+        let lm = LanguageManager.shared
+        return [
         // --- Curiosity prompts ---
         PromptTemplate(
             id: "curiosity_noticed",
-            message: "I noticed something interesting today... Want to hear about it?",
+            message: lm.localized("prompt.curiosity_noticed"),
             characterId: 1, characterName: "Momo", characterImage: "animal1",
             ageGroups: [.under10, .tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 120,
-            action: .navigateToTab(.riki), actionLabel: "Tell me!",
+            action: .navigateToTab(.riki), actionLabel: lm.localized("prompt.action.tell_me"),
             triggers: [.appOpen, .tabSwitch]
         ),
         PromptTemplate(
             id: "curiosity_learned",
-            message: "Curious about what I learned from you? You might be surprised!",
+            message: lm.localized("prompt.curiosity_learned"),
             characterId: 10, characterName: "Ellie", characterImage: "animal10",
             ageGroups: [.tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 180,
-            action: .showGrowthJourney, actionLabel: "Show me",
+            action: .showGrowthJourney, actionLabel: lm.localized("prompt.action.show_me"),
             triggers: [.appOpen, .returnFromAbsence]
         ),
         PromptTemplate(
             id: "curiosity_question_young",
-            message: "I have a super fun question for you! Want to play?",
+            message: lm.localized("prompt.curiosity_question_young"),
             characterId: 1, characterName: "Momo", characterImage: "animal1",
             ageGroups: [.under10],
             moodFilter: .any, cooldownMinutes: 90,
-            action: .navigateToTab(.riki), actionLabel: "Let's play!",
+            action: .navigateToTab(.riki), actionLabel: lm.localized("prompt.action.lets_play"),
             triggers: [.afterBrowsing, .tabSwitch]
         ),
         // --- Growth prompts ---
         PromptTemplate(
             id: "growth_calm",
-            message: "You handled that calmly. How did you do that?",
+            message: lm.localized("prompt.growth_calm"),
             characterId: 4, characterName: "Leo", characterImage: "animal4",
             ageGroups: [.tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .positive, cooldownMinutes: 240,
-            action: .navigateToTab(.reflect), actionLabel: "Let me think...",
+            action: .navigateToTab(.reflect), actionLabel: lm.localized("prompt.action.let_me_think"),
             triggers: [.reflectionComplete, .moodChange]
         ),
         PromptTemplate(
             id: "growth_evolved",
-            message: "Your thinking has really evolved. Want to see how far you've come?",
+            message: lm.localized("prompt.growth_evolved"),
             characterId: 10, characterName: "Ellie", characterImage: "animal10",
             ageGroups: [.thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 360,
-            action: .showGrowthJourney, actionLabel: "Show my growth",
+            action: .showGrowthJourney, actionLabel: lm.localized("prompt.action.show_my_growth"),
             triggers: [.streakMilestone, .newMilestone]
         ),
         PromptTemplate(
             id: "growth_proud_young",
-            message: "Wow, you're getting so good at this! I'm really proud of you!",
+            message: lm.localized("prompt.growth_proud_young"),
             characterId: 5, characterName: "Bunny", characterImage: "animal5",
             ageGroups: [.under10],
             moodFilter: .any, cooldownMinutes: 120,
@@ -131,101 +145,101 @@ final class ContextualPromptEngine {
         ),
         PromptTemplate(
             id: "growth_streak_celebrate",
-            message: "Look at that streak! You're building something amazing, one day at a time.",
+            message: lm.localized("prompt.growth_streak_celebrate"),
             characterId: 4, characterName: "Leo", characterImage: "animal4",
             ageGroups: [.under10, .tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 1440,
-            action: .showGrowthJourney, actionLabel: "See my journey",
+            action: .showGrowthJourney, actionLabel: lm.localized("prompt.action.see_my_journey"),
             triggers: [.streakMilestone]
         ),
         // --- Brave prompts ---
         PromptTemplate(
             id: "brave_question",
-            message: "Can I ask you something brave? It might surprise you.",
+            message: lm.localized("prompt.brave_question"),
             characterId: 4, characterName: "Leo", characterImage: "animal4",
             ageGroups: [.tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 360,
-            action: .navigateToTab(.riki), actionLabel: "Go ahead",
+            action: .navigateToTab(.riki), actionLabel: lm.localized("prompt.action.go_ahead"),
             triggers: [.appOpen, .tabSwitch]
         ),
         PromptTemplate(
             id: "brave_future",
-            message: "What would future-you say about today? Let's find out.",
+            message: lm.localized("prompt.brave_future"),
             characterId: 10, characterName: "Ellie", characterImage: "animal10",
             ageGroups: [.thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 480,
-            action: .navigateToTab(.reflect), actionLabel: "Let's explore",
+            action: .navigateToTab(.reflect), actionLabel: lm.localized("prompt.action.lets_explore"),
             triggers: [.appOpen, .reflectionComplete]
         ),
         PromptTemplate(
             id: "brave_try_young",
-            message: "Want to try something new together? I believe in you!",
+            message: lm.localized("prompt.brave_try_young"),
             characterId: 5, characterName: "Bunny", characterImage: "animal5",
             ageGroups: [.under10],
             moodFilter: .any, cooldownMinutes: 180,
-            action: .navigateToTab(.reflect), actionLabel: "Let's try!",
+            action: .navigateToTab(.reflect), actionLabel: lm.localized("prompt.action.lets_try"),
             triggers: [.appOpen, .tabSwitch]
         ),
         // --- Transition prompts ---
         PromptTemplate(
             id: "transition_reflect",
-            message: "Quick reflection before you go? Just 2 minutes.",
+            message: lm.localized("prompt.transition_reflect"),
             characterId: 5, characterName: "Bunny", characterImage: "animal5",
             ageGroups: [.under10, .tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 120,
-            action: .navigateToTab(.reflect), actionLabel: "Sure!",
+            action: .navigateToTab(.reflect), actionLabel: lm.localized("prompt.action.sure"),
             triggers: [.tabSwitch, .afterBrowsing]
         ),
         PromptTemplate(
             id: "transition_progress",
-            message: "Want to see your progress map? You've been busy!",
+            message: lm.localized("prompt.transition_progress"),
             characterId: 4, characterName: "Leo", characterImage: "animal4",
             ageGroups: [.under10, .tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 240,
-            action: .showGrowthJourney, actionLabel: "Show me!",
+            action: .showGrowthJourney, actionLabel: lm.localized("prompt.action.show_me_excited"),
             triggers: [.tabSwitch, .afterBrowsing]
         ),
         // --- Return prompts ---
         PromptTemplate(
             id: "return_changed",
-            message: "Something small changed while you were away. Want to see?",
+            message: lm.localized("prompt.return_changed"),
             characterId: 10, characterName: "Ellie", characterImage: "animal10",
             ageGroups: [.under10, .tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 720,
-            action: .showGrowthJourney, actionLabel: "What changed?",
+            action: .showGrowthJourney, actionLabel: lm.localized("prompt.action.what_changed"),
             triggers: [.returnFromAbsence]
         ),
         PromptTemplate(
             id: "return_secret",
-            message: "Want to see a secret insight about yourself? I saved it for you.",
+            message: lm.localized("prompt.return_secret"),
             characterId: 1, characterName: "Momo", characterImage: "animal1",
             ageGroups: [.tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 720,
-            action: .showGrowthJourney, actionLabel: "Show me!",
+            action: .showGrowthJourney, actionLabel: lm.localized("prompt.action.show_me_excited"),
             triggers: [.returnFromAbsence]
         ),
         PromptTemplate(
             id: "return_missed_young",
-            message: "Yay, you're back! I missed you! Want to play together?",
+            message: lm.localized("prompt.return_missed_young"),
             characterId: 1, characterName: "Momo", characterImage: "animal1",
             ageGroups: [.under10],
             moodFilter: .any, cooldownMinutes: 720,
-            action: .navigateToTab(.riki), actionLabel: "Let's play!",
+            action: .navigateToTab(.riki), actionLabel: lm.localized("prompt.action.lets_play"),
             triggers: [.returnFromAbsence]
         ),
         // --- Emotional spike prompts ---
         PromptTemplate(
             id: "emotional_check_negative",
-            message: "Hey, I noticed you might be having a tough time. I'm here for you.",
+            message: lm.localized("prompt.emotional_check_negative"),
             characterId: 5, characterName: "Bunny", characterImage: "animal5",
             ageGroups: [.under10, .tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .negative, cooldownMinutes: 240,
-            action: .startMoodCheckIn, actionLabel: "Talk about it",
+            action: .startMoodCheckIn, actionLabel: lm.localized("prompt.action.talk_about_it"),
             triggers: [.emotionalSpike, .moodChange]
         ),
         PromptTemplate(
             id: "emotional_celebrate_positive",
-            message: "You seem to be in a great mood! That's wonderful to see.",
+            message: lm.localized("prompt.emotional_celebrate_positive"),
             characterId: 1, characterName: "Momo", characterImage: "animal1",
             ageGroups: [.under10, .tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .positive, cooldownMinutes: 240,
@@ -235,35 +249,35 @@ final class ContextualPromptEngine {
         // --- Browsing prompts ---
         PromptTemplate(
             id: "browsing_learned",
-            message: "Learned something cool while browsing? I'd love to hear about it!",
+            message: lm.localized("prompt.browsing_learned"),
             characterId: 10, characterName: "Ellie", characterImage: "animal10",
             ageGroups: [.under10, .tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 180,
-            action: .navigateToTab(.riki), actionLabel: "Let's chat",
+            action: .navigateToTab(.riki), actionLabel: lm.localized("prompt.action.lets_chat"),
             triggers: [.afterBrowsing]
         ),
         PromptTemplate(
             id: "browsing_break",
-            message: "How are you feeling right now? Want to do a quick check-in?",
+            message: lm.localized("prompt.browsing_break"),
             characterId: 5, characterName: "Bunny", characterImage: "animal5",
             ageGroups: [.under10, .tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 120,
-            action: .startMoodCheckIn, actionLabel: "Check in",
+            action: .startMoodCheckIn, actionLabel: lm.localized("prompt.action.check_in"),
             triggers: [.afterBrowsing]
         ),
         PromptTemplate(
             id: "browsing_riddle_young",
-            message: "Want to take a fun break? I've got a riddle for you!",
+            message: lm.localized("prompt.browsing_riddle_young"),
             characterId: 1, characterName: "Momo", characterImage: "animal1",
             ageGroups: [.under10, .tenToThirteen],
             moodFilter: .any, cooldownMinutes: 180,
-            action: .navigateToTab(.riki), actionLabel: "Tell me!",
+            action: .navigateToTab(.riki), actionLabel: lm.localized("prompt.action.tell_me"),
             triggers: [.afterBrowsing]
         ),
         // --- Reflection complete prompts ---
         PromptTemplate(
             id: "reflect_done_great",
-            message: "That was a really thoughtful reflection. You should be proud of yourself.",
+            message: lm.localized("prompt.reflect_done_great"),
             characterId: 10, characterName: "Ellie", characterImage: "animal10",
             ageGroups: [.under10, .tenToThirteen, .thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 60,
@@ -272,14 +286,15 @@ final class ContextualPromptEngine {
         ),
         PromptTemplate(
             id: "reflect_deeper_teen",
-            message: "Nice reflection. Want to go a little deeper? Sometimes the best insights come next.",
+            message: lm.localized("prompt.reflect_deeper_teen"),
             characterId: 4, characterName: "Leo", characterImage: "animal4",
             ageGroups: [.thirteenToSixteen, .sixteenToEighteen],
             moodFilter: .any, cooldownMinutes: 120,
-            action: .navigateToTab(.reflect), actionLabel: "Go deeper",
+            action: .navigateToTab(.reflect), actionLabel: lm.localized("prompt.action.go_deeper"),
             triggers: [.reflectionComplete]
         ),
     ]
+    }
 
     // MARK: - Public Methods
 
@@ -345,10 +360,6 @@ final class ContextualPromptEngine {
         )
     }
 
-    /// Reset session-level tracking (called when app goes to background)
-    func resetSession() {
-        // lastShown persists across sessions for cooldown; only session prompts count resets in RetentionState
-    }
 
     // MARK: - Private Helpers
 

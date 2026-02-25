@@ -17,7 +17,7 @@ struct ScanResponse: Codable {
     let childSafetyAnalysis: ChildSafetyAnalysis
     let timestamp: String
     let analysisMethod: String? // "live" or "demo"
-    let usedSearchFallback: Bool?
+    let usedSearchFallback: Bool? 
     let performanceMetrics: PerformanceMetrics?
     let pythonDebug: PythonDebug?
 }
@@ -120,10 +120,3 @@ struct PerformanceStep: Codable {
     let details: String?
 }
 
-// MARK: - Convenience Extensions
-
-extension ScanResponse {
-    var primarySubcategory: String? {
-        childSafetyAnalysis.riskCategories.first?.category
-    }
-}

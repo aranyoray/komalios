@@ -11,6 +11,7 @@ import WebKit
 import Combine
 
 /// Manages engagement tracking via JavaScript injection in WebViews
+@MainActor
 final class EngagementTracker: ObservableObject {
     static let shared = EngagementTracker()
     
@@ -22,7 +23,6 @@ final class EngagementTracker: ObservableObject {
     private var engagementScript: String?
     private var imageScannerScript: String?
     private var viewportTrackerScript: String?
-    private var cancellables = Set<AnyCancellable>()
     private var navigationDepth = 0
     private var lastURL: URL?
     
@@ -46,6 +46,8 @@ final class EngagementTracker: ObservableObject {
             print("📊 EngagementTracker: Using embedded engagement script")
         }
         
+        let trustedJSON = Constants.trustedDomainRootsJSON
+
         // Load image scanner script
         if let imageScannerURL = Bundle.main.url(forResource: "image_scanner", withExtension: "js"),
            var script = try? String(contentsOf: imageScannerURL) {
@@ -53,6 +55,8 @@ final class EngagementTracker: ObservableObject {
             if let logoBase64 = ImageFilterService.shared.getKomalLogoBase64() {
                 script = script.replacingOccurrences(of: "KOMAL_LOGO_BASE64", with: logoBase64)
             }
+            // Inject canonical trusted domain list from Constants.swift
+            script = script.replacingOccurrences(of: "TRUSTED_DOMAINS_PLACEHOLDER", with: trustedJSON)
             imageScannerScript = script
             print("📊 EngagementTracker: Loaded image_scanner.js")
         } else {
@@ -60,10 +64,12 @@ final class EngagementTracker: ObservableObject {
             imageScannerScript = createEmbeddedImageScannerScript()
             print("📊 EngagementTracker: Using embedded image scanner script")
         }
-        
+
         // Load viewport tracker script
         if let viewportURL = Bundle.main.url(forResource: "viewport_tracker", withExtension: "js"),
-           let script = try? String(contentsOf: viewportURL) {
+           var script = try? String(contentsOf: viewportURL) {
+            // Inject canonical trusted domain list from Constants.swift
+            script = script.replacingOccurrences(of: "TRUSTED_DOMAINS_PLACEHOLDER", with: trustedJSON)
             viewportTrackerScript = script
             print("📊 EngagementTracker: Loaded viewport_tracker.js")
         } else {
@@ -77,8 +83,37 @@ final class EngagementTracker: ObservableObject {
     
     /// Get user scripts to inject into WKWebView
     func getUserScripts() -> [WKUserScript] {
+        #if DEBUG
+        print("🔎 SCRIPT-DEBUG: engagementScript=\(engagementScript != nil ? "loaded" : "nil") imageScannerScript=\(imageScannerScript != nil ? "loaded(\(imageScannerScript!.count) chars)" : "nil") viewportTracker=\(viewportTrackerScript != nil ? "loaded" : "nil")")
+        if let ims = imageScannerScript {
+            let hasTrusted = ims.contains("google.com")
+            print("🔎 SCRIPT-DEBUG: imageScannerScript contains 'google.com'=\(hasTrusted) (should be true if file-loaded, false if embedded fallback)")
+        }
+        #endif
         var scripts: [WKUserScript] = []
-        
+
+        // CRITICAL: Inject pre-hide CSS at DOCUMENT START so images are hidden
+        // BEFORE they render. The image scanner JS (at document end) will reveal
+        // safe images and replace unsafe ones. Without this, images flash visible
+        // during the entire page load before the scanner runs.
+        let trustedJSON = Constants.trustedDomainRootsJSON
+        let preHideCSS = """
+        (function() {
+            var host = (window.location.hostname || '').toLowerCase();
+            var trusted = \(trustedJSON);
+            if (trusted.some(function(d) { return host === d || host === 'www.' + d || host.endsWith('.' + d); })) return;
+            var s = document.createElement('style');
+            s.id = 'komal-prehide';
+            s.textContent = 'img:not([data-komal-safe]):not([data-komal-replaced]) { opacity: 0 !important; pointer-events: none !important; } video:not([data-komal-safe]):not([data-komal-replaced]) { opacity: 0 !important; pointer-events: none !important; }';
+            (document.head || document.documentElement).appendChild(s);
+        })();
+        """
+        scripts.append(WKUserScript(
+            source: preHideCSS,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true  // Must match image scanner's scope (also mainFrame-only)
+        ))
+
         if let engagementScript = engagementScript {
             let script = WKUserScript(
                 source: engagementScript,
@@ -87,7 +122,7 @@ final class EngagementTracker: ObservableObject {
             )
             scripts.append(script)
         }
-        
+
         if let imageScannerScript = imageScannerScript {
             let script = WKUserScript(
                 source: imageScannerScript,
@@ -96,7 +131,7 @@ final class EngagementTracker: ObservableObject {
             )
             scripts.append(script)
         }
-        
+
         if let viewportTrackerScript = viewportTrackerScript {
             let script = WKUserScript(
                 source: viewportTrackerScript,
@@ -105,7 +140,7 @@ final class EngagementTracker: ObservableObject {
             )
             scripts.append(script)
         }
-        
+
         return scripts
     }
     
@@ -163,11 +198,11 @@ final class EngagementTracker: ObservableObject {
     }
     
     /// Update engagement with scroll data from JavaScript
-    func updateEngagement(scrollDepth: Int, scrollEvents: Int, dwellTimeMs: Int? = nil) {
+    func updateEngagement(scrollDepth: Int, scrollEvents: Int) {
         guard currentEngagement != nil else { return }
-        
+
         currentEngagement?.updateScroll(depthPercent: scrollDepth, eventCount: scrollEvents)
-        
+
         print("📊 Engagement update - Scroll: \(scrollDepth)%, Events: \(scrollEvents)")
     }
     
@@ -207,9 +242,9 @@ final class EngagementTracker: ObservableObject {
         if let current = currentEngagement, current.url == url {
             return current
         }
-        
+
         startEngagement(url: url)
-        return currentEngagement!
+        return currentEngagement ?? PageEngagement(url: url)
     }
     
     /// Reset tracking for new session
@@ -483,3 +518,4 @@ final class EngagementTracker: ObservableObject {
     }
 }
 #endif
+

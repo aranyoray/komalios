@@ -11,23 +11,17 @@ struct KomalInterventionView: View {
     let trigger: KomalInterventionTrigger
     let onReflectionTime: () -> Void
     let onGoBack: () -> Void
-    let onContinueAnyway: (() -> Void)?
-    
-    @State private var selectedAnimal = Int.random(in: 1...11)
+    var avatarIndex: Int = 1
+
+    @State private var selectedAnimal: Int = 1
     @State private var showingReflection = false
-    @State private var reflectionAnswer = ""
-    
+
     // Animation states - appear one by one
     @State private var showMascot = false
     @State private var showMessage = false
     @State private var showTip = false
     @State private var showButtons = false
     @State private var mascotScale: CGFloat = 0.3
-    
-    private var isSevereContent: Bool {
-        let severe = ["porn", "xxx", "sex", "nude", "naked", "gore", "suicide", "self harm", "drug", "cocaine", "heroin"]
-        return severe.contains { trigger.searchTerm.lowercased().contains($0) }
-    }
     
     // Soft pastel violet colors
     private let softViolet = Color(red: 0.69, green: 0.62, blue: 0.85)
@@ -85,6 +79,7 @@ struct KomalInterventionView: View {
             .padding(.horizontal, 24)
         }
         .onAppear {
+            selectedAnimal = avatarIndex
             startAnimationSequence()
         }
     }
@@ -157,7 +152,7 @@ struct KomalInterventionView: View {
             
             Text(subMessage)
                 .font(.system(size: 14, weight: .regular, design: .rounded))
-                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
+                .foregroundColor(Color(red: 0.38, green: 0.38, blue: 0.43))
                 .multilineTextAlignment(.center)
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -171,9 +166,9 @@ struct KomalInterventionView: View {
             Image(systemName: "lightbulb.fill")
                 .font(.system(size: 12))
                 .foregroundColor(.orange)
-            Text("It's okay to be curious - that's how we learn!")
+            Text(LanguageManager.shared.localized("intervention.tip"))
                 .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundColor(Color(red: 0.55, green: 0.5, blue: 0.45))
+                .foregroundColor(Color(red: 0.42, green: 0.38, blue: 0.34))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -186,37 +181,26 @@ struct KomalInterventionView: View {
     // MARK: - Reflection Section
     private var reflectionSection: some View {
         VStack(spacing: 12) {
-            Text("Let's think about it...")
+            Text(LanguageManager.shared.localized("intervention.lets_think"))
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
             
             Text(reflectionPrompt)
                 .font(.system(size: 13, weight: .regular, design: .rounded))
-                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
+                .foregroundColor(Color(red: 0.38, green: 0.38, blue: 0.43))
                 .multilineTextAlignment(.center)
-            
-            TextField("Share your thoughts...", text: $reflectionAnswer, axis: .vertical)
-                .font(.system(size: 14, weight: .medium, design: .rounded))
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(paleViolet)
-                )
-                .lineLimit(2...4)
-            
-            if !reflectionAnswer.isEmpty {
-                Button(action: onReflectionTime) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 14))
-                        Text("Done reflecting")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Capsule().fill(softViolet))
+
+            Button(action: onReflectionTime) {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                    Text(LanguageManager.shared.localized("intervention.done_reflecting"))
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
                 }
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(Capsule().fill(softViolet))
             }
         }
         .padding(16)
@@ -238,7 +222,7 @@ struct KomalInterventionView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "bubble.left.and.bubble.right.fill")
                         .font(.system(size: 15))
-                    Text("Let's Talk About It")
+                    Text(LanguageManager.shared.localized("intervention.lets_talk"))
                         .font(.system(size: 15, weight: .semibold, design: .rounded))
                 }
                 .foregroundColor(.white)
@@ -264,10 +248,10 @@ struct KomalInterventionView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.system(size: 13))
-                    Text("Go Back to Safety")
+                    Text(LanguageManager.shared.localized("intervention.go_back"))
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                 }
-                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
+                .foregroundColor(Color(red: 0.38, green: 0.38, blue: 0.43))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(
@@ -280,41 +264,44 @@ struct KomalInterventionView: View {
     
     // MARK: - Dynamic Text (More Concise)
     private var mainMessage: String {
+        let lang = LanguageManager.shared
         switch trigger {
         case .searchQuery:
-            return "Hey, I noticed you searched for something..."
+            return lang.localized("intervention.main.search")
         case .urlKeyword:
-            return "Hold on a moment!"
+            return lang.localized("intervention.main.url")
         case .imageContent:
-            return "I found something we should talk about"
+            return lang.localized("intervention.main.image")
         case .pageContent:
-            return "This page has some grown-up content"
+            return lang.localized("intervention.main.page")
         }
     }
-    
+
     private var subMessage: String {
+        let lang = LanguageManager.shared
         switch trigger {
         case .searchQuery:
-            return "Curiosity is totally normal! But some topics are better to explore with a trusted grown-up."
+            return lang.localized("intervention.sub.search")
         case .urlKeyword:
-            return "This website might have content meant for adults. Would you like to talk about what you're looking for?"
+            return lang.localized("intervention.sub.url")
         case .imageContent:
-            return "I spotted something that might not be appropriate. Let's chat about it."
+            return lang.localized("intervention.sub.image")
         case .pageContent:
-            return "Some of what's here is for older people. Want to talk, or find something else?"
+            return lang.localized("intervention.sub.page")
         }
     }
-    
+
     private var reflectionPrompt: String {
+        let lang = LanguageManager.shared
         switch trigger {
         case .searchQuery:
-            return "What made you curious about this?"
+            return lang.localized("intervention.reflect.search")
         case .urlKeyword:
-            return "What were you hoping to find?"
+            return lang.localized("intervention.reflect.url")
         case .imageContent:
-            return "How did seeing that make you feel?"
+            return lang.localized("intervention.reflect.image")
         case .pageContent:
-            return "Is there something you had questions about?"
+            return lang.localized("intervention.reflect.page")
         }
     }
 }
@@ -329,8 +316,7 @@ struct KomalInterventionView_Previews: PreviewProvider {
             KomalInterventionView(
                 trigger: .searchQuery("something"),
                 onReflectionTime: {},
-                onGoBack: {},
-                onContinueAnyway: {}
+                onGoBack: {}
             )
         }
     }

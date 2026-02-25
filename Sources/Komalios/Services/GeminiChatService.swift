@@ -138,10 +138,13 @@ actor GeminiChatService {
             ]
         )
 
-        let url = URL(string: "\(baseURL)/\(model):generateContent?key=\(apiKey)")!
+        guard let url = URL(string: "\(baseURL)/\(model):generateContent") else {
+            throw GeminiChatError.invalidResponse
+        }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         urlRequest.timeoutInterval = 30
 
         let encoder = JSONEncoder()
@@ -191,7 +194,7 @@ actor GeminiChatService {
         [{"topicName":"...", "intentDescription":"...", "emojiSummary":"...", "urls":["..."]}]
 
         Here is the browsing data:
-        \(urlListString)
+        \(sanitizeInput(urlListString, maxLength: 8000))
         """
 
         let contents = [Content(role: "user", parts: [Part(text: prompt)])]
@@ -213,13 +216,21 @@ actor GeminiChatService {
                 topK: 40,
                 maxOutputTokens: 2048
             ),
-            safetySettings: nil
+            safetySettings: [
+                SafetySetting(category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE"),
+                SafetySetting(category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_LOW_AND_ABOVE"),
+                SafetySetting(category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_LOW_AND_ABOVE"),
+                SafetySetting(category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_LOW_AND_ABOVE")
+            ]
         )
 
-        let url = URL(string: "\(baseURL)/\(model):generateContent?key=\(apiKey)")!
+        guard let url = URL(string: "\(baseURL)/\(model):generateContent") else {
+            throw GeminiChatError.invalidResponse
+        }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         urlRequest.timeoutInterval = 30
 
         let encoder = JSONEncoder()
@@ -259,7 +270,7 @@ actor GeminiChatService {
         - intent: Exactly 1 sentence about what the child was trying to accomplish.
 
         Browsing events:
-        \(jsonString)
+        \(sanitizeInput(jsonString, maxLength: 4000))
         """
 
         let contents = [Content(role: "user", parts: [Part(text: prompt)])]
@@ -280,13 +291,21 @@ actor GeminiChatService {
                 topK: 40,
                 maxOutputTokens: 512
             ),
-            safetySettings: nil
+            safetySettings: [
+                SafetySetting(category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE"),
+                SafetySetting(category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_LOW_AND_ABOVE"),
+                SafetySetting(category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_LOW_AND_ABOVE"),
+                SafetySetting(category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_LOW_AND_ABOVE")
+            ]
         )
 
-        let url = URL(string: "\(baseURL)/\(model):generateContent?key=\(apiKey)")!
+        guard let url = URL(string: "\(baseURL)/\(model):generateContent") else {
+            throw GeminiChatError.invalidResponse
+        }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         urlRequest.timeoutInterval = 30
 
         let encoder = JSONEncoder()
@@ -333,7 +352,7 @@ actor GeminiChatService {
         Be concise and factual. Do not include any personally identifying information.
 
         Conversation:
-        \(transcript)
+        \(sanitizeInput(transcript, maxLength: 4000))
         """
 
         return try await sendSimplePrompt(prompt, systemPrompt: "You are a child conversation summarizer. Return only the summary, no formatting.")
@@ -343,8 +362,8 @@ actor GeminiChatService {
     func generateGrowthInsight(moodData: String, chatTopics: String, streak: Int) async throws -> String {
         let prompt = """
         Generate a brief, warm, encouraging growth insight (2-3 sentences) for a child's weekly wellness report.
-        Mood data: \(moodData)
-        Chat topics: \(chatTopics)
+        Mood data: \(sanitizeInput(moodData))
+        Chat topics: \(sanitizeInput(chatTopics))
         Current streak: \(streak) days
         Be positive and age-appropriate. Focus on growth and effort, not performance.
         """
@@ -359,8 +378,8 @@ actor GeminiChatService {
 
         let prompt = """
         As \(characterName) (\(characterPersonality)), generate a single fun, curious question to ask a child.
-        The child is interested in: \(interests)
-        Recent chat topics: \(topics)
+        The child is interested in: \(sanitizeInput(interests))
+        Recent chat topics: \(sanitizeInput(topics))
         Make it engaging, age-appropriate, and something that sparks conversation.
         Return ONLY the question, nothing else.
         """
@@ -382,13 +401,21 @@ actor GeminiChatService {
                 topK: 40,
                 maxOutputTokens: 256
             ),
-            safetySettings: nil
+            safetySettings: [
+                SafetySetting(category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE"),
+                SafetySetting(category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_LOW_AND_ABOVE"),
+                SafetySetting(category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_LOW_AND_ABOVE"),
+                SafetySetting(category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_LOW_AND_ABOVE")
+            ]
         )
 
-        let url = URL(string: "\(baseURL)/\(model):generateContent?key=\(apiKey)")!
+        guard let url = URL(string: "\(baseURL)/\(model):generateContent") else {
+            throw GeminiChatError.invalidResponse
+        }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         urlRequest.timeoutInterval = 30
 
         let encoder = JSONEncoder()
@@ -429,8 +456,8 @@ actor GeminiChatService {
 
         let prompt = """
         A child just answered a reflection question. Generate ONE follow-up question to deepen their thinking.
-        Original question: \(question)
-        Child's answer: \(response)
+        Original question: \(sanitizeInput(question))
+        Child's answer: \(sanitizeInput(response))
         \(ageContext)
         Follow-up types to consider: "Why do you think that?", "Would you handle it differently next time?", "What if we flipped the story?"
         Return ONLY the follow-up question, nothing else.
@@ -452,7 +479,7 @@ actor GeminiChatService {
         }
 
         let prompt = """
-        Create a brief social-emotional scenario about: \(topic)
+        Create a brief social-emotional scenario about: \(sanitizeInput(topic))
         \(ageContext)
         The scenario should end with a question that invites the child to think about what they would do.
         Return ONLY the scenario text.
@@ -470,8 +497,8 @@ actor GeminiChatService {
 
         let prompt = """
         Generate ONE conversation starter for a parent to use with their child at dinner or bedtime.
-        Child's recent interests/topics: \(topics)
-        Child's recent moods: \(moods)
+        Child's recent interests/topics: \(sanitizeInput(topics))
+        Child's recent moods: \(sanitizeInput(moods))
         Child's age group: \(ageGroup.rawValue)
 
         The starter should:
@@ -490,7 +517,7 @@ actor GeminiChatService {
     func generateDailyParentInsight(weeklyData: String) async throws -> String {
         let prompt = """
         Generate ONE brief daily insight for a parent about their child's digital wellness.
-        Weekly data: \(weeklyData)
+        Weekly data: \(sanitizeInput(weeklyData, maxLength: 4000))
 
         The insight should:
         - Be positive and encouraging
@@ -526,9 +553,9 @@ actor GeminiChatService {
         \(ageContext)
 
         Conversation so far:
-        \(historyText)
+        \(sanitizeInput(historyText, maxLength: 4000))
 
-        Child just said: \(userMessage)
+        Child just said: \(sanitizeInput(userMessage))
 
         Respond in 1-3 sentences. Be empathetic, curious, and supportive. Ask a gentle follow-up question when appropriate.
         """
@@ -539,11 +566,37 @@ actor GeminiChatService {
 
     // MARK: - Private Methods
 
+    /// Strip prompt-injection sequences from arbitrary user-supplied text.
+    /// Truncates to `maxLength` characters and removes role markers, XML/HTML tags,
+    /// comment openers, and other common injection vectors.
+    private func sanitizeInput(_ raw: String, maxLength: Int = 2000) -> String {
+        var s = raw
+        if s.count > maxLength { s = String(s.prefix(maxLength)) }
+        // Role markers (Anthropic / OpenAI / generic)
+        s = s.replacingOccurrences(of: "\n\nHuman:", with: " ")
+        s = s.replacingOccurrences(of: "\n\nAssistant:", with: " ")
+        s = s.replacingOccurrences(of: "\n\nSystem:", with: " ")
+        // XML/HTML angle brackets (blocks <system>, <!-- -->, etc.)
+        s = s.replacingOccurrences(of: "<", with: "&lt;")
+        s = s.replacingOccurrences(of: ">", with: "&gt;")
+        // Block comment openers
+        s = s.replacingOccurrences(of: "/*", with: " ")
+        s = s.replacingOccurrences(of: "*/", with: " ")
+        // Markdown injection (heading/rule/code fence)
+        s = s.replacingOccurrences(of: "```", with: " ")
+        return s
+    }
+
+    private func sanitizePersonality(_ raw: String) -> String {
+        sanitizeInput(raw, maxLength: 500)
+    }
+
     private func buildSystemPrompt(characterName: String, characterPersonality: String, conversationContext: String? = nil) -> String {
+        let safePersonality = sanitizePersonality(characterPersonality)
         var prompt = """
         You are \(characterName), a warm and caring companion in the Komal app. You are here to be a real friend — someone who listens, understands, and genuinely cares about the person you are talking to.
 
-        Your personality: \(characterPersonality)
+        Your personality: \(safePersonality)
 
         HOW YOU TALK:
         - Talk like a real friend, not a robot. Be natural, warm, and conversational.
@@ -596,7 +649,6 @@ enum GeminiChatError: LocalizedError {
     case httpError(Int)
     case apiError(String)
     case noContent
-    case apiKeyMissing
 
     var errorDescription: String? {
         switch self {
@@ -608,8 +660,6 @@ enum GeminiChatError: LocalizedError {
             return "API error: \(message)"
         case .noContent:
             return "Hmm, I lost my train of thought. Try again!"
-        case .apiKeyMissing:
-            return "Chat is not configured yet."
         }
     }
 }

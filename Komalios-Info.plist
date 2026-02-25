@@ -13,9 +13,18 @@
 			</array>
 		</dict>
 	</array>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Komalios uses speech recognition to analyze audio content for child safety. This helps identify inappropriate language or content in videos and audio files.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Komalios may need microphone access to analyze audio content for child safety purposes.</string>
+	<key>GEMINI_API_KEY</key>
+	<string>$(GEMINI_API_KEY)</string>
+	<key>GOOGLE_CLOUD_API_KEY</key>
+	<string>$(GOOGLE_CLOUD_API_KEY)</string>
+	<key>GOOGLE_CLOUD_PROJECT_ID</key>
+	<string>$(GOOGLE_CLOUD_PROJECT_ID)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Komal uses the front camera to understand your child's eye comfort and attention patterns. All data stays on this device and is never uploaded.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+	</dict>
 </dict>
 </plist>

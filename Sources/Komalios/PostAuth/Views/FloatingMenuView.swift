@@ -29,39 +29,33 @@ enum NavigationTab: String, CaseIterable {
 struct FloatingMenuView: View {
     @Binding var selectedTab: NavigationTab
     @EnvironmentObject var lang: LanguageManager
-    var onNewTab: (() -> Void)? = nil
-    var onPastTabs: (() -> Void)? = nil
-
     @Namespace private var animation
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
-
-            // Screen-width glass navigation bar with rounded corners
-            HStack(spacing: 0) {
-                ForEach(NavigationTab.allCases, id: \.self) { tab in
-                    TabButton(
-                        tab: tab,
-                        isSelected: selectedTab == tab,
-                        namespace: animation
-                    ) {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            selectedTab = tab
-                        }
+        // Only the tab bar — no full-screen VStack/Spacer overlay.
+        // Positioned at the bottom via ZStack(alignment: .bottom) in RootView.
+        HStack(spacing: 0) {
+            ForEach(NavigationTab.allCases, id: \.self) { tab in
+                TabButton(
+                    tab: tab,
+                    isSelected: selectedTab == tab,
+                    namespace: animation
+                ) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        selectedTab = tab
                     }
-                    .frame(maxWidth: .infinity)
                 }
+                .frame(maxWidth: .infinity)
             }
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(.ultraThinMaterial)
-                    .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: -2)
-            )
-            .padding(.horizontal, 6)
-            .padding(.bottom, 2)
         }
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.ultraThinMaterial)
+                .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: -2)
+        )
+        .padding(.horizontal, 6)
+        .padding(.bottom, 2)
         .ignoresSafeArea(.keyboard)
     }
 }
@@ -80,7 +74,7 @@ private struct TabButton: View {
                 Image(systemName: tab.icon)
                     .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
 
-                Text(tab.rawValue)
+                Text(tab.displayName(lang: LanguageManager.shared))
                     .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
                     .lineLimit(1)
             }

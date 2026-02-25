@@ -3,6 +3,7 @@ import SwiftUI
 
 struct HistoryBatchDetailView: View {
     let batch: HistoryBatch
+    @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -17,7 +18,7 @@ struct HistoryBatchDetailView: View {
                         if !batch.emojiSequence.isEmpty {
                             SettingsCard {
                                 VStack(alignment: .leading, spacing: 10) {
-                                    Text("Emoji Journey")
+                                    Text(LanguageManager.shared.localized("history.emoji_journey"))
                                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                                         .foregroundColor(KomalColors.textSecondary)
 
@@ -48,7 +49,7 @@ struct HistoryBatchDetailView: View {
                         // Combined summary card
                         SettingsCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                CardHeader(icon: "doc.text.magnifyingglass", title: "Summary", color: KomalColors.lavenderPurple)
+                                CardHeader(icon: "doc.text.magnifyingglass", title: LanguageManager.shared.localized("history.summary"), color: KomalColors.lavenderPurple)
 
                                 HStack(spacing: 8) {
                                     if let emoji = batch.leadEmoji {
@@ -89,7 +90,7 @@ struct HistoryBatchDetailView: View {
                         // Domain-grouped links
                         SettingsCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                CardHeader(icon: "list.bullet", title: "Pages Visited", color: KomalColors.lavenderPurple)
+                                CardHeader(icon: "list.bullet", title: LanguageManager.shared.localized("history.pages_visited"), color: KomalColors.lavenderPurple)
 
                                 ForEach(Array(domainGroups.enumerated()), id: \.offset) { groupIndex, group in
                                     if groupIndex > 0 {
@@ -124,10 +125,10 @@ struct HistoryBatchDetailView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 20)
                 }
             }
-            .navigationTitle("Session Detail")
+            .navigationTitle(LanguageManager.shared.localized("history.session_detail"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -135,7 +136,7 @@ struct HistoryBatchDetailView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 14, weight: .semibold))
-                            Text("History")
+                            Text(LanguageManager.shared.localized("history.back_label"))
                                 .font(.system(size: 16, weight: .medium))
                         }
                         .foregroundColor(KomalColors.lavenderPurple)
@@ -169,41 +170,58 @@ struct HistoryBatchDetailView: View {
     // MARK: - Event Row
 
     private func eventRow(_ event: LocalHistoryEvent) -> some View {
-        HStack(spacing: 12) {
-            actionBadge(event.action)
+        let isNavigable = event.action.uppercased() == "ALLOW" && URL(string: event.url) != nil
 
-            VStack(alignment: .leading, spacing: 4) {
-                if let title = event.pageTitle, !title.isEmpty {
-                    Text(title)
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .foregroundColor(KomalColors.textPrimary)
+        return Button {
+            guard isNavigable, let url = URL(string: event.url) else { return }
+            appState.pendingBrowserURL = url
+            appState.pendingNavigationTab = .browser
+            dismiss()
+        } label: {
+            HStack(spacing: 12) {
+                actionBadge(event.action)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    if let title = event.pageTitle, !title.isEmpty {
+                        Text(title)
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundColor(KomalColors.textPrimary)
+                            .lineLimit(1)
+                    }
+
+                    Text(event.domain)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
                         .lineLimit(1)
+
+                    if let sub = event.subcategory, !sub.isEmpty {
+                        Text(sub)
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundColor(KomalColors.lavenderPurple)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(KomalColors.lavenderPurple.opacity(0.1))
+                            .cornerRadius(6)
+                    }
                 }
 
-                Text(event.domain)
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundColor(KomalColors.textSecondary)
-                    .lineLimit(1)
+                Spacer()
 
-                if let sub = event.subcategory, !sub.isEmpty {
-                    Text(sub)
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundColor(KomalColors.lavenderPurple)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(KomalColors.lavenderPurple.opacity(0.1))
-                        .cornerRadius(6)
+                if let emoji = event.emojiResponse {
+                    Text(emoji)
+                        .font(.system(size: 20))
+                }
+
+                if isNavigable {
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(KomalColors.textSecondary.opacity(0.5))
                 }
             }
-
-            Spacer()
-
-            if let emoji = event.emojiResponse {
-                Text(emoji)
-                    .font(.system(size: 20))
-            }
+            .padding(.vertical, 4)
         }
-        .padding(.vertical, 4)
+        .buttonStyle(.plain)
+        .disabled(!isNavigable)
     }
 
     private func actionBadge(_ action: String) -> some View {
@@ -222,7 +240,7 @@ struct HistoryBatchDetailView: View {
     }
 }
 
-extension HistoryBatch: @retroactive Equatable {
+extension HistoryBatch: Equatable {
     static func == (lhs: HistoryBatch, rhs: HistoryBatch) -> Bool {
         lhs.id == rhs.id
     }

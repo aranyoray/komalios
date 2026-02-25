@@ -22,44 +22,40 @@ struct LoginView: View {
                 ZStack {
                     GradientBackground()
                     VStack {
-                        ZStack {
-                            Circle()
-                                .fill(KomalColors.white)
-                                .frame(width: 140, height: 140)
-                                .shadow(color: Color.black.opacity(0.1), radius: 10, y: 5)
-                            
-                            Image(systemName: "shield.checkered")
-                                .font(.system(size: 70))
-                                .foregroundColor(KomalColors.bubblegumPink)
-                        }
+                        Image("komal_logo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 140, height: 140)
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.1), radius: 10, y: 5)
                         
                         VStack(spacing: 16) {
-                            Text("Welcome to Komal")
+                            Text(LanguageManager.shared.localized("login.welcome"))
                                 .font(.system(size: 32, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
-                            
-                            Text("Your child's safe digital companion")
+
+                            Text(LanguageManager.shared.localized("login.tagline"))
                                 .font(.system(size: 18, weight: .medium, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
                                 .multilineTextAlignment(.center)
                         }
                         
-                        SocialSignInButton(logoImage: "google_logo", title: "Sign in with Google") {
+                        SocialSignInButton(logoImage: "google_logo", title: LanguageManager.shared.localized("login.sign_in_google")) {
                             viewModel.signInWithGoogle()
                         }
                         .padding()
                         
-                        SocialSignInButton(logoImage: "apple_logo", title: "Sign in with Apple") {
+                        SocialSignInButton(logoImage: "apple_logo", title: LanguageManager.shared.localized("login.sign_in_apple")) {
                             viewModel.signInWithApple()
                         }
-                        .padding(.horizontal)
+                        .padding()
                         
-                        Text("Or")
+                        Text(LanguageManager.shared.localized("login.or"))
                         
                         Button {
                             showOnboarding = true
                         } label: {
-                            Text("Guest User")
+                            Text(LanguageManager.shared.localized("login.guest_user"))
                         }
                         .padding()
                         .foregroundStyle(Color.accentColor)
@@ -103,7 +99,7 @@ struct LoginView: View {
                     VStack(spacing: 16) {
                         ProgressView()
                             .scaleEffect(1.5)
-                        Text("Signing you in...")
+                        Text(LanguageManager.shared.localized("login.signing_in"))
                             .font(.system(size: 16, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -118,7 +114,7 @@ struct LoginView: View {
                 ZStack {
                     GradientBackground()
                     VStack {
-                        Text("Login Failed")
+                        Text(LanguageManager.shared.localized("login.failed"))
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                         Text(string)
@@ -126,7 +122,7 @@ struct LoginView: View {
                             .foregroundColor(.red)
                             .padding()
                         
-                        Button("Try Again") {
+                        Button(LanguageManager.shared.localized("login.try_again")) {
                             viewModel.loginState = .notRunning
                         }
                         .buttonStyle(PillButtonStyle())
@@ -149,21 +145,21 @@ private struct LoginGuestOnboardingSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Text("Welcome!")
+                Text(LanguageManager.shared.localized("login.guest.welcome"))
                     .font(.title.bold())
-                Text("You can explore as a guest. When you're ready, you can sign in to sync across devices.")
+                Text(LanguageManager.shared.localized("login.guest.description"))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
-                Button("Continue") {
+                Button(LanguageManager.shared.localized("common.continue")) {
                     onFinish()
                 }
                 .buttonStyle(.borderedProminent)
             }
             .padding()
-            .navigationTitle("Getting Started")
+            .navigationTitle(LanguageManager.shared.localized("login.guest.getting_started"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { onFinish() }
+                    Button(LanguageManager.shared.localized("common.close")) { onFinish() }
                 }
             }
         }

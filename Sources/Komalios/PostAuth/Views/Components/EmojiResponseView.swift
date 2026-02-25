@@ -7,10 +7,6 @@ struct EmojiResponseView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Text("How are you feeling?")
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundColor(KomalColors.textPrimary)
-
             HStack(spacing: 16) {
                 ForEach(EmojiMapper.emojisForSubcategory(subcategory), id: \.self) { emoji in
                     Button { onSelect(emoji) } label: { Text(emoji).font(.system(size: 36)) }

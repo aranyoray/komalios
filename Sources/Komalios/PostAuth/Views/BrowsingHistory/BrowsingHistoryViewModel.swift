@@ -11,11 +11,17 @@ final class BrowsingHistoryViewModel: ObservableObject {
     // Filter state
     @Published var showBlocked: Bool = true
     @Published var showGated: Bool = true
-    @Published var showAllowed: Bool = false
-    @Published var selectedTimeRange: TimeRangeOption = .twentyFourHours
+    @Published var showAllowed: Bool
+    @Published var selectedTimeRange: TimeRangeOption
 
     private let gemini = GeminiChatService()
     private var allLoadedEvents: [LocalHistoryEvent] = []
+
+    /// - Parameter showAllByDefault: When true (parent context), shows all events including allowed.
+    init(showAllByDefault: Bool = false) {
+        self.showAllowed = showAllByDefault
+        self.selectedTimeRange = showAllByDefault ? .allTime : .twentyFourHours
+    }
 
     // MARK: - Filtered Events
 
@@ -26,10 +32,12 @@ final class BrowsingHistoryViewModel: ObservableObject {
             let action = event.action.uppercased()
             let passesAction: Bool
             switch action {
-            case "BLOCK":
+            case "BLOCK", "BLOCKED":
                 passesAction = showBlocked
             case "GATE", "GATED":
                 passesAction = showGated
+            case "ALLOW", "ALLOWED":
+                passesAction = showAllowed
             default:
                 passesAction = showAllowed
             }
@@ -74,6 +82,7 @@ final class BrowsingHistoryViewModel: ObservableObject {
     // MARK: - Filter Changed
 
     func onFilterChanged() {
+        guard !allLoadedEvents.isEmpty, !isLoading else { return }
         Task {
             isLoading = true
             await applyFiltersAndGroup()
@@ -258,21 +267,33 @@ final class BrowsingHistoryViewModel: ObservableObject {
         return counts.max(by: { $0.value < $1.value })?.key
     }
 
+    private static let dateTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        f.timeStyle = .short
+        return f
+    }()
+
+    private static let timeOnlyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f
+    }()
+
+    private static let dateOnlyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateStyle = .medium
+        return f
+    }()
+
     static func formatTimeRange(events: [LocalHistoryEvent]) -> String {
         guard let first = events.last, let last = events.first else { return "" }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
 
         if Calendar.current.isDate(first.timestamp, inSameDayAs: last.timestamp) {
-            let timeFormatter = DateFormatter()
-            timeFormatter.timeStyle = .short
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateStyle = .medium
-            return "\(dateFormatter.string(from: first.timestamp)), \(timeFormatter.string(from: first.timestamp)) - \(timeFormatter.string(from: last.timestamp))"
+            return "\(dateOnlyFormatter.string(from: first.timestamp)), \(timeOnlyFormatter.string(from: first.timestamp)) - \(timeOnlyFormatter.string(from: last.timestamp))"
         }
 
-        return "\(formatter.string(from: first.timestamp)) - \(formatter.string(from: last.timestamp))"
+        return "\(dateTimeFormatter.string(from: first.timestamp)) - \(dateTimeFormatter.string(from: last.timestamp))"
     }
 
     private static func fallbackHeadline(for events: [LocalHistoryEvent]) -> String {

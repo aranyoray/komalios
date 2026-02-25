@@ -21,9 +21,16 @@ final class NotificationService {
     // MARK: - Morning Anchor
 
     func scheduleMorningAnchor(hour: Int = 8, minute: Int = 0) {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            self._scheduleMorningAnchor(hour: hour, minute: minute)
+        }
+    }
+
+    private func _scheduleMorningAnchor(hour: Int, minute: Int) {
         let content = UNMutableNotificationContent()
-        content.title = "Good Morning!"
-        content.body = "Momo here! Let's start your day with a quick check-in. How are you feeling?"
+        content.title = LanguageManager.shared.localized("notification.morning.title")
+        content.body = LanguageManager.shared.localized("notification.morning.body")
         content.sound = .default
         content.categoryIdentifier = "morningAnchor"
 
@@ -46,9 +53,16 @@ final class NotificationService {
     // MARK: - Evening Anchor
 
     func scheduleEveningAnchor(hour: Int = 19, minute: Int = 0) {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            self._scheduleEveningAnchor(hour: hour, minute: minute)
+        }
+    }
+
+    private func _scheduleEveningAnchor(hour: Int, minute: Int) {
         let content = UNMutableNotificationContent()
-        content.title = "Time to Wind Down"
-        content.body = "Hey, it's Bunny! Let's take a moment to reflect on your day together."
+        content.title = LanguageManager.shared.localized("notification.evening.title")
+        content.body = LanguageManager.shared.localized("notification.evening.body")
         content.sound = .default
         content.categoryIdentifier = "eveningAnchor"
 
@@ -71,9 +85,16 @@ final class NotificationService {
     // MARK: - Reconnection Reminder
 
     func scheduleReconnectionReminder(afterDays: Int = 3) {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            self._scheduleReconnectionReminder(afterDays: afterDays)
+        }
+    }
+
+    private func _scheduleReconnectionReminder(afterDays: Int) {
         let content = UNMutableNotificationContent()
-        content.title = "We Miss You!"
-        content.body = "Ellie here - I never forget my friends! Come back and say hi, I have something fun to share."
+        content.title = LanguageManager.shared.localized("notification.reconnect.title")
+        content.body = LanguageManager.shared.localized("notification.reconnect.body")
         content.sound = .default
         content.categoryIdentifier = "reconnection"
 

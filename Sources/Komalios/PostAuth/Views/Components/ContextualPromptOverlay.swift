@@ -88,7 +88,7 @@ struct ContextualPromptOverlay: View {
                 .shadow(color: .black.opacity(0.12), radius: 16, x: 0, y: -4)
         )
         .padding(.horizontal, 16)
-        .padding(.bottom, 120) // Above floating menu
+        .padding(.bottom, 72) // Above floating menu
         .offset(y: isVisible ? 0 : 200)
         .opacity(isVisible ? 1 : 0)
         .onAppear {

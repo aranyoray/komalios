@@ -1,7 +1,8 @@
 import Foundation
 
 /// Filter action for content
-enum FilterAction: String, Codable, CaseIterable {
+enum FilterAction: String, Codable, CaseIterable, Identifiable {
+    var id: String { rawValue }
     case block = "Block"
     case gate = "Gate"
     case allow = "Allow"

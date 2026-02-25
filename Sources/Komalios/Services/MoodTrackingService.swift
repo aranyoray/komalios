@@ -1,12 +1,18 @@
 #if os(iOS)
 import Foundation
 import Combine
+import FirebaseAuth
 
 final class MoodTrackingService: ObservableObject {
     static let shared = MoodTrackingService()
 
     @Published private(set) var recentEntries: [MoodEntry] = []
 
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
     private let fileManager = FileManager.default
     private let fileName = "mood_entries.json"
     private var moodData = MoodEntriesData()
@@ -20,7 +26,9 @@ final class MoodTrackingService: ObservableObject {
     // MARK: - File URL
 
     private var fileURL: URL {
-        let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        guard let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(fileName)
+        }
         return docs.appendingPathComponent(fileName)
     }
 
@@ -54,6 +62,15 @@ final class MoodTrackingService: ObservableObject {
         moodData.entries.append(entry)
         recentEntries = Array(moodData.entries.suffix(7))
         saveData()
+
+        // Upload to Firestore (fire-and-forget)
+        let currentData = moodData
+        if let uid = Auth.auth().currentUser?.uid {
+            Task {
+                await FirestoreSyncService.shared.uploadMoodData(uid: uid, entries: currentData)
+            }
+        }
+
         print("🎭 Logged mood: \(entry.emotion) (\(entry.context.rawValue))")
     }
 
@@ -71,8 +88,7 @@ final class MoodTrackingService: ObservableObject {
     /// Get the dominant mood for each of the last N days
     func getMoodTrend(days: Int) -> [(date: String, emotion: String, emoji: String)] {
         let calendar = Calendar.current
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
+        let formatter = Self.dayFormatter
 
         var trend: [(date: String, emotion: String, emoji: String)] = []
         let entries = getMoodEntries(days: days)
@@ -131,7 +147,24 @@ final class MoodTrackingService: ObservableObject {
     func hasConsecutiveSadEntries(count: Int = 3) -> Bool {
         let recent = moodData.entries.sorted { $0.timestamp > $1.timestamp }.prefix(count)
         guard recent.count >= count else { return false }
-        return recent.allSatisfy { $0.emotion == "Sad" }
+        return recent.allSatisfy { $0.emotion.lowercased() == "sad" }
+    }
+
+    // MARK: - Cloud Sync
+
+    /// Merge mood data downloaded from Firestore.
+    /// Unions entries by ID, applies 90-day pruning.
+    func mergeCloudData(_ cloudData: MoodEntriesData) {
+        let localIDs = Set(moodData.entries.map { $0.id })
+        let newEntries = cloudData.entries.filter { !localIDs.contains($0.id) }
+        guard !newEntries.isEmpty else { return }
+
+        moodData.entries.append(contentsOf: newEntries)
+        moodData.entries.sort { $0.timestamp < $1.timestamp }
+        pruneOldEntries()
+        recentEntries = Array(moodData.entries.suffix(7))
+        saveData()
+        print("🎭 Merged \(newEntries.count) mood entries from cloud")
     }
 
     // MARK: - Pruning

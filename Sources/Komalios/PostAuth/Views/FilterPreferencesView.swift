@@ -21,23 +21,50 @@ struct FilterPreferencesView: View {
                 VStack(spacing: 16) {
                     // Header
                     VStack(spacing: 8) {
-                        Text("Content Settings")
+                        Text(LanguageManager.shared.localized("filter.content_settings"))
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
-                        
-                        Text("Customize what content is allowed")
+
+                        Text(LanguageManager.shared.localized("filter.customize"))
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                     }
                     .padding(.top, 10)
                     
-                    // Legend
-                    HStack(spacing: 20) {
-                        legendItem(color: KomalColors.bubblegumPink, label: "Block")
-                        legendItem(color: Color.orange, label: "Gate")
-                        legendItem(color: KomalColors.pearlAqua, label: "Allow")
+                    // Legend — gradient bar with labels
+                    HStack(spacing: 0) {
+                        Text(LanguageManager.shared.localized("filter.block"))
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .textCase(.uppercase)
+                            .foregroundColor(Color(hex: "C0392B"))
+
+                        Spacer()
+
+                        Text(LanguageManager.shared.localized("filter.gate"))
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .textCase(.uppercase)
+                            .foregroundColor(Color(hex: "BF4800")) // Darkened for 4.94:1 AA contrast
+
+                        Spacer()
+
+                        Text(LanguageManager.shared.localized("filter.allow"))
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .textCase(.uppercase)
+                            .foregroundColor(Color(hex: "1E8449"))
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 30)
+
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [.red, .orange, .green],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 6)
+                        .padding(.horizontal, 30)
+                        .padding(.top, -8)
                     
                     // Categories list
                     ScrollView {
@@ -57,7 +84,7 @@ struct FilterPreferencesView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(LanguageManager.shared.localized("common.done")) {
                         appState.savePreferences()
                         dismiss()
                     }
@@ -68,16 +95,5 @@ struct FilterPreferencesView: View {
         }
     }
     
-    private func legendItem(color: Color, label: String) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(color)
-                .frame(width: 12, height: 12)
-            
-            Text(label)
-                .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundColor(KomalColors.textPrimary)
-        }
-    }
 }
 #endif

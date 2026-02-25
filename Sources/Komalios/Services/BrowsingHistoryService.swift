@@ -8,7 +8,9 @@
 
 import Foundation
 import Combine
+import FirebaseAuth
 
+@MainActor
 final class BrowsingHistoryService: ObservableObject {
     static let shared = BrowsingHistoryService()
     
@@ -69,7 +71,15 @@ final class BrowsingHistoryService: ObservableObject {
             saveSessions()
             updateInsights()
             updateEngagementInsights()
-            
+
+            // Upload to Firestore (fire-and-forget)
+            let completedSession = session
+            if let uid = Auth.auth().currentUser?.uid {
+                Task {
+                    await FirestoreSyncService.shared.uploadBrowsingSession(uid: uid, session: completedSession)
+                }
+            }
+
             // Log session summary
             let imageStats = session.totalImagesFiltered > 0 ? ", \(session.totalImagesFiltered) images filtered" : ""
             print("📊 Ended session with \(session.events.count) events, duration: \(session.durationFormatted)\(imageStats)")
@@ -97,13 +107,9 @@ final class BrowsingHistoryService: ObservableObject {
         wasForwardNavigation: Bool = false,
         navigationDepth: Int? = nil
     ) {
-        guard currentSession != nil else {
+        if currentSession == nil {
             // Auto-start session if needed
             startSession()
-            logEvent(url: url, type: type, category: category, action: action, pageTitle: pageTitle,
-                    referrerURL: referrerURL, wasBackNavigation: wasBackNavigation,
-                    wasForwardNavigation: wasForwardNavigation, navigationDepth: navigationDepth)
-            return
         }
         
         // Update navigation depth tracking
@@ -225,10 +231,8 @@ final class BrowsingHistoryService: ObservableObject {
     
     /// Log an image filter event
     func logImageFiltered(event: ImageFilterEvent) {
-        guard currentSession != nil else {
+        if currentSession == nil {
             startSession()
-            logImageFiltered(event: event)
-            return
         }
         
         currentSession?.addImageFilterEvent(event)
@@ -476,17 +480,39 @@ final class BrowsingHistoryService: ObservableObject {
         print("📊 Cleared all browsing history")
     }
     
+    // MARK: - Cloud Sync
+
+    /// Merge browsing sessions downloaded from Firestore.
+    /// Adds cloud sessions not found locally (by ID), keeps max 50.
+    func mergeCloudSessions(_ cloudSessions: [BrowsingSession]) {
+        let localIDs = Set(allSessions.map { $0.id })
+        let newSessions = cloudSessions.filter { !localIDs.contains($0.id) }
+        guard !newSessions.isEmpty else { return }
+
+        allSessions.append(contentsOf: newSessions)
+        allSessions.sort { $0.startTime > $1.startTime }
+        if allSessions.count > 50 {
+            allSessions = Array(allSessions.prefix(50))
+        }
+        saveSessions()
+        updateInsights()
+        updateEngagementInsights()
+        print("📊 Merged \(newSessions.count) cloud browsing sessions")
+    }
+
     // MARK: - Persistence
-    
+
     private var sessionsFileURL: URL {
-        let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        guard let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(sessionsFileName)
+        }
         return documentsPath.appendingPathComponent(sessionsFileName)
     }
     
     private func saveSessions() {
         do {
             let data = try JSONEncoder().encode(allSessions)
-            try data.write(to: sessionsFileURL)
+            try data.write(to: sessionsFileURL, options: .completeFileProtection)
             print("📊 Saved \(allSessions.count) sessions to disk")
         } catch {
             print("📊 Error saving sessions: \(error)")

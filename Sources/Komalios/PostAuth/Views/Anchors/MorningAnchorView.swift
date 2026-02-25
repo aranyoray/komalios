@@ -2,6 +2,12 @@
 import SwiftUI
 
 struct MorningAnchorView: View {
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @State private var currentStep = 0
@@ -49,13 +55,13 @@ struct MorningAnchorView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 20)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Skip") { dismiss() }
+                    Button(LanguageManager.shared.localized("common.skip")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -74,11 +80,11 @@ struct MorningAnchorView: View {
                     .frame(width: 80, height: 80)
             }
 
-            Text("Good Morning!")
+            Text(LanguageManager.shared.localized("anchor.morning.greeting"))
                 .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
-            Text("How are you feeling today?")
+            Text(LanguageManager.shared.localized("anchor.morning.how_feeling"))
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(KomalColors.textSecondary)
         }
@@ -111,7 +117,7 @@ struct MorningAnchorView: View {
 
             if selectedEmotion != nil {
                 Button(action: { withAnimation { currentStep = 1 } }) {
-                    Text("Next")
+                    Text(LanguageManager.shared.localized("common.next"))
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -127,7 +133,7 @@ struct MorningAnchorView: View {
 
     private var intensitySection: some View {
         VStack(spacing: 20) {
-            Text("How strong is this feeling?")
+            Text(LanguageManager.shared.localized("anchor.morning.how_strong"))
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
@@ -135,12 +141,12 @@ struct MorningAnchorView: View {
                 .font(.system(size: 48))
 
             HStack {
-                Text("A little")
+                Text(LanguageManager.shared.localized("common.a_little"))
                     .font(.system(size: 12))
                     .foregroundColor(KomalColors.textSecondary)
                 Slider(value: $emotionIntensity, in: 1...10, step: 1)
                     .tint(KomalColors.lavenderPurple)
-                Text("A lot")
+                Text(LanguageManager.shared.localized("common.a_lot"))
                     .font(.system(size: 12))
                     .foregroundColor(KomalColors.textSecondary)
             }
@@ -149,7 +155,7 @@ struct MorningAnchorView: View {
             .cornerRadius(16)
 
             Button(action: { withAnimation { currentStep = 2 } }) {
-                Text("Next")
+                Text(LanguageManager.shared.localized("common.next"))
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -164,19 +170,23 @@ struct MorningAnchorView: View {
 
     private var lookingForwardSection: some View {
         VStack(spacing: 20) {
-            Text("What are you looking forward to today?")
+            Text(LanguageManager.shared.localized("anchor.morning.looking_forward"))
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
                 .multilineTextAlignment(.center)
 
-            TextField("Something fun, a class, seeing a friend...", text: $lookingForwardTo)
+            TextField(LanguageManager.shared.localized("anchor.morning.looking_forward_placeholder"), text: $lookingForwardTo)
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .padding(16)
                 .background(Color.white)
                 .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
+                )
 
             Button(action: saveAndDismiss) {
-                Text("Start My Day!")
+                Text(LanguageManager.shared.localized("anchor.morning.start_my_day"))
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -192,9 +202,7 @@ struct MorningAnchorView: View {
     private func saveAndDismiss() {
         guard let emotion = selectedEmotion else { return }
 
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let todayStr = dateFormatter.string(from: Date())
+        let todayStr = Self.dayFormatter.string(from: Date())
 
         // Save anchor
         let anchor = DailyAnchor(

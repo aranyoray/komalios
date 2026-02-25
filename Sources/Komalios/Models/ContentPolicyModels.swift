@@ -10,6 +10,10 @@ enum AgeGroup: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
 }
 
+/// Operating mode for the app.
+/// - `.child`: Default mode with content filtering active (normal usage).
+/// - `.guest`: Parent/guardian mode with elevated permissions (temporarily unlocked).
+///   Named "guest" for historical reasons; resets to `.child` when the app goes to background.
 enum AccountMode: String, CaseIterable, Identifiable, Codable {
     case child = "Child Account"
     case guest = "Parent Mode"
@@ -21,6 +25,33 @@ struct ChildProfile: Identifiable, Codable {
     var id = UUID()
     var name: String
     var ageGroup: AgeGroup
+    var selectedAvatarIndex: Int = 1
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, ageGroup, selectedAvatarIndex
+    }
+
+    init(name: String, ageGroup: AgeGroup, selectedAvatarIndex: Int = 1) {
+        self.name = name
+        self.ageGroup = ageGroup
+        self.selectedAvatarIndex = selectedAvatarIndex
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        ageGroup = try container.decode(AgeGroup.self, forKey: .ageGroup)
+        selectedAvatarIndex = try container.decodeIfPresent(Int.self, forKey: .selectedAvatarIndex) ?? 1
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(ageGroup, forKey: .ageGroup)
+        try container.encode(selectedAvatarIndex, forKey: .selectedAvatarIndex)
+    }
 
     static let sample = ChildProfile(name: "Komal", ageGroup: .tenToThirteen)
 }
@@ -50,11 +81,6 @@ enum ContentCategory: String, CaseIterable, Hashable {
         }
     }
     
-    /// Alias for label for API consistency
-    var displayName: String {
-        return label
-    }
-
     init(label: String) {
         switch label {
         case "Violence & Disturbing": self = .violence

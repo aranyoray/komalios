@@ -12,15 +12,32 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
 
     override init() {
         super.init()
-        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
-        try? AVAudioSession.sharedInstance().setActive(true)
+        configureAudioSession()
+    }
+
+    /// Configure audio session for playback. Must be called before each play
+    /// because SpeechRecognizer switches the session to .record mode.
+    private func configureAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("[AudioPlayback] Failed to configure audio session: \(error.localizedDescription)")
+        }
     }
 
     func speak(text: String, characterName: String) async {
         guard !isMuted else { return }
         stop()
+
+        // Reconfigure audio session for playback before each speak call,
+        // since SpeechRecognizer may have switched it to .record mode.
+        configureAudioSession()
+
         do {
             let audioData = try await ttsService.synthesize(text: text, characterName: characterName)
+            // Re-check muted state after async call returns
+            guard !isMuted else { return }
             audioPlayer = try AVAudioPlayer(data: audioData)
             audioPlayer?.delegate = self
             audioPlayer?.prepareToPlay()
@@ -28,6 +45,7 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
             isPlaying = true
         } catch {
             isPlaying = false
+            print("[AudioPlayback] TTS speak error: \(error.localizedDescription)")
         }
     }
 

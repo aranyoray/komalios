@@ -7,6 +7,7 @@ struct ParentSettings: Codable {
     var notifyOnBlock: Bool
     var safeSearchEnabled: Bool
     var biometricEnabled: Bool
+    var eyeTrackingEnabled: Bool
 
     static let sample = ParentSettings(
         blockedKeywords: [],
@@ -14,25 +15,28 @@ struct ParentSettings: Codable {
         blockedInterests: [],
         notifyOnBlock: true,
         safeSearchEnabled: true,
-        biometricEnabled: false
+        biometricEnabled: false,
+        eyeTrackingEnabled: false
     )
 
     // Support decoding old data that still has parentPin
     enum CodingKeys: String, CodingKey {
         case blockedKeywords, blockedHosts, blockedInterests
-        case notifyOnBlock, safeSearchEnabled, biometricEnabled
+        case notifyOnBlock, safeSearchEnabled, biometricEnabled, eyeTrackingEnabled
         // Legacy key for migration
         case parentPin
     }
 
     init(blockedKeywords: [String], blockedHosts: [String], blockedInterests: [String],
-         notifyOnBlock: Bool, safeSearchEnabled: Bool, biometricEnabled: Bool = false) {
+         notifyOnBlock: Bool, safeSearchEnabled: Bool, biometricEnabled: Bool = false,
+         eyeTrackingEnabled: Bool = false) {
         self.blockedKeywords = blockedKeywords
         self.blockedHosts = blockedHosts
         self.blockedInterests = blockedInterests
         self.notifyOnBlock = notifyOnBlock
         self.safeSearchEnabled = safeSearchEnabled
         self.biometricEnabled = biometricEnabled
+        self.eyeTrackingEnabled = eyeTrackingEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -43,6 +47,7 @@ struct ParentSettings: Codable {
         notifyOnBlock = try container.decodeIfPresent(Bool.self, forKey: .notifyOnBlock) ?? true
         safeSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .safeSearchEnabled) ?? true
         biometricEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricEnabled) ?? false
+        eyeTrackingEnabled = try container.decodeIfPresent(Bool.self, forKey: .eyeTrackingEnabled) ?? false
         // parentPin is silently ignored on decode (migrated to Keychain)
     }
 
@@ -54,5 +59,6 @@ struct ParentSettings: Codable {
         try container.encode(notifyOnBlock, forKey: .notifyOnBlock)
         try container.encode(safeSearchEnabled, forKey: .safeSearchEnabled)
         try container.encode(biometricEnabled, forKey: .biometricEnabled)
+        try container.encode(eyeTrackingEnabled, forKey: .eyeTrackingEnabled)
     }
 }

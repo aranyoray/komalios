@@ -142,7 +142,7 @@ struct FocusedChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer().frame(height: 24)
+            Spacer().frame(height: 12)
 
             // Character name header
             HStack(spacing: 8) {
@@ -190,7 +190,7 @@ struct FocusedChatView: View {
             }
             .animation(.easeInOut(duration: 0.6), value: glowColor)
 
-            Spacer().frame(height: 24)
+            Spacer().frame(height: 12)
 
             // Latest message speech bubble
             if let message = latestBotMessage {
@@ -238,37 +238,15 @@ struct FocusedChatView: View {
 
             Spacer()
 
-            // SEL Emoji quick replies
-            VStack(spacing: 12) {
-                Text(LanguageManager.shared.localized("riki.how_feeling"))
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(KomalColors.textSecondary)
-
-                HStack(spacing: 16) {
-                    ForEach(selEmojiSuggestions) { sel in
-                        Button {
-                            inputText = sel.message
-                            sendMessage()
-                        } label: {
-                            VStack(spacing: 4) {
-                                Text(sel.emoji)
-                                    .font(.system(size: 32))
-                                Text(sel.label)
-                                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                                    .foregroundColor(KomalColors.textSecondary)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isLoading || audioPlayback.isPlaying)
-                    }
-                }
-            }
-            .padding(.bottom, 12)
-
             // Voice input + Mute controls
-            HStack(spacing: 24) {
-                // Mute button
-                Button(action: { audioPlayback.isMuted.toggle() }) {
+            HStack(spacing: 20) {
+                // Mute button (left of mic)
+                Button(action: {
+                    audioPlayback.isMuted.toggle()
+                    if audioPlayback.isMuted {
+                        audioPlayback.stop()
+                    }
+                }) {
                     Image(systemName: audioPlayback.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(audioPlayback.isMuted ? KomalColors.textSecondary : KomalColors.lavenderPurple)
@@ -276,7 +254,7 @@ struct FocusedChatView: View {
                         .background(Circle().fill(.ultraThinMaterial))
                 }
 
-                // Mic button
+                // Mic button (centered)
                 Button(action: toggleListening) {
                     Image(systemName: isListening ? "waveform" : "mic.fill")
                         .font(.system(size: 26, weight: .semibold))
@@ -291,25 +269,11 @@ struct FocusedChatView: View {
                         .animation(KomalAnimations.spring, value: isListening)
                 }
 
-                // Continue button (when AI is done speaking)
-                Button(action: {
-                    if audioPlayback.isPlaying {
-                        audioPlayback.stop()
-                    }
-                }) {
-                    Text(LanguageManager.shared.localized("common.continue"))
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(KomalColors.pearlAqua)
-                        .frame(width: 100, height: 44)
-                        .background(
-                            Capsule()
-                                .stroke(KomalColors.pearlAqua, lineWidth: 2)
-                        )
-                }
-                .opacity(audioPlayback.isPlaying ? 1.0 : 0.3)
-                .disabled(!audioPlayback.isPlaying)
+                // Invisible spacer to balance the mute button and keep mic centered
+                Color.clear
+                    .frame(width: 44, height: 44)
             }
-            .padding(.bottom, 100) // Space for floating menu
+            .padding(.bottom, 64) // Space for floating menu
         }
         .onAppear {
             // Start memory session
@@ -384,7 +348,10 @@ struct FocusedChatView: View {
         inputText = ""
         isLoading = true
 
-        let history = messages.map { msg in
+        // Build history WITHOUT the latest user message — sendMessage() appends it separately.
+        // This avoids sending two consecutive "user" messages which violates Gemini's
+        // alternating role requirement.
+        let history = messages.dropLast().map { msg in
             GeminiChatService.Message(role: msg.isFromUser ? "user" : "model", text: msg.text)
         }
 

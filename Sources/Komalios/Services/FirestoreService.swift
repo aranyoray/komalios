@@ -57,39 +57,54 @@ class FirestoreService {
     private init() {}
     
     /// Store or update user info in Firestore
+    /// Uses a Firestore transaction to avoid read-then-write race conditions
     func saveUserProfile(_ user: User, provider: String = "google") async throws {
         let userRef = db.collection("users").document(user.uid)
-        
-        // Check if user already exists
-        let document = try await userRef.getDocument()
-        
-        let userProfile: [String: Any]
-        
-        if document.exists {
-            // Update existing user
-            userProfile = [
-                "email": user.email ?? NSNull(),
-                "displayName": user.displayName ?? NSNull(),
-                "photoURL": user.photoURL?.absoluteString ?? NSNull(),
-                "provider": provider,
-                "lastLoginAt": Timestamp(),
-                "isActive": true
-            ]
-        } else {
-            // Create new user
-            userProfile = [
-                "uid": user.uid,
-                "email": user.email ?? NSNull(),
-                "displayName": user.displayName ?? NSNull(),
-                "photoURL": user.photoURL?.absoluteString ?? NSNull(),
-                "provider": provider,
-                "createdAt": Timestamp(),
-                "lastLoginAt": Timestamp(),
-                "isActive": true
-            ]
-        }
-        
-        try await userRef.setData(userProfile, merge: true)
+
+        // Capture user properties before entering the transaction closure
+        let userUID = user.uid
+        let userEmail = user.email
+        let userDisplayName = user.displayName
+        let userPhotoURL = user.photoURL?.absoluteString
+
+        _ = try await db.runTransaction({ (transaction, errorPointer) -> Any? in
+            let document: DocumentSnapshot
+            do {
+                document = try transaction.getDocument(userRef)
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
+            }
+
+            let userProfile: [String: Any]
+
+            if document.exists {
+                // Update existing user
+                userProfile = [
+                    "email": userEmail ?? NSNull(),
+                    "displayName": userDisplayName ?? NSNull(),
+                    "photoURL": userPhotoURL ?? NSNull(),
+                    "provider": provider,
+                    "lastLoginAt": Timestamp(),
+                    "isActive": true
+                ]
+            } else {
+                // Create new user
+                userProfile = [
+                    "uid": userUID,
+                    "email": userEmail ?? NSNull(),
+                    "displayName": userDisplayName ?? NSNull(),
+                    "photoURL": userPhotoURL ?? NSNull(),
+                    "provider": provider,
+                    "createdAt": Timestamp(),
+                    "lastLoginAt": Timestamp(),
+                    "isActive": true
+                ]
+            }
+
+            transaction.setData(userProfile, forDocument: userRef, merge: true)
+            return nil
+        })
     }
     
     /// Get user profile from Firestore

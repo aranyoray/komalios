@@ -64,10 +64,15 @@ struct SplashScreenView: View {
             }
             
             // Navigate after 3 seconds
+            // B31 note: Known race condition — Firebase's async session restoration may not
+            // complete before this 3-second timer fires, causing a brief flash of LoginView
+            // for already-authenticated users. This is cosmetic only; ContentView.onChange(of:
+            // authViewModel.user) corrects the navigation once the session resolves, pushing
+            // the user to RootView or OnboardingView as appropriate.
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                 // Only navigate if path is empty (prevent double navigation)
                 guard pathManager.path.isEmpty else { return }
-                
+
                 // If user is already logged in (or guest) and completed onboarding, go to RootView
                 // Otherwise, go to LoginView
                 if (authViewModel.user != nil || appState.isGuestUser) && appState.hasCompletedOnboarding {

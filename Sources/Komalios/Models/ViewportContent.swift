@@ -91,7 +91,7 @@ struct VisibleContent: Codable, Identifiable {
         self.timeInViewSeconds = timeInViewSeconds
         self.isInteractive = isInteractive
         self.hasMedia = hasMedia
-        self.wordCount = text?.split(separator: " ").count ?? 0
+        self.wordCount = text?.split(whereSeparator: { $0.isWhitespace }).count ?? 0
         self.detectedKeywords = detectedKeywords
         self.riskLevel = riskLevel
     }
@@ -194,12 +194,14 @@ struct ViewportSnapshot: Codable, Identifiable {
         self.flaggedKeywords = flaggedKeywords
         
         // Calculate overall risk from content
-        if !flaggedKeywords.isEmpty {
-            self.overallRiskLevel = .medium
+        if visibleContent.contains(where: { $0.riskLevel == .blocked }) {
+            self.overallRiskLevel = .blocked
         } else if visibleContent.contains(where: { $0.riskLevel == .high }) {
             self.overallRiskLevel = .high
-        } else if visibleContent.contains(where: { $0.riskLevel == .medium }) {
+        } else if !flaggedKeywords.isEmpty || visibleContent.contains(where: { $0.riskLevel == .medium }) {
             self.overallRiskLevel = .medium
+        } else if visibleContent.contains(where: { $0.riskLevel == .low }) {
+            self.overallRiskLevel = .low
         } else {
             self.overallRiskLevel = .safe
         }
@@ -331,6 +333,7 @@ extension Array where Element == ViewportSnapshot {
     /// Maximum risk level encountered
     var maxRiskLevel: ContentRiskLevel {
         let levels = self.map { $0.overallRiskLevel }
+        if levels.contains(.blocked) { return .blocked }
         if levels.contains(.high) { return .high }
         if levels.contains(.medium) { return .medium }
         if levels.contains(.low) { return .low }
