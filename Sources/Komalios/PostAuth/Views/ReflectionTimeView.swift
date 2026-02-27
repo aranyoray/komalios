@@ -1,5 +1,7 @@
 #if os(iOS)
 import SwiftUI
+import AVFoundation
+import Speech
 
 // MARK: - Reflection Time Main View
 
@@ -304,6 +306,8 @@ struct FreeChatSessionView: View {
     @State private var messages: [ReflectionChatMessage] = []
     @State private var inputText = ""
     @State private var isGenerating = false
+    @State private var isRecording = false
+    @StateObject private var speechRecognizer = SpeechRecognizer()
 
     /// characterId 0 is reserved for the Reflect free-chat session
     private static let reflectCharacterId = 0
@@ -365,8 +369,21 @@ struct FreeChatSessionView: View {
                 }
             }
 
-            // Input
-            HStack(spacing: 12) {
+            // Input with speech-to-text
+            HStack(spacing: 8) {
+                // Mic button for STT accessibility
+                Button(action: toggleSpeechToText) {
+                    Image(systemName: isRecording ? "waveform" : "mic.fill")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(isRecording ? .white : KomalColors.lavenderPurple)
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Circle()
+                                .fill(isRecording ? KomalColors.bubblegumPink : KomalColors.lavenderPurple.opacity(0.12))
+                        )
+                        .animation(KomalAnimations.spring, value: isRecording)
+                }
+
                 TextField(LanguageManager.shared.localized("reflect.free_chat.placeholder"), text: $inputText)
                     .font(.system(size: 16, weight: .medium))
                     .padding(.horizontal, 16)
@@ -375,7 +392,7 @@ struct FreeChatSessionView: View {
                     .cornerRadius(24)
                     .overlay(
                         RoundedRectangle(cornerRadius: 24)
-                            .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
+                            .stroke(isRecording ? KomalColors.bubblegumPink.opacity(0.5) : Color.black.opacity(0.1), lineWidth: isRecording ? 1.5 : 0.5)
                     )
 
                 Button(action: sendMessage) {
@@ -406,6 +423,7 @@ struct FreeChatSessionView: View {
             ))
         }
         .onDisappear {
+            if isRecording { stopSpeechToText() }
             // Save all messages and end the session
             for msg in messages {
                 let persisted = PersistedChatMessage(
@@ -417,23 +435,83 @@ struct FreeChatSessionView: View {
             }
             memoryService.endCurrentSession(characterId: Self.reflectCharacterId)
         }
+        .onReceive(speechRecognizer.$transcript) { newValue in
+            if isRecording && !newValue.isEmpty {
+                inputText = BrowserState.censorText(newValue)
+            }
+        }
+    }
+
+    private func toggleSpeechToText() {
+        if isRecording {
+            stopSpeechToText()
+        } else {
+            startSpeechToText()
+        }
+    }
+
+    private func startSpeechToText() {
+        Task {
+            let hasPermission = await requestMicrophonePermission()
+            if hasPermission {
+                await MainActor.run {
+                    isRecording = true
+                    speechRecognizer.startRecording()
+                }
+            }
+        }
+    }
+
+    private func stopSpeechToText() {
+        speechRecognizer.stopRecording()
+        if !speechRecognizer.transcript.isEmpty {
+            inputText = BrowserState.censorText(speechRecognizer.transcript)
+        }
+        isRecording = false
+    }
+
+    private func requestMicrophonePermission() async -> Bool {
+        if #available(iOS 17.0, *) {
+            let micStatus = AVAudioApplication.shared.recordPermission
+            if micStatus == .undetermined {
+                return await AVAudioApplication.requestRecordPermission()
+            }
+            return micStatus == .granted
+        } else {
+            let session = AVAudioSession.sharedInstance()
+            if session.recordPermission == .undetermined {
+                var granted = false
+                await withCheckedContinuation { continuation in
+                    session.requestRecordPermission { isGranted in
+                        granted = isGranted
+                        continuation.resume()
+                    }
+                }
+                return granted
+            }
+            return session.recordPermission == .granted
+        }
     }
 
     private func sendMessage() {
         guard !inputText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
-        // Block inappropriate content in chat input
-        if BrowserState.checkForInappropriateContent(inputText, isSearchQuery: true) != nil {
-            let userMessage = ReflectionChatMessage(id: UUID(), text: inputText, isFromUser: true)
-            messages.append(userMessage)
-            inputText = ""
-            let redirectMessage = ReflectionChatMessage(
-                id: UUID(),
-                text: LanguageManager.shared.localized("chat.content_redirect"),
-                isFromUser: false
-            )
-            withAnimation { messages.append(redirectMessage) }
-            return
+        // Two-tier content filter: strict keywords hard-block, softer flags let Gemini redirect
+        var redirectHint: String? = nil
+        if let flagged = BrowserState.checkForInappropriateContent(inputText, isSearchQuery: true) {
+            if BrowserState.isStrictKeyword(flagged) {
+                let userMessage = ReflectionChatMessage(id: UUID(), text: inputText, isFromUser: true)
+                messages.append(userMessage)
+                inputText = ""
+                let redirectMessage = ReflectionChatMessage(
+                    id: UUID(),
+                    text: LanguageManager.shared.localized("chat.content_redirect"),
+                    isFromUser: false
+                )
+                withAnimation { messages.append(redirectMessage) }
+                return
+            }
+            redirectHint = "[SYSTEM NOTE: The child's message may touch on inappropriate content. Redirect naturally. Do not repeat the inappropriate words.]"
         }
 
         let userMessage = ReflectionChatMessage(id: UUID(), text: inputText, isFromUser: true)
@@ -448,7 +526,7 @@ struct FreeChatSessionView: View {
             do {
                 let gemini = GeminiChatService()
                 let response = try await gemini.generateFreeChatResponse(
-                    userMessage: messageText,
+                    userMessage: redirectHint != nil ? "\(messageText)\n\(redirectHint!)" : messageText,
                     conversationHistory: messages,
                     ageGroup: ageGroup
                 )

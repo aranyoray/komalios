@@ -366,6 +366,8 @@ enum FrenchStrings {
         d["riki.error_fallback"] = "Oups ! Je me suis un peu perdu. Tu peux réessayer ?"
         d["riki.how_feeling"] = "Comment tu te sens ?"
         d["riki.friend_title"] = "%@ l'ami"
+        d["riki.paused"] = "En pause"
+        d["riki.tap_resume"] = "Appuie pour reprendre"
 
         // SEL emoji labels
         d["sel.happy"] = "Content"

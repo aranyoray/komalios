@@ -306,6 +306,34 @@ final class BrowserState: ObservableObject {
         return (false, nil)
     }
 
+    /// Returns true if the keyword is in the strictKeywords set (explicit sites, child exploitation, self-harm).
+    /// Used to decide between hard-blocking (strict) vs letting Gemini redirect naturally (softer terms).
+    static func isStrictKeyword(_ keyword: String) -> Bool {
+        let lowered = keyword.lowercased()
+        return strictKeywords.contains(lowered) || strictPrefixKeywords.contains(where: { lowered.hasPrefix($0) })
+    }
+
+    /// Silently remove the worst-offender words from text for STT/TTS display.
+    /// Does NOT use ### or *** — just omits the word entirely.
+    static func censorText(_ text: String) -> String {
+        var result = text
+        for keyword in strictKeywords {
+            let pattern = "\\b\(NSRegularExpression.escapedPattern(for: keyword))\\b"
+            if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) {
+                result = regex.stringByReplacingMatches(
+                    in: result,
+                    range: NSRange(result.startIndex..., in: result),
+                    withTemplate: ""
+                )
+            }
+        }
+        // Clean up double/triple spaces
+        while result.contains("  ") {
+            result = result.replacingOccurrences(of: "  ", with: " ")
+        }
+        return result.trimmingCharacters(in: .whitespaces)
+    }
+
     func addToHistory(_ url: URL) {
         if !tabHistory.contains(url) {
             tabHistory.insert(url, at: 0)

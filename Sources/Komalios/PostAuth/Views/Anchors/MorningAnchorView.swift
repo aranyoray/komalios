@@ -13,7 +13,6 @@ struct MorningAnchorView: View {
     @State private var currentStep = 0
     @State private var selectedEmotion: String? = nil
     @State private var selectedEmoji: String = ""
-    @State private var emotionIntensity: Double = 5
     @State private var lookingForwardTo: String = ""
 
     // (emoji, storageKey, localizedLabel, color)
@@ -51,8 +50,6 @@ struct MorningAnchorView: View {
 
                         if currentStep == 0 {
                             emotionPickerSection
-                        } else if currentStep == 1 {
-                            intensitySection
                         } else {
                             lookingForwardSection
                         }
@@ -133,45 +130,6 @@ struct MorningAnchorView: View {
         }
     }
 
-    // MARK: - Intensity
-
-    private var intensitySection: some View {
-        VStack(spacing: 20) {
-            Text(LanguageManager.shared.localized("anchor.morning.how_strong"))
-                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                .foregroundColor(KomalColors.textPrimary)
-
-            Text(selectedEmoji)
-                .font(.system(size: 48))
-
-            HStack {
-                Text(LanguageManager.shared.localized("common.a_little"))
-                    .font(.system(size: 12))
-                    .foregroundColor(KomalColors.textSecondary)
-                Slider(value: $emotionIntensity, in: 1...10, step: 1)
-                    .tint(KomalColors.lavenderPurple)
-                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.emotion_intensity"))
-                    .accessibilityValue("\(Int(emotionIntensity))")
-                Text(LanguageManager.shared.localized("common.a_lot"))
-                    .font(.system(size: 12))
-                    .foregroundColor(KomalColors.textSecondary)
-            }
-            .padding(20)
-            .background(Color.white)
-            .cornerRadius(16)
-
-            Button(action: { withAnimation { currentStep = 2 } }) {
-                Text(LanguageManager.shared.localized("common.next"))
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(KomalColors.lavenderPurple)
-                    .cornerRadius(14)
-            }
-        }
-    }
-
     // MARK: - Looking Forward To
 
     private var lookingForwardSection: some View {
@@ -219,7 +177,7 @@ struct MorningAnchorView: View {
             anchorType: .morning,
             emotion: emotion,
             emoji: selectedEmoji,
-            intensity: Int(emotionIntensity),
+            intensity: 5,
             gratitudeItem: lookingForwardTo.isEmpty ? nil : lookingForwardTo
         )
         GrowthTrackingService.shared.saveAnchor(anchor)
@@ -229,7 +187,7 @@ struct MorningAnchorView: View {
         let mood = MoodEntry(
             emotion: emotion,
             emoji: selectedEmoji,
-            intensity: Int(emotionIntensity),
+            intensity: 5,
             context: .morningAnchor,
             note: lookingForwardTo.isEmpty ? nil : lookingForwardTo
         )

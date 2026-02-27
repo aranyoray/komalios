@@ -413,6 +413,14 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     // MARK: - Background Search Scan
 
     func backgroundScanSearchQuery(_ searchQuery: String, url: URL) async {
+        // Trusted domains (Google, etc.) already have SafeSearch active,
+        // keyword filter, image filtering (CoreML), and viewport monitoring.
+        // Skip cloud scan to avoid false positives on legitimate searches
+        // (e.g. "belly dance", cultural/educational content).
+        if Constants.isTrustedDomain(url) {
+            print("☁️ Background scan skipped for trusted domain: \(url.host ?? "")")
+            return
+        }
         print("☁️ Background scan starting for query: \(searchQuery)")
         do {
             let input = buildContentAnalysisInput(url: url.absoluteString)

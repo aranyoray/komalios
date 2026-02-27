@@ -385,6 +385,8 @@ enum EnglishStrings {
         d["riki.error_fallback"] = "Oops! I got a little confused there. Can you try saying that again?"
         d["riki.how_feeling"] = "How are you feeling?"
         d["riki.friend_title"] = "%@ the Friend"
+        d["riki.paused"] = "Paused"
+        d["riki.tap_resume"] = "Tap to resume"
 
         // SEL emoji labels
         d["sel.happy"] = "Happy"

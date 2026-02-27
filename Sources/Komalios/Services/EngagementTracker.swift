@@ -96,12 +96,8 @@ final class EngagementTracker: ObservableObject {
         // BEFORE they render. The image scanner JS (at document end) will reveal
         // safe images and replace unsafe ones. Without this, images flash visible
         // during the entire page load before the scanner runs.
-        let trustedJSON = Constants.trustedDomainRootsJSON
         let preHideCSS = """
         (function() {
-            var host = (window.location.hostname || '').toLowerCase();
-            var trusted = \(trustedJSON);
-            if (trusted.some(function(d) { return host === d || host === 'www.' + d || host.endsWith('.' + d); })) return;
             var s = document.createElement('style');
             s.id = 'komal-prehide';
             s.textContent = 'img:not([data-komal-safe]):not([data-komal-replaced]) { opacity: 0 !important; pointer-events: none !important; } video:not([data-komal-safe]):not([data-komal-replaced]) { opacity: 0 !important; pointer-events: none !important; }';

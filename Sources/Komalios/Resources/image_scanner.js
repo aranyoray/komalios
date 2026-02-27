@@ -13,11 +13,10 @@
     var currentHost = (window.location.hostname || '').toLowerCase();
     var isTrustedDomain = TRUSTED_DOMAINS.some(function(d) { return currentHost === d || currentHost === 'www.' + d || currentHost.endsWith('.' + d); });
 
-    // On trusted domains: skip pre-hiding but STILL scan images.
-    // Images load normally; any NSFW content detected by CoreML gets replaced.
-    // This handles search result pages (e.g. Google Image Search) where
-    // SafeSearch may not catch everything.
-    var skipPreHide = isTrustedDomain;
+    // Pre-hide ALL images on ALL domains during analysis.
+    // This eliminates the window where inappropriate images are visible
+    // before CoreML classification completes.
+    var skipPreHide = false;
 
     // Placeholder that will be replaced with actual base64 logo at runtime
     const KOMAL_LOGO_PLACEHOLDER = 'KOMAL_LOGO_BASE64';
@@ -500,16 +499,10 @@
             var self = this;
             var now = Date.now();
 
-            // Check for timed-out pending images
+            // Check for timed-out pending images — fail-closed (replace for safety)
             self.pendingTimestamps.forEach(function(timestamp, imageId) {
                 if (now - timestamp > self.pendingTimeoutMs) {
-                    if (skipPreHide) {
-                        // Trusted domains: fail-open (image was already visible, mark safe)
-                        self.markSafe(imageId);
-                    } else {
-                        // Untrusted domains: fail-closed (replace image for safety)
-                        self.replaceImage(imageId, 'timeout');
-                    }
+                    self.replaceImage(imageId, 'timeout');
                 }
             });
 

@@ -13,9 +13,6 @@ struct EveningAnchorView: View {
     @State private var currentStep = 0
     @State private var selectedEmotion: String? = nil
     @State private var selectedEmoji: String = ""
-    @State private var emotionIntensity: Double = 5
-    @State private var bestPart: String = ""
-    @State private var anythingBothering: String = ""
     @State private var showBreathing = false
 
     // (emoji, storageKey, localizedLabel, color)
@@ -52,8 +49,6 @@ struct EveningAnchorView: View {
 
                         if currentStep == 0 {
                             emotionPickerSection
-                        } else if currentStep == 1 {
-                            reflectionSection
                         } else {
                             windDownSection
                         }
@@ -137,23 +132,6 @@ struct EveningAnchorView: View {
             }
 
             if selectedEmotion != nil {
-                // Intensity slider
-                HStack {
-                    Text(LanguageManager.shared.localized("common.a_little"))
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.6))
-                    Slider(value: $emotionIntensity, in: 1...10, step: 1)
-                        .tint(KomalColors.lavenderPurple)
-                        .accessibilityLabel(LanguageManager.shared.localized("accessibility.emotion_intensity"))
-                        .accessibilityValue("\(Int(emotionIntensity))")
-                    Text(LanguageManager.shared.localized("common.a_lot"))
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.6))
-                }
-                .padding(16)
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(12)
-
                 Button(action: { withAnimation { currentStep = 1 } }) {
                     Text(LanguageManager.shared.localized("common.next"))
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
@@ -163,44 +141,6 @@ struct EveningAnchorView: View {
                         .background(KomalColors.lavenderPurple)
                         .cornerRadius(14)
                 }
-            }
-        }
-    }
-
-    // MARK: - Reflection
-
-    private var reflectionSection: some View {
-        VStack(spacing: 20) {
-            Text(LanguageManager.shared.localized("anchor.evening.best_part"))
-                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
-
-            TextField(LanguageManager.shared.localized("anchor.evening.best_part_placeholder"), text: $bestPart)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .padding(16)
-                .background(Color.white.opacity(0.15))
-                .cornerRadius(16)
-                .foregroundColor(.white)
-
-            Text(LanguageManager.shared.localized("anchor.evening.anything_bothering"))
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundColor(.white.opacity(0.8))
-
-            TextField(LanguageManager.shared.localized("anchor.evening.bothering_placeholder"), text: $anythingBothering)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
-                .padding(16)
-                .background(Color.white.opacity(0.15))
-                .cornerRadius(16)
-                .foregroundColor(.white)
-
-            Button(action: { withAnimation { currentStep = 2 } }) {
-                Text(LanguageManager.shared.localized("common.next"))
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(KomalColors.lavenderPurple)
-                    .cornerRadius(14)
             }
         }
     }
@@ -242,16 +182,13 @@ struct EveningAnchorView: View {
 
         let todayStr = Self.dayFormatter.string(from: Date())
 
-        let reflectionNote = [bestPart, anythingBothering].filter { !$0.isEmpty }.joined(separator: " | ")
-
         // Save anchor
         let anchor = DailyAnchor(
             date: todayStr,
             anchorType: .evening,
             emotion: emotion,
             emoji: selectedEmoji,
-            intensity: Int(emotionIntensity),
-            reflectionItem: reflectionNote.isEmpty ? nil : reflectionNote
+            intensity: 5
         )
         GrowthTrackingService.shared.saveAnchor(anchor)
         GrowthTrackingService.shared.recordActivity(type: .eveningAnchor)
@@ -260,9 +197,8 @@ struct EveningAnchorView: View {
         let mood = MoodEntry(
             emotion: emotion,
             emoji: selectedEmoji,
-            intensity: Int(emotionIntensity),
-            context: .eveningAnchor,
-            note: reflectionNote.isEmpty ? nil : reflectionNote
+            intensity: 5,
+            context: .eveningAnchor
         )
         MoodTrackingService.shared.logMood(mood)
 

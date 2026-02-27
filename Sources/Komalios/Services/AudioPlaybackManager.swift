@@ -6,8 +6,10 @@ import AVFoundation
 class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var isPlaying = false
     @Published var isMuted = false
+    @Published var wasInterrupted = false
 
     private var audioPlayer: AVAudioPlayer?
+    private var fadeTimer: Timer?
     private let ttsService = TextToSpeechService.shared
 
     override init() {
@@ -34,8 +36,12 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
         // since SpeechRecognizer may have switched it to .record mode.
         configureAudioSession()
 
+        // Censor inappropriate words before sending to TTS
+        let cleanText = BrowserState.censorText(text)
+        guard !cleanText.isEmpty else { return }
+
         do {
-            let audioData = try await ttsService.synthesize(text: text, characterName: characterName)
+            let audioData = try await ttsService.synthesize(text: cleanText, characterName: characterName)
             // Re-check muted state after async call returns
             guard !isMuted else { return }
             audioPlayer = try AVAudioPlayer(data: audioData)
@@ -50,12 +56,39 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     func stop() {
+        fadeTimer?.invalidate()
+        fadeTimer = nil
         audioPlayer?.stop()
         audioPlayer = nil
         isPlaying = false
     }
 
-    func interruptForChildSpeech() { stop() }
+    func interruptForChildSpeech() {
+        guard isPlaying, let player = audioPlayer else {
+            stop()
+            return
+        }
+        wasInterrupted = true
+        // Quick 0.3s volume fade-out for natural feel
+        let steps = 6
+        let interval = 0.3 / Double(steps)
+        let volumeStep = player.volume / Float(steps)
+        var remaining = steps
+        fadeTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] timer in
+            Task { @MainActor [weak self] in
+                remaining -= 1
+                if remaining <= 0 {
+                    timer.invalidate()
+                    self?.fadeTimer = nil
+                    self?.audioPlayer?.stop()
+                    self?.audioPlayer = nil
+                    self?.isPlaying = false
+                } else {
+                    self?.audioPlayer?.volume -= volumeStep
+                }
+            }
+        }
+    }
 
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor in self.isPlaying = false }

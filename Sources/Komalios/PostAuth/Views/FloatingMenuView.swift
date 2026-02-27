@@ -29,7 +29,17 @@ enum NavigationTab: String, CaseIterable {
 struct FloatingMenuView: View {
     @Binding var selectedTab: NavigationTab
     @EnvironmentObject var lang: LanguageManager
+    @EnvironmentObject var appState: AppState
     @Namespace private var animation
+
+    /// Display name for the Riki tab — uses selected avatar's name
+    private var rikiDisplayName: String {
+        let avatarIndex = appState.activeProfile.selectedAvatarIndex
+        if let character = RikiCharacter.allCharacters.first(where: { $0.id == avatarIndex }) {
+            return character.name
+        }
+        return lang.localized("menu.talk")
+    }
 
     var body: some View {
         // Only the tab bar — no full-screen VStack/Spacer overlay.
@@ -39,7 +49,8 @@ struct FloatingMenuView: View {
                 TabButton(
                     tab: tab,
                     isSelected: selectedTab == tab,
-                    namespace: animation
+                    namespace: animation,
+                    displayNameOverride: tab == .riki ? rikiDisplayName : nil
                 ) {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         selectedTab = tab
@@ -66,7 +77,12 @@ private struct TabButton: View {
     let tab: NavigationTab
     let isSelected: Bool
     let namespace: Namespace.ID
+    var displayNameOverride: String? = nil
     let onTap: () -> Void
+
+    private var displayName: String {
+        displayNameOverride ?? tab.displayName(lang: LanguageManager.shared)
+    }
 
     var body: some View {
         Button(action: onTap) {
@@ -74,7 +90,7 @@ private struct TabButton: View {
                 Image(systemName: tab.icon)
                     .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
 
-                Text(tab.displayName(lang: LanguageManager.shared))
+                Text(displayName)
                     .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
                     .lineLimit(1)
             }
@@ -83,7 +99,7 @@ private struct TabButton: View {
             .padding(.vertical, 8)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(tab.displayName(lang: LanguageManager.shared))
+        .accessibilityLabel(displayName)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

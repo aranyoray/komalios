@@ -57,23 +57,66 @@ struct RikiCharacter: Identifiable {
     ]
 }
 
-// MARK: - SEL Emoji Suggestions
+// MARK: - Emoji Mapper (keyword → contextual emojis for floating display)
 
-struct SELEmoji: Identifiable {
-    let id = UUID()
-    let emoji: String
-    let label: String
-    let message: String
+struct ChatEmojiMapper {
+    private static let mapping: [(keywords: [String], emoji: String)] = [
+        (["happy", "glad", "great", "awesome", "cool", "amazing", "fantastic", "wonderful"], "🌟"),
+        (["sad", "upset", "down", "cry", "miss"], "💙"),
+        (["brave", "courage", "strong", "hero", "proud"], "💪"),
+        (["friend", "buddy", "together", "play", "hang out"], "🤝"),
+        (["school", "learn", "homework", "study", "class", "test"], "📚"),
+        (["game", "play", "fun", "adventure", "level"], "🎮"),
+        (["nature", "tree", "garden", "flower", "outside"], "🌿"),
+        (["animal", "pet", "dog", "cat", "puppy", "kitten"], "🐾"),
+        (["music", "song", "sing", "dance", "beat"], "🎵"),
+        (["food", "eat", "cook", "yummy", "snack", "lunch"], "🍕"),
+        (["sleep", "tired", "rest", "nap", "bed"], "😴"),
+        (["love", "care", "heart", "kind", "hug"], "💛"),
+        (["star", "space", "moon", "sky", "planet"], "⭐"),
+        (["sport", "run", "kick", "swim", "score", "team"], "⚽"),
+        (["art", "draw", "paint", "create", "color"], "🎨"),
+        (["think", "idea", "wonder", "curious", "imagine"], "💡"),
+        (["laugh", "funny", "joke", "silly", "haha"], "😄"),
+    ]
+
+    static func extractEmojis(from text: String) -> [String] {
+        let lowered = text.lowercased()
+        var emojis: [String] = []
+        for entry in mapping {
+            if entry.keywords.contains(where: { lowered.contains($0) }) {
+                emojis.append(entry.emoji)
+            }
+            if emojis.count >= 3 { break }
+        }
+        return emojis.isEmpty ? ["✨"] : emojis
+    }
 }
 
-private let selEmojiSuggestions: [SELEmoji] = [
-    SELEmoji(emoji: "😊", label: LanguageManager.shared.localized("sel.happy"), message: LanguageManager.shared.localized("sel.happy_msg")),
-    SELEmoji(emoji: "😔", label: LanguageManager.shared.localized("sel.sad"), message: LanguageManager.shared.localized("sel.sad_msg")),
-    SELEmoji(emoji: "😤", label: LanguageManager.shared.localized("sel.angry"), message: LanguageManager.shared.localized("sel.angry_msg")),
-    SELEmoji(emoji: "😰", label: LanguageManager.shared.localized("sel.worried"), message: LanguageManager.shared.localized("sel.worried_msg")),
-    SELEmoji(emoji: "🤗", label: LanguageManager.shared.localized("sel.grateful"), message: LanguageManager.shared.localized("sel.grateful_msg")),
-    SELEmoji(emoji: "😴", label: LanguageManager.shared.localized("sel.tired"), message: LanguageManager.shared.localized("sel.tired_msg"))
-]
+// MARK: - Floating Emoji View
+
+struct FloatingEmojiView: View {
+    let emojis: [String]
+    @State private var isAnimating = false
+
+    var body: some View {
+        HStack(spacing: 16) {
+            ForEach(Array(emojis.enumerated()), id: \.offset) { index, emoji in
+                Text(emoji)
+                    .font(.system(size: 28))
+                    .opacity(isAnimating ? 0.9 : 0.0)
+                    .offset(y: isAnimating ? -20 : 0)
+                    .animation(
+                        .easeInOut(duration: 2.0)
+                            .delay(Double(index) * 0.4)
+                            .repeatForever(autoreverses: true),
+                        value: isAnimating
+                    )
+            }
+        }
+        .onAppear { isAnimating = true }
+    }
+}
 
 // MARK: - Main View
 
@@ -94,7 +137,7 @@ struct RikiCheckInView: View {
     }
 }
 
-// MARK: - Focused Chat View (single avatar, latest message only)
+// MARK: - Focused Chat View (voice-first with recent messages)
 
 struct FocusedChatView: View {
     let character: RikiCharacter
@@ -104,8 +147,12 @@ struct FocusedChatView: View {
     @State private var inputText: String = ""
     @State private var isLoading: Bool = false
     @State private var isListening: Bool = false
+    @State private var isPaused: Bool = false
     @State private var silenceTimer: Timer?
     @State private var conversationContext: String?
+    @State private var conversationInterruptionNote: String?
+    @State private var currentEmojis: [String] = []
+    @State private var greetingSpoken: Bool = false
 
     @StateObject private var speechRecognizer = SpeechRecognizer()
     @StateObject private var audioPlayback = AudioPlaybackManager()
@@ -113,9 +160,9 @@ struct FocusedChatView: View {
     private let geminiService = GeminiChatService()
     private let memoryService = ConversationMemoryService.shared
 
-    /// The latest AI message to display
-    private var latestBotMessage: String? {
-        messages.last(where: { !$0.isFromUser })?.text
+    /// Last 4 messages for display
+    private var recentMessages: [RikiChatMessage] {
+        Array(messages.suffix(4))
     }
 
     /// Glow color changes based on state
@@ -128,6 +175,7 @@ struct FocusedChatView: View {
 
     /// Status text
     private var statusText: String? {
+        if isPaused { return LanguageManager.shared.localized("riki.paused") }
         if audioPlayback.isPlaying {
             return LanguageManager.shared.localized("riki.speaking", character.name)
         }
@@ -158,66 +206,52 @@ struct FocusedChatView: View {
                     .foregroundColor(KomalColors.textPrimary)
             }
 
-            Spacer().frame(height: 20)
+            Spacer().frame(height: 12)
 
-            // Large avatar with radiating glow
+            // Large avatar with radiating glow + floating emojis
             ZStack {
-                // Outer glow rings
                 Circle()
                     .fill(glowColor.opacity(0.08))
-                    .frame(width: 220, height: 220)
+                    .frame(width: 200, height: 200)
 
                 Circle()
                     .fill(glowColor.opacity(0.15))
-                    .frame(width: 180, height: 180)
+                    .frame(width: 160, height: 160)
 
                 Circle()
                     .fill(glowColor.opacity(0.25))
-                    .frame(width: 140, height: 140)
+                    .frame(width: 120, height: 120)
 
-                // Avatar
                 if let uiImage = UIImage(named: character.imageName) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 110, height: 110)
+                        .frame(width: 100, height: 100)
                         .clipShape(Circle())
                         .overlay(
                             Circle()
                                 .stroke(glowColor.opacity(0.5), lineWidth: 3)
                         )
                 }
+
+                // Floating emojis during response
+                if audioPlayback.isPlaying && !currentEmojis.isEmpty {
+                    FloatingEmojiView(emojis: currentEmojis)
+                        .offset(y: -70)
+                        .transition(.opacity)
+                }
             }
             .animation(.easeInOut(duration: 0.6), value: glowColor)
 
-            Spacer().frame(height: 12)
-
-            // Latest message speech bubble
-            if let message = latestBotMessage {
-                Text(message)
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundColor(KomalColors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(glowColor.opacity(0.12))
-                    )
-                    .padding(.horizontal, 32)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                    .id(messages.last(where: { !$0.isFromUser })?.id)
-            }
-
-            Spacer().frame(height: 16)
+            Spacer().frame(height: 8)
 
             // Status indicator
             if let status = statusText {
                 Text(status)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundColor(glowColor)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
                     .background(
                         Capsule()
                             .fill(glowColor.opacity(0.12))
@@ -225,32 +259,62 @@ struct FocusedChatView: View {
                     .transition(.opacity)
             }
 
+            Spacer().frame(height: 8)
+
+            // Recent messages (last 3-4, fading toward top)
+            VStack(spacing: 6) {
+                ForEach(Array(recentMessages.enumerated()), id: \.element.id) { index, message in
+                    let totalCount = recentMessages.count
+                    let fadeOpacity = totalCount <= 1 ? 1.0 : (0.3 + 0.7 * Double(index) / Double(totalCount - 1))
+
+                    HStack {
+                        if message.isFromUser { Spacer(minLength: 60) }
+
+                        Text(message.text)
+                            .font(.system(size: message.isFromUser ? 14 : 15, weight: .medium, design: .rounded))
+                            .foregroundColor(message.isFromUser ? .white : KomalColors.textPrimary)
+                            .multilineTextAlignment(message.isFromUser ? .trailing : .leading)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(message.isFromUser
+                                        ? KomalColors.lavenderPurple
+                                        : glowColor.opacity(0.12))
+                            )
+                            .lineLimit(message.id == recentMessages.last?.id ? nil : 2)
+
+                        if !message.isFromUser { Spacer(minLength: 60) }
+                    }
+                    .opacity(fadeOpacity)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+            }
+            .padding(.horizontal, 20)
+            .frame(maxHeight: 200)
+            .animation(.easeInOut(duration: 0.3), value: messages.count)
+
             // Listening transcript preview
             if isListening && !speechRecognizer.transcript.isEmpty {
-                Text(speechRecognizer.transcript)
+                Text(BrowserState.censorText(speechRecognizer.transcript))
                     .font(.system(size: 14, weight: .regular, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .padding(.horizontal, 32)
-                    .padding(.top, 8)
+                    .padding(.top, 6)
             }
 
             Spacer()
 
-            // Voice input + Mute controls
-            HStack(spacing: 20) {
-                // Mute button (left of mic)
-                Button(action: {
-                    audioPlayback.isMuted.toggle()
-                    if audioPlayback.isMuted {
-                        audioPlayback.stop()
-                    }
-                }) {
-                    Image(systemName: audioPlayback.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(audioPlayback.isMuted ? KomalColors.textSecondary : KomalColors.lavenderPurple)
-                        .frame(width: 44, height: 44)
+            // Controls: Pause + Mic
+            HStack(spacing: 24) {
+                // Pause/Resume button
+                Button(action: togglePause) {
+                    Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(isPaused ? KomalColors.pearlAqua : KomalColors.textSecondary)
+                        .frame(width: 48, height: 48)
                         .background(Circle().fill(.ultraThinMaterial))
                 }
 
@@ -269,14 +333,12 @@ struct FocusedChatView: View {
                         .animation(KomalAnimations.spring, value: isListening)
                 }
 
-                // Invisible spacer to balance the mute button and keep mic centered
-                Color.clear
-                    .frame(width: 44, height: 44)
+                // Invisible spacer to keep mic visually centered
+                Color.clear.frame(width: 48, height: 48)
             }
-            .padding(.bottom, 64) // Space for floating menu
+            .padding(.bottom, 64)
         }
         .onAppear {
-            // Start memory session
             memoryService.startSession(characterId: character.id, characterName: character.name)
             conversationContext = memoryService.buildContextSummary(characterId: character.id)
 
@@ -304,11 +366,11 @@ struct FocusedChatView: View {
         }
         .onReceive(speechRecognizer.$transcript) { newValue in
             if !newValue.isEmpty {
-                inputText = newValue
+                inputText = BrowserState.censorText(newValue)
             }
             if isListening && !newValue.isEmpty {
                 silenceTimer?.invalidate()
-                silenceTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+                silenceTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
                     Task { @MainActor in
                         if isListening && !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             stopListening()
@@ -318,9 +380,39 @@ struct FocusedChatView: View {
                 }
             }
         }
+        // Auto-start listening after TTS finishes
+        .onReceive(audioPlayback.$isPlaying) { playing in
+            if !playing && !isPaused && !isListening && !isLoading {
+                // Clear floating emojis
+                withAnimation(.easeOut(duration: 0.5)) { currentEmojis = [] }
+                // Auto-start listening after a brief delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    if !isPaused && !isListening && !isLoading {
+                        startListening()
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Actions
+
+    private func togglePause() {
+        isPaused.toggle()
+        if isPaused {
+            // Pause everything
+            silenceTimer?.invalidate()
+            silenceTimer = nil
+            if isListening { stopListening() }
+            audioPlayback.stop()
+            withAnimation(.easeOut(duration: 0.3)) { currentEmojis = [] }
+        } else {
+            // Resume — auto-start listening
+            if !isLoading && !audioPlayback.isPlaying {
+                startListening()
+            }
+        }
+    }
 
     private func sendMessage() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -328,15 +420,23 @@ struct FocusedChatView: View {
 
         if isListening { stopListening() }
 
-        // Block inappropriate content
-        if BrowserState.checkForInappropriateContent(text, isSearchQuery: true) != nil {
-            messages.append(RikiChatMessage(id: UUID(), text: text, isFromUser: true))
-            inputText = ""
-            let redirect = LanguageManager.shared.localized("chat.content_redirect")
-            withAnimation {
-                messages.append(RikiChatMessage(id: UUID(), text: redirect, isFromUser: false))
+        // Two-tier content filter:
+        // Strict keywords (explicit sites, child exploitation) → hard block
+        // Softer flags → let Gemini redirect naturally via system prompt
+        var redirectHint: String? = nil
+        if let flagged = BrowserState.checkForInappropriateContent(text, isSearchQuery: true) {
+            if BrowserState.isStrictKeyword(flagged) {
+                // Hard block for the worst content
+                messages.append(RikiChatMessage(id: UUID(), text: text, isFromUser: true))
+                inputText = ""
+                let redirect = LanguageManager.shared.localized("chat.content_redirect")
+                withAnimation {
+                    messages.append(RikiChatMessage(id: UUID(), text: redirect, isFromUser: false))
+                }
+                return
             }
-            return
+            // Softer flag — let Gemini handle the redirect naturally
+            redirectHint = "[SYSTEM NOTE: The child's message may touch on inappropriate content. Redirect naturally using the techniques described. Do not repeat the inappropriate words.]"
         }
 
         let userMessage = RikiChatMessage(id: UUID(), text: text, isFromUser: true)
@@ -355,6 +455,12 @@ struct FocusedChatView: View {
             GeminiChatService.Message(role: msg.isFromUser ? "user" : "model", text: msg.text)
         }
 
+        let effectiveContext = [conversationContext, conversationInterruptionNote, redirectHint]
+            .compactMap { $0 }
+            .joined(separator: "\n")
+        // Clear interruption note after threading it
+        conversationInterruptionNote = nil
+
         Task {
             do {
                 let response = try await geminiService.sendMessage(
@@ -362,7 +468,8 @@ struct FocusedChatView: View {
                     conversationHistory: history,
                     characterName: character.name,
                     characterPersonality: character.localizedPersonality,
-                    conversationContext: conversationContext
+                    conversationContext: effectiveContext.isEmpty ? nil : effectiveContext,
+                    ageGroup: appState.activeProfile.ageGroup
                 )
 
                 let scanResult = ParasocialDetectorService.shared.scan(response)
@@ -382,6 +489,11 @@ struct FocusedChatView: View {
                     }
                     let persistedModelMsg = PersistedChatMessage(text: displayResponse, isFromUser: false, characterId: character.id)
                     memoryService.saveMessage(persistedModelMsg)
+
+                    // Set floating emojis based on response content
+                    withAnimation(.easeIn(duration: 0.4)) {
+                        currentEmojis = ChatEmojiMapper.extractEmojis(from: displayResponse)
+                    }
                 }
 
                 await audioPlayback.speak(text: displayResponse, characterName: character.name)
@@ -399,7 +511,7 @@ struct FocusedChatView: View {
     }
 
     private func toggleListening() {
-        if audioPlayback.isPlaying { audioPlayback.stop() }
+        if audioPlayback.isPlaying { audioPlayback.interruptForChildSpeech() }
 
         if isListening {
             stopListening()
@@ -412,7 +524,12 @@ struct FocusedChatView: View {
     private func startListening() {
         silenceTimer?.invalidate()
         silenceTimer = nil
-        audioPlayback.interruptForChildSpeech()
+
+        // Track if we're interrupting the avatar
+        if audioPlayback.isPlaying {
+            conversationInterruptionNote = "[The child interrupted while you were speaking. Pick up naturally — acknowledge what they said and continue the flow smoothly.]"
+            audioPlayback.interruptForChildSpeech()
+        }
 
         Task {
             let hasPermission = await requestMicrophonePermission()
