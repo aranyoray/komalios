@@ -228,11 +228,11 @@ struct SettingsView: View {
             )
             .presentationDetents([.height(420)])
         }
-        .alert("Logout", isPresented: $showLogoutAlert) {
-            Button("Cancel", role: .cancel) {
+        .alert(LanguageManager.shared.localized("settings.alert.logout.title"), isPresented: $showLogoutAlert) {
+            Button(LanguageManager.shared.localized("common.cancel"), role: .cancel) {
                 // User cancelled, do nothing
             }
-            Button("Yes", role: .destructive) {
+            Button(LanguageManager.shared.localized("common.yes"), role: .destructive) {
                 handleLogout()
             }
         } message: {
@@ -268,11 +268,11 @@ struct SettingsView: View {
             BillingHistoryView()
                 .environmentObject(appState)
         }
-        .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
-            Button("Cancel", role: .cancel) {
+        .alert(LanguageManager.shared.localized("settings.alert.delete.title"), isPresented: $showDeleteAccountAlert) {
+            Button(LanguageManager.shared.localized("common.cancel"), role: .cancel) {
                 // User cancelled, do nothing
             }
-            Button("Delete", role: .destructive) {
+            Button(LanguageManager.shared.localized("common.delete"), role: .destructive) {
                 handleDeleteAccount()
             }
         } message: {
@@ -521,6 +521,9 @@ struct SettingsView: View {
                     CardHeader(icon: "brain.head.profile", title: LanguageManager.shared.localized("settings.sel_journey"), color: KomalColors.pearlAqua)
 
                     Button(action: {
+                        #if targetEnvironment(simulator)
+                        SELAssessmentService.shared.seedMockData()
+                        #endif
                         showSELJourney = true
                     }) {
                         HStack(spacing: 12) {

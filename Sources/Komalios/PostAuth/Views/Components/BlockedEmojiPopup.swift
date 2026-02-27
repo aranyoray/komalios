@@ -57,6 +57,7 @@ struct BlockedEmojiPopup: View {
                             .resizable().aspectRatio(contentMode: .fit)
                             .frame(width: 100, height: 100).clipShape(Circle())
                             .overlay(Circle().stroke(Color.white, lineWidth: 3))
+                            .accessibilityLabel(characterName)
                     }
                     if audioPlayback.isPlaying {
                         Image(systemName: "speaker.wave.2.fill")
@@ -196,12 +197,23 @@ struct BlockedEmojiPopup: View {
                     userMessage: text, conversationHistory: [], characterName: characterName,
                     characterPersonality: "A caring, gentle companion who helps children process difficult emotions about blocked content."
                 )
+
+                // Scan AI response for parasocial manipulation
+                let scanResult = ParasocialDetectorService.shared.scan(response)
+                let pref = await MainActor.run { appState.contentFilterPreferences.parasocialContent }
+                let displayResponse: String
+                if scanResult.riskLevel == .high && pref != .allow {
+                    displayResponse = LanguageManager.shared.localized("chat.content_redirect")
+                } else {
+                    displayResponse = response
+                }
+
                 await MainActor.run {
-                    chatResponse = response
+                    chatResponse = displayResponse
                     isLoadingChat = false
                 }
                 // Speak the response via TTS
-                await audioPlayback.speak(text: response, characterName: characterName)
+                await audioPlayback.speak(text: displayResponse, characterName: characterName)
             } catch {
                 let fallback = LanguageManager.shared.localized("blocked.fallback_response")
                 await MainActor.run {

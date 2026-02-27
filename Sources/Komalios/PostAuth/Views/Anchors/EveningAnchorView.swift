@@ -18,16 +18,20 @@ struct EveningAnchorView: View {
     @State private var anythingBothering: String = ""
     @State private var showBreathing = false
 
-    private let emotions = [
-        ("😊", "Happy", KomalColors.pearlAqua),
-        ("😢", "Sad", Color.blue),
-        ("😠", "Angry", Color.red),
-        ("😰", "Worried", Color.orange),
-        ("😴", "Tired", Color.gray),
-        ("🤩", "Excited", KomalColors.bubblegumPink),
-        ("😐", "Okay", Color.gray),
-        ("🤔", "Confused", KomalColors.lavenderPurple)
-    ]
+    // (emoji, storageKey, localizedLabel, color)
+    private var emotions: [(String, String, String, Color)] {
+        let lang = LanguageManager.shared
+        return [
+            ("😊", "Happy", lang.localized("reflect.emotion.happy"), KomalColors.pearlAqua),
+            ("😢", "Sad", lang.localized("reflect.emotion.sad"), Color.blue),
+            ("😠", "Angry", lang.localized("reflect.emotion.angry"), Color.red),
+            ("😰", "Worried", lang.localized("reflect.emotion.worried"), Color.orange),
+            ("😴", "Tired", lang.localized("reflect.emotion.tired"), Color.gray),
+            ("🤩", "Excited", lang.localized("reflect.emotion.excited"), KomalColors.bubblegumPink),
+            ("😐", "Okay", lang.localized("reflect.emotion.okay"), Color.gray),
+            ("🤔", "Confused", lang.localized("reflect.emotion.confused"), KomalColors.lavenderPurple)
+        ]
+    }
 
     var body: some View {
         NavigationView {
@@ -115,17 +119,17 @@ struct EveningAnchorView: View {
                         VStack(spacing: 6) {
                             Text(emotion.0)
                                 .font(.system(size: 32))
-                            Text(emotion.1)
+                            Text(emotion.2)
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(selectedEmotion == emotion.1 ? .white : .white.opacity(0.7))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(selectedEmotion == emotion.1 ? emotion.2.opacity(0.4) : Color.white.opacity(0.1))
+                        .background(selectedEmotion == emotion.1 ? emotion.3.opacity(0.4) : Color.white.opacity(0.1))
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(selectedEmotion == emotion.1 ? emotion.2 : Color.clear, lineWidth: 2)
+                                .stroke(selectedEmotion == emotion.1 ? emotion.3 : Color.clear, lineWidth: 2)
                         )
                     }
                     .buttonStyle(.plain)
@@ -140,6 +144,8 @@ struct EveningAnchorView: View {
                         .foregroundColor(.white.opacity(0.6))
                     Slider(value: $emotionIntensity, in: 1...10, step: 1)
                         .tint(KomalColors.lavenderPurple)
+                        .accessibilityLabel(LanguageManager.shared.localized("accessibility.emotion_intensity"))
+                        .accessibilityValue("\(Int(emotionIntensity))")
                     Text(LanguageManager.shared.localized("common.a_lot"))
                         .font(.system(size: 12))
                         .foregroundColor(.white.opacity(0.6))

@@ -249,6 +249,7 @@ private struct KomalSafetyScannerContentView: View {
                             .frame(width: 36, height: 36)
                     }
                     .disabled(!navigator.canGoBack)
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.go_back"))
 
                     // Forward
                     Button(action: { navigator.goForward() }) {
@@ -258,6 +259,7 @@ private struct KomalSafetyScannerContentView: View {
                             .frame(width: 36, height: 36)
                     }
                     .disabled(!navigator.canGoForward)
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.go_forward"))
 
                     // Omnibox
                     omniboxCompact
@@ -278,6 +280,7 @@ private struct KomalSafetyScannerContentView: View {
                         }
                         .frame(width: 36, height: 36)
                     }
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.tab_switcher", viewModel.tabCount))
 
                     // Overflow menu
                     Menu {

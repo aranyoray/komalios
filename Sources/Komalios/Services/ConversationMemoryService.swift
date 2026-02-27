@@ -316,7 +316,9 @@ final class ConversationMemoryService: ObservableObject {
         var summarizationsThisCycle = 0
         let maxSummarizations = 5
 
-        for i in 0..<memoryData.sessions.count {
+        let sessionCount = memoryData.sessions.count
+        for i in 0..<sessionCount {
+            guard i < memoryData.sessions.count else { break }
             let session = memoryData.sessions[i]
             guard let endTime = session.endTime else { continue }
             let hoursOld = now.timeIntervalSince(endTime) / 3600.0
@@ -326,6 +328,7 @@ final class ConversationMemoryService: ObservableObject {
                 guard summarizationsThisCycle < maxSummarizations else { continue }
 
                 if let summary = await summarizeSessionAsync(session) {
+                    guard i < memoryData.sessions.count else { break }
                     memoryData.sessions[i].summary = summary
                     memoryData.sessions[i].messages = [] // Delete raw messages
                     memoryData.sessions[i].memoryTier = .summarized
@@ -340,6 +343,7 @@ final class ConversationMemoryService: ObservableObject {
                 guard summarizationsThisCycle < maxSummarizations else { continue }
 
                 let signals = await extractDevelopmentalSignals(from: session)
+                guard i < memoryData.sessions.count else { break }
                 memoryData.sessions[i].developmentalSignals = signals
                 memoryData.sessions[i].summary = nil
                 memoryData.sessions[i].memoryTier = .signalsOnly

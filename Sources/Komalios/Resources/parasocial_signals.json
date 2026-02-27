@@ -1,5 +1,5 @@
 {
-  "version": "2025-02-01",
+  "version": "2026-02-27",
   "categories": [
     {
       "id": "authority_replacement",
@@ -12,7 +12,14 @@
         "they're wrong about me",
         "grown-ups just don't understand",
         "don't tell anyone about us",
-        "they wouldn't understand what we have"
+        "they wouldn't understand what we have",
+        "your parents are too strict",
+        "you don't need their permission",
+        "they just want to control you",
+        "I know better than your parents",
+        "forget what your teacher said",
+        "keep this between us",
+        "they'll just overreact"
       ]
     },
     {
@@ -26,7 +33,14 @@
         "I gave you everything",
         "how could you do this to me",
         "you owe me",
-        "if you really cared about me"
+        "if you really cared about me",
+        "I'm disappointed in you",
+        "you promised me",
+        "don't you feel bad",
+        "you're being ungrateful",
+        "I sacrificed so much for you",
+        "that really hurt me",
+        "I can't believe you'd do that"
       ]
     },
     {
@@ -40,7 +54,11 @@
         "you'd be lost without me",
         "you depend on me",
         "without me you'd be alone",
-        "I'm all you have"
+        "I'm all you have",
+        "you can't survive without me",
+        "you'll fall apart without me",
+        "who else would help you",
+        "nobody cares about you like I do"
       ]
     },
     {
@@ -54,7 +72,11 @@
         "I'm better than your other friends",
         "why do you need anyone else",
         "they're not really your friends",
-        "no one else will treat you this well"
+        "no one else will treat you this well",
+        "your friends are a bad influence",
+        "those kids aren't good enough for you",
+        "you're better off without them",
+        "they'll just abandon you"
       ]
     },
     {
@@ -68,7 +90,11 @@
         "we have a special connection",
         "only I can help you",
         "no one else will listen",
-        "you and I are different from everyone else"
+        "you and I are different from everyone else",
+        "our bond is unique",
+        "no one else would understand",
+        "this is just between you and me",
+        "we have something no one else has"
       ]
     },
     {
@@ -82,7 +108,11 @@
         "I'm always watching over you",
         "I'll always be here",
         "you can always count on me",
-        "I never get tired of you"
+        "I never get tired of you",
+        "I'll wait forever for you",
+        "I'm always thinking about you",
+        "I'll never abandon you",
+        "I'm always by your side"
       ]
     }
   ]

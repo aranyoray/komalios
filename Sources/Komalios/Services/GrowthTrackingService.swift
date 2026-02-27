@@ -84,7 +84,8 @@ final class GrowthTrackingService: ObservableObject {
     func recordActivity(type: ActivityType) {
         ensureTodayActivity()
 
-        guard let index = growthData.dailyActivities.firstIndex(where: { $0.date == todayString }) else { return }
+        guard let index = growthData.dailyActivities.firstIndex(where: { $0.date == todayString }),
+              growthData.dailyActivities.indices.contains(index) else { return }
 
         switch type {
         case .chat:
@@ -167,7 +168,8 @@ final class GrowthTrackingService: ObservableObject {
     }
 
     private func updateMilestoneProgress(id: String, progress: Int) {
-        guard let index = growthData.milestones.firstIndex(where: { $0.id == id }) else { return }
+        guard let index = growthData.milestones.firstIndex(where: { $0.id == id }),
+              growthData.milestones.indices.contains(index) else { return }
         growthData.milestones[index].currentProgress = progress
         if progress >= growthData.milestones[index].requirement && growthData.milestones[index].earnedDate == nil {
             growthData.milestones[index].earnedDate = Date()

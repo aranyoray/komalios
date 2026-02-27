@@ -6,8 +6,18 @@
 //
 
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 #if os(iOS)
+extension UIApplication {
+    func hideKeyboard() {
+        sendAction(#selector(UIResponder.resignFirstResponder),
+                   to: nil, from: nil, for: nil)
+    }
+}
+
 extension String {
     /// Shorthand for localization using current language
     var localized: String {

@@ -58,6 +58,7 @@ struct ReconnectionView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 120, height: 120)
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.ellie_character"))
             }
 
             Text(LanguageManager.shared.localized("reconnection.welcome_back"))
@@ -72,7 +73,7 @@ struct ReconnectionView: View {
 
             let daysSince = daysSinceLastActive()
             if daysSince > 0 {
-                Text(LanguageManager.shared.localized("reconnection.days_since").replacingOccurrences(of: "{days}", with: "\(daysSince)"))
+                Text(LanguageManager.shared.localized("reconnection.days_since", daysSince))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
             }
@@ -145,6 +146,7 @@ struct ReconnectionView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 80, height: 80)
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.ellie_character"))
             }
 
             let moodMessage: String = {

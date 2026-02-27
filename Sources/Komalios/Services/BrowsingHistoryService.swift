@@ -146,13 +146,13 @@ final class BrowsingHistoryService: ObservableObject {
     
     /// Log a blocked URL event with optional subcategory
     func logBlocked(url: URL, category: String, reason: String, subcategory: String? = nil) {
-        let fullCategory = subcategory != nil ? "\(category):\(subcategory!)" : category
+        let fullCategory = subcategory.map { "\(category):\($0)" } ?? category
         logEvent(url: url, type: .blocked, category: fullCategory, action: .block, pageTitle: reason)
     }
     
     /// Log a gated URL event with optional subcategory
     func logGated(url: URL, category: String, subcategory: String? = nil) {
-        let fullCategory = subcategory != nil ? "\(category):\(subcategory!)" : category
+        let fullCategory = subcategory.map { "\(category):\($0)" } ?? category
         logEvent(url: url, type: .gated, category: fullCategory, action: .gate)
     }
     
@@ -205,7 +205,7 @@ final class BrowsingHistoryService: ObservableObject {
     func logAllowed(url: URL, category: String? = nil, subcategory: String? = nil) {
         let fullCategory: String?
         if let cat = category {
-            fullCategory = subcategory != nil ? "\(cat):\(subcategory!)" : cat
+            fullCategory = subcategory.map { "\(cat):\($0)" } ?? cat
         } else {
             fullCategory = nil
         }
@@ -219,8 +219,8 @@ final class BrowsingHistoryService: ObservableObject {
         scrollEvents: Int? = nil,
         dwellTimeSeconds: TimeInterval? = nil
     ) {
-        guard currentSession != nil, !currentSession!.events.isEmpty else { return }
-        
+        guard currentSession != nil, currentSession?.events.isEmpty == false else { return }
+
         currentSession?.updateLastEvent(with: (
             dwellTime: dwellTimeSeconds,
             scrollDepth: scrollDepth,
@@ -252,9 +252,9 @@ final class BrowsingHistoryService: ObservableObject {
     
     /// Log image filtering stats for current page
     func updateCurrentEventImageStats(scanned: Int, filtered: Int, categories: [String]) {
-        guard currentSession != nil, !currentSession!.events.isEmpty else { return }
-        
-        let lastIndex = currentSession!.events.count - 1
+        guard let eventCount = currentSession?.events.count, eventCount > 0 else { return }
+
+        let lastIndex = eventCount - 1
         currentSession?.events[lastIndex].updateEngagement(
             imagesScanned: scanned,
             imagesFiltered: filtered,

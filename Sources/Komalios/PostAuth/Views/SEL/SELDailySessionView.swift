@@ -14,6 +14,7 @@ struct SELDailySessionView: View {
     @State private var results: [SELCheckResult] = []
     @State private var selectedOption: SELOption? = nil
     @State private var showFeedback = false
+    @State private var breathingCompleted = false
 
     private let breathCycles = 3
 
@@ -29,8 +30,6 @@ struct SELDailySessionView: View {
         guard let scenario = currentScenario else { return nil }
         return scenario.checks.indices.contains(checkIdx) ? scenario.checks[checkIdx] : nil
     }
-
-    private var totalChecks: Int { scenarios.count * 3 }
 
     var body: some View {
         ZStack {
@@ -75,7 +74,7 @@ struct SELDailySessionView: View {
                 .tracking(1.5)
                 .padding(.bottom, 16)
 
-            Text(LanguageManager.shared.localized("sel.deep_breaths").replacingOccurrences(of: "{count}", with: "\(breathCycles)"))
+            Text(LanguageManager.shared.localized("sel.deep_breaths", breathCycles))
                 .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
                 .padding(.bottom, 8)
@@ -103,8 +102,10 @@ struct SELDailySessionView: View {
                     .font(.system(size: 36))
             }
             .padding(.bottom, 20)
+            .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.breathing_circle"))
+            .accessibilityValue(LanguageManager.shared.localized("sel.breath_counter", breathCount + 1, breathCycles))
 
-            Text("Breath \(breathCount + 1) of \(breathCycles)")
+            Text(LanguageManager.shared.localized("sel.breath_counter", breathCount + 1, breathCycles))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(KomalColors.textSecondary)
 
@@ -128,6 +129,7 @@ struct SELDailySessionView: View {
                 breathCount += 1
                 if breathCount >= breathCycles {
                     timer.invalidate()
+                    breathingCompleted = true
                     withAnimation { phase = .scenarios }
                 }
             }
@@ -163,7 +165,7 @@ struct SELDailySessionView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         // Domain label
-                        Text("\(scenario.domain.label.uppercased()) • CHECK \(checkIdx + 1)/3")
+                        Text(LanguageManager.shared.localized("sel.domain_check", scenario.domain.label.uppercased(), checkIdx + 1))
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(KomalColors.lavenderPurple)
                             .tracking(0.5)
@@ -297,9 +299,9 @@ struct SELDailySessionView: View {
 
     private func feedbackText(for score: Int) -> String {
         switch score {
-        case 3: return "Great thinking! 🌟"
-        case 2: return "Good choice! 👍"
-        default: return "That's okay! Let's keep going 😊"
+        case 3: return LanguageManager.shared.localized("sel.feedback.great") + " 🌟"
+        case 2: return LanguageManager.shared.localized("sel.feedback.good") + " 👍"
+        default: return LanguageManager.shared.localized("sel.feedback.okay") + " 😊"
         }
     }
 
@@ -312,6 +314,7 @@ struct SELDailySessionView: View {
             Text("🌟")
                 .font(.system(size: 64))
                 .padding(.bottom, 24)
+                .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.completion_star"))
 
             Text(LanguageManager.shared.localized("sel.wonderful_job"))
                 .font(.system(size: 24, weight: .bold, design: .rounded))
@@ -325,7 +328,7 @@ struct SELDailySessionView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 12)
 
-            Text(LanguageManager.shared.localized("sel.activities_completed").replacingOccurrences(of: "{count}", with: "\(results.count)"))
+            Text(LanguageManager.shared.localized("sel.activities_completed", results.count))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(KomalColors.lavenderPurple)
                 .padding(.bottom, 32)
@@ -345,7 +348,7 @@ struct SELDailySessionView: View {
     }
 
     private func handleFinish() {
-        _ = SELAssessmentService.shared.saveSessionRecord(results: results, mindfulnessDone: true)
+        _ = SELAssessmentService.shared.saveSessionRecord(results: results, mindfulnessDone: breathingCompleted)
         GrowthTrackingService.shared.recordActivity(type: .reflection)
         onComplete()
     }

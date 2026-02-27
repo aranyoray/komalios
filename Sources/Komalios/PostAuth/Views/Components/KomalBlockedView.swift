@@ -34,13 +34,22 @@ struct KomalBlockedView: View {
                 Spacer()
                 
                 // Selected avatar with gentle animation
-                Image("animal\(appState.activeProfile.selectedAvatarIndex)")
-                    .resizable()
-                    .scaledToFit()
+                Group {
+                    if let uiImage = UIImage(named: "animal\(appState.activeProfile.selectedAvatarIndex)") {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                    } else {
+                        Image(systemName: "pawprint.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(KomalColors.bubblegumPink)
+                    }
+                }
                     .frame(width: 160, height: 160)
                     .shadow(color: Color.black.opacity(0.1), radius: 10, y: 5)
                     .scaleEffect(showMessage ? 1.0 : 0.95)
                     .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showMessage)
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.komal_character"))
                     .onAppear {
                         withAnimation {
                             showMessage = true

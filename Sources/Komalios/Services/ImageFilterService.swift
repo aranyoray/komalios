@@ -668,13 +668,15 @@ final class ImageFilterService: ObservableObject {
 
         guard let data = context.data else { return 0 }
 
-        let pointer = data.bindMemory(to: UInt8.self, capacity: width * height * 4)
+        let bufferSize = width * height * 4
+        let pointer = data.bindMemory(to: UInt8.self, capacity: bufferSize)
 
         var skinPixels = 0
         let totalPixels = width * height
 
         for i in 0..<totalPixels {
             let offset = i * 4
+            guard offset + 3 < bufferSize else { break }
             let r = Int(pointer[offset])
             let g = Int(pointer[offset + 1])
             let b = Int(pointer[offset + 2])

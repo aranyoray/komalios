@@ -83,6 +83,8 @@ private struct TabButton: View {
             .padding(.vertical, 8)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(tab.displayName(lang: LanguageManager.shared))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

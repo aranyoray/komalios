@@ -67,7 +67,7 @@ struct GateView: View {
                                     } label: {
                                         HStack {
                                             Image(systemName: BiometricAuthService.biometricIcon)
-                                            Text("Approve with \(BiometricAuthService.biometricName)")
+                                            Text(LanguageManager.shared.localized("gate.approve_biometric", BiometricAuthService.biometricName))
                                         }
                                         .frame(maxWidth: .infinity)
                                     }
@@ -75,7 +75,7 @@ struct GateView: View {
 
                                     HStack {
                                         VStack { Divider() }
-                                        Text("or enter PIN")
+                                        Text(LanguageManager.shared.localized("gate.or_enter_pin"))
                                             .font(.system(size: 12, weight: .medium, design: .rounded))
                                             .foregroundColor(KomalColors.textSecondary)
                                         VStack { Divider() }
@@ -84,6 +84,7 @@ struct GateView: View {
 
                                 SecureField(LanguageManager.shared.localized("gate.enter_pin"), text: $pin)
                                     .roundedTextFieldStyle()
+                                    .keyboardType(.numberPad)
 
                                 if showPinError {
                                     if isLockedOut, let until = lockedUntil {

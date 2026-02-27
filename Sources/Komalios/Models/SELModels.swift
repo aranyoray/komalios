@@ -11,12 +11,16 @@ enum SELDomain: String, Codable, CaseIterable {
     case languageDevelopment
 
     var label: String {
+        LanguageManager.shared.localized(localizationKey)
+    }
+
+    var localizationKey: String {
         switch self {
-        case .socialCommunication: return "Social Communication"
-        case .emotionalIntelligence: return "Emotional Intelligence"
-        case .cognitiveDevelopment: return "Cognitive Development"
-        case .lifeSkills: return "Life Skills"
-        case .languageDevelopment: return "Language Development"
+        case .socialCommunication: return "sel.domain.social_communication"
+        case .emotionalIntelligence: return "sel.domain.emotional_intelligence"
+        case .cognitiveDevelopment: return "sel.domain.cognitive_development"
+        case .lifeSkills: return "sel.domain.life_skills"
+        case .languageDevelopment: return "sel.domain.language_development"
         }
     }
 

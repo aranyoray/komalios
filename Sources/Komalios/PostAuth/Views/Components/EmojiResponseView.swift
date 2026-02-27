@@ -11,6 +11,7 @@ struct EmojiResponseView: View {
                 ForEach(EmojiMapper.emojisForSubcategory(subcategory), id: \.self) { emoji in
                     Button { onSelect(emoji) } label: { Text(emoji).font(.system(size: 36)) }
                         .buttonStyle(ScaleButtonStyle())
+                        .accessibilityLabel(LanguageManager.shared.localized("accessibility.emoji_react", emoji))
                 }
             }
         }

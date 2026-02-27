@@ -16,16 +16,20 @@ struct MorningAnchorView: View {
     @State private var emotionIntensity: Double = 5
     @State private var lookingForwardTo: String = ""
 
-    private let emotions = [
-        ("😊", "Happy", KomalColors.pearlAqua),
-        ("😢", "Sad", Color.blue),
-        ("😠", "Angry", Color.red),
-        ("😰", "Worried", Color.orange),
-        ("😴", "Tired", Color.gray),
-        ("🤩", "Excited", KomalColors.bubblegumPink),
-        ("😐", "Okay", Color.gray),
-        ("🤔", "Confused", KomalColors.lavenderPurple)
-    ]
+    // (emoji, storageKey, localizedLabel, color)
+    private var emotions: [(String, String, String, Color)] {
+        let lang = LanguageManager.shared
+        return [
+            ("😊", "Happy", lang.localized("reflect.emotion.happy"), KomalColors.pearlAqua),
+            ("😢", "Sad", lang.localized("reflect.emotion.sad"), Color.blue),
+            ("😠", "Angry", lang.localized("reflect.emotion.angry"), Color.red),
+            ("😰", "Worried", lang.localized("reflect.emotion.worried"), Color.orange),
+            ("😴", "Tired", lang.localized("reflect.emotion.tired"), Color.gray),
+            ("🤩", "Excited", lang.localized("reflect.emotion.excited"), KomalColors.bubblegumPink),
+            ("😐", "Okay", lang.localized("reflect.emotion.okay"), Color.gray),
+            ("🤔", "Confused", lang.localized("reflect.emotion.confused"), KomalColors.lavenderPurple)
+        ]
+    }
 
     var body: some View {
         NavigationView {
@@ -103,8 +107,8 @@ struct MorningAnchorView: View {
                 ForEach(emotions, id: \.1) { emotion in
                     EmotionButton(
                         emoji: emotion.0,
-                        label: emotion.1,
-                        color: emotion.2,
+                        label: emotion.2,
+                        color: emotion.3,
                         isSelected: selectedEmotion == emotion.1
                     ) {
                         withAnimation {
@@ -146,6 +150,8 @@ struct MorningAnchorView: View {
                     .foregroundColor(KomalColors.textSecondary)
                 Slider(value: $emotionIntensity, in: 1...10, step: 1)
                     .tint(KomalColors.lavenderPurple)
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.emotion_intensity"))
+                    .accessibilityValue("\(Int(emotionIntensity))")
                 Text(LanguageManager.shared.localized("common.a_lot"))
                     .font(.system(size: 12))
                     .foregroundColor(KomalColors.textSecondary)
@@ -184,6 +190,9 @@ struct MorningAnchorView: View {
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
                 )
+                .onChange(of: lookingForwardTo) { _, newValue in
+                    if newValue.count > 200 { lookingForwardTo = String(newValue.prefix(200)) }
+                }
 
             Button(action: saveAndDismiss) {
                 Text(LanguageManager.shared.localized("anchor.morning.start_my_day"))

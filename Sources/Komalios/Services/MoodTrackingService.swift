@@ -143,11 +143,13 @@ final class MoodTrackingService: ObservableObject {
         moodData.entries.count
     }
 
-    /// Check for concerning patterns (3+ consecutive sad entries)
+    private static let concerningEmotions: Set<String> = ["sad", "upset", "crying", "down"]
+
+    /// Check for concerning patterns (3+ consecutive sad/upset entries)
     func hasConsecutiveSadEntries(count: Int = 3) -> Bool {
         let recent = moodData.entries.sorted { $0.timestamp > $1.timestamp }.prefix(count)
         guard recent.count >= count else { return false }
-        return recent.allSatisfy { $0.emotion.lowercased() == "sad" }
+        return recent.allSatisfy { Self.concerningEmotions.contains($0.emotion.lowercased()) }
     }
 
     // MARK: - Cloud Sync

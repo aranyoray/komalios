@@ -40,13 +40,7 @@ struct SELJourneyView: View {
                 }
             }
         }
-        .onAppear {
-            records = SELAssessmentService.shared.getRecords(days: 30)
-            summary = SELAssessmentService.shared.getProfileSummary()
-            if appState.parentSettings.eyeTrackingEnabled {
-                eyeSummary = EyeTrackingService.shared.getTodaySummary()
-            }
-        }
+        .onAppear { refreshData() }
     }
 
     private var emptyState: some View {
@@ -66,6 +60,14 @@ struct SELJourneyView: View {
                 .foregroundColor(KomalColors.textSecondary.opacity(0.7))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
+        }
+    }
+
+    private func refreshData() {
+        records = SELAssessmentService.shared.getRecords(days: 30)
+        summary = SELAssessmentService.shared.getProfileSummary()
+        if appState.parentSettings.eyeTrackingEnabled {
+            eyeSummary = EyeTrackingService.shared.getTodaySummary()
         }
     }
 
@@ -108,6 +110,7 @@ struct SELJourneyView: View {
             }
             .padding(.horizontal, 16)
         }
+        .refreshable { refreshData() }
     }
 
     // MARK: - Overall Score Card
@@ -162,6 +165,7 @@ struct SELJourneyView: View {
             if let latest = records.last {
                 SELRadarChart(scores: latest.domainScores)
                     .frame(height: 220)
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.radar_chart"))
             }
         }
         .padding(16)
@@ -183,7 +187,7 @@ struct SELJourneyView: View {
                 ForEach(SELDomain.allCases, id: \.self) { domain in
                     let score = latest.domainScores[domain] ?? 0
                     let prevScores = last7.dropLast().map { $0.domainScores[domain] ?? 0 }
-                    let avgPrev = prevScores.isEmpty ? score : prevScores.reduce(0, +) / prevScores.count
+                    let avgPrev = prevScores.isEmpty ? score : Int(round(Double(prevScores.reduce(0, +)) / Double(prevScores.count)))
                     let delta = score - avgPrev
                     let isStrength = summary?.strengths.contains(domain) ?? false
                     let isGrowthArea = summary?.growthAreas.contains(domain) ?? false
@@ -205,6 +209,7 @@ struct SELJourneyView: View {
             if last7.count >= 2 {
                 SELLineChart(records: last7)
                     .frame(height: 100)
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.trend_chart"))
             } else {
                 Text(LanguageManager.shared.localized("sel.need_more_sessions"))
                     .font(.system(size: 12, weight: .medium))
@@ -218,10 +223,10 @@ struct SELJourneyView: View {
                         Circle()
                             .fill(domain.color)
                             .frame(width: 8, height: 8)
-                        Text(domain.label.components(separatedBy: " ").first ?? "")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(KomalColors.textSecondary)
+                        Text(domain.emoji)
+                            .font(.system(size: 10))
                     }
+                    .accessibilityLabel(domain.label)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -242,7 +247,7 @@ struct SELJourneyView: View {
                 .padding(.leading, 4)
 
             ForEach(last7.reversed()) { record in
-                let avg = record.domainScores.values.reduce(0, +) / max(record.domainScores.count, 1)
+                let avg = record.domainScores.values.isEmpty ? 0 : Int(round(Double(record.domainScores.values.reduce(0, +)) / Double(record.domainScores.values.count)))
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
@@ -252,12 +257,15 @@ struct SELJourneyView: View {
                             .font(.system(size: 13, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.lavenderPurple)
                     }
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.score", avg))
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(formatDate(record.date))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textPrimary)
-                        Text("\(record.checkResults.count) checks completed\(record.mindfulnessCompleted ? " • Mindfulness ✅" : "")")
+                        Text(record.mindfulnessCompleted
+                            ? LanguageManager.shared.localized("sel.checks_mindfulness", record.checkResults.count) + " ✅"
+                            : LanguageManager.shared.localized("sel.checks_completed", record.checkResults.count))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -266,6 +274,7 @@ struct SELJourneyView: View {
 
                     SELMiniSparkline(scores: Array(record.domainScores.values))
                         .frame(width: 40, height: 20)
+                        .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.sparkline"))
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -323,11 +332,11 @@ struct SELJourneyView: View {
 
     private func eyeBridgeInterpretation(_ eye: EyeTrackingDailySummary) -> String {
         if eye.attentionScore >= 70 {
-            return "Strong focus today — this supports deeper social-emotional engagement."
+            return LanguageManager.shared.localized("sel.eye_bridge.high")
         } else if eye.attentionScore >= 40 {
-            return "Moderate attention — SEL activities may benefit from shorter, focused sessions."
+            return LanguageManager.shared.localized("sel.eye_bridge.moderate")
         } else {
-            return "Low attention today — consider breaks before SEL activities."
+            return LanguageManager.shared.localized("sel.eye_bridge.low")
         }
     }
 
@@ -563,10 +572,12 @@ struct SELDomainCard: View {
                 Text("\(score)")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
+                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.score", score))
 
-                Text(delta > 0 ? "+\(delta)" : delta == 0 ? "--" : "\(delta)")
+                Text(delta > 0 ? "+\(delta)" : delta == 0 ? "—" : "\(delta)")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(delta > 0 ? .green : delta < 0 ? .red : .gray)
+                    .accessibilityLabel(delta == 0 ? LanguageManager.shared.localized("accessibility.sel.no_change") : "\(delta)")
             }
         }
         .padding(.horizontal, 16)

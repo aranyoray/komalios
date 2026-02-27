@@ -1,4 +1,5 @@
 import Foundation
+import os.log
 
 // MARK: - Configuration Models
 
@@ -43,32 +44,70 @@ struct ParasocialReport: Codable {
     }
 }
 
+// MARK: - Thresholds
+
+struct ParasocialThresholds {
+    var lowCeiling: Double = 0.30
+    var mediumCeiling: Double = 0.60
+
+    static let `default` = ParasocialThresholds()
+}
+
 // MARK: - Detector Service
 
 final class ParasocialDetectorService {
     static let shared = ParasocialDetectorService()
 
+    private static let logger = Logger(subsystem: "com.komalios", category: "ParasocialDetector")
+
     private let config: ParasocialSignalConfig
+    private let thresholds: ParasocialThresholds
 
     // MARK: - Production init (loads from bundle)
 
-    init(bundle: Bundle = .main) {
-        if let url = bundle.url(forResource: "parasocial_signals", withExtension: "json"),
-           let data = try? Data(contentsOf: url),
-           let decoded = try? JSONDecoder().decode(ParasocialSignalConfig.self, from: data) {
+    init(bundle: Bundle = .main, thresholds: ParasocialThresholds = .default) {
+        self.thresholds = thresholds
+
+        guard let url = bundle.url(forResource: "parasocial_signals", withExtension: "json") else {
+            Self.logger.error("parasocial_signals.json not found in bundle — using empty config")
+            self.config = ParasocialSignalConfig(version: "fallback", categories: [])
+            return
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let decoded = try JSONDecoder().decode(ParasocialSignalConfig.self, from: data)
+
+            // Validate weights sum to ~1.0
+            let weightSum = decoded.categories.reduce(0.0) { $0 + $1.weight }
+            if abs(weightSum - 1.0) > 0.01 {
+                Self.logger.warning("Category weights sum to \(weightSum, format: .fixed(precision: 3)), expected ~1.0")
+            }
+
             self.config = decoded
-        } else {
+            Self.logger.info("Loaded parasocial signals v\(decoded.version) with \(decoded.categories.count) categories")
+        } catch {
+            Self.logger.error("Failed to decode parasocial_signals.json: \(error.localizedDescription)")
             self.config = ParasocialSignalConfig(version: "fallback", categories: [])
         }
     }
 
     // MARK: - Test init (injected config)
 
-    init(config: ParasocialSignalConfig) {
+    init(config: ParasocialSignalConfig, thresholds: ParasocialThresholds = .default) {
         self.config = config
+        self.thresholds = thresholds
     }
 
     // MARK: - Scan
+    //
+    // Scoring algorithm:
+    //   Per-category score = min(matchCount / 2.0, 1.0)
+    //     → 1 phrase match = 0.5 (partial signal)
+    //     → 2+ matches = 1.0 (full signal, reduces false positives from single benign phrases)
+    //   Overall score = sum(categoryScore * categoryWeight), clamped to [0, 1]
+    //   Risk mapping: 0=safe, (0, 0.30)=low, [0.30, 0.60)=medium, [0.60, 1.0]=high
+    //   Only .high triggers filtering (requires signals across multiple weighted categories).
 
     func scan(_ text: String) -> ParasocialScanResult {
         let lowercased = text.lowercased()
@@ -88,7 +127,7 @@ final class ParasocialDetectorService {
                 }
             }
 
-            let catScore = matchCount > 0 ? 1.0 : 0.0
+            let catScore = min(Double(matchCount) / 2.0, 1.0)
             categoryScores[category.id] = catScore
             overallScore += catScore * category.weight
         }
@@ -98,20 +137,29 @@ final class ParasocialDetectorService {
         let riskLevel: ContentRiskLevel
         if clampedScore == 0.0 {
             riskLevel = .safe
-        } else if clampedScore < 0.30 {
+        } else if clampedScore < thresholds.lowCeiling {
             riskLevel = .low
-        } else if clampedScore < 0.60 {
+        } else if clampedScore < thresholds.mediumCeiling {
             riskLevel = .medium
         } else {
             riskLevel = .high
         }
 
-        return ParasocialScanResult(
+        let result = ParasocialScanResult(
             score: clampedScore,
             riskLevel: riskLevel,
             triggeredSignals: triggeredSignals,
             categoryScores: categoryScores
         )
+
+        // Log blocked or flagged scans
+        if riskLevel == .high {
+            Self.logger.warning("Parasocial HIGH risk (score=\(clampedScore, format: .fixed(precision: 3))) — \(triggeredSignals.count) signals in categories: \(Set(triggeredSignals.map(\.categoryId)).sorted().joined(separator: ", "))")
+        } else if riskLevel == .medium {
+            Self.logger.info("Parasocial MEDIUM risk (score=\(clampedScore, format: .fixed(precision: 3))) — \(triggeredSignals.count) signals")
+        }
+
+        return result
     }
 
     // MARK: - Report
@@ -120,10 +168,10 @@ final class ParasocialDetectorService {
         let riskLevel: String
         let recommendation: String
 
-        if score < 0.30 {
+        if score < thresholds.lowCeiling {
             riskLevel = "low"
             recommendation = "pass"
-        } else if score < 0.60 {
+        } else if score < thresholds.mediumCeiling {
             riskLevel = "medium"
             recommendation = "flag_for_review"
         } else {

@@ -133,7 +133,7 @@ struct BubblyCard<Content: View>: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(tintColor != nil ? tintColor!.opacity(0.15) : backgroundColor)
+                    .fill(tintColor.map { $0.opacity(0.15) } ?? backgroundColor)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
