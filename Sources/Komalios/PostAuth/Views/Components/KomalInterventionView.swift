@@ -166,7 +166,7 @@ struct KomalInterventionView: View {
             Image(systemName: "lightbulb.fill")
                 .font(.system(size: 12))
                 .foregroundColor(.orange)
-            Text(LanguageManager.shared.localized("intervention.tip"))
+            Text(LanguageManager.localized("intervention.tip"))
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundColor(Color(red: 0.42, green: 0.38, blue: 0.34))
         }
@@ -181,7 +181,7 @@ struct KomalInterventionView: View {
     // MARK: - Reflection Section
     private var reflectionSection: some View {
         VStack(spacing: 12) {
-            Text(LanguageManager.shared.localized("intervention.lets_think"))
+            Text(LanguageManager.localized("intervention.lets_think"))
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.4))
             
@@ -194,7 +194,7 @@ struct KomalInterventionView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 14))
-                    Text(LanguageManager.shared.localized("intervention.done_reflecting"))
+                    Text(LanguageManager.localized("intervention.done_reflecting"))
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                 }
                 .foregroundColor(.white)
@@ -222,7 +222,7 @@ struct KomalInterventionView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "bubble.left.and.bubble.right.fill")
                         .font(.system(size: 15))
-                    Text(LanguageManager.shared.localized("intervention.lets_talk"))
+                    Text(LanguageManager.localized("intervention.lets_talk"))
                         .font(.system(size: 15, weight: .semibold, design: .rounded))
                 }
                 .foregroundColor(.white)
@@ -248,7 +248,7 @@ struct KomalInterventionView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.system(size: 13))
-                    Text(LanguageManager.shared.localized("intervention.go_back"))
+                    Text(LanguageManager.localized("intervention.go_back"))
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                 }
                 .foregroundColor(Color(red: 0.38, green: 0.38, blue: 0.43))

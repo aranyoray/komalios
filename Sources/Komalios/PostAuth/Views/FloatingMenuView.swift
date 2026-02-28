@@ -18,10 +18,10 @@ enum NavigationTab: String, CaseIterable {
 
     func displayName(lang: LanguageManager) -> String {
         switch self {
-        case .browser: return lang.localized("menu.browse")
-        case .riki: return lang.localized("menu.talk")
-        case .reflect: return lang.localized("menu.reflect")
-        case .settings: return lang.localized("menu.settings")
+        case .browser: return LanguageManager.localized("menu.browse")
+        case .riki: return LanguageManager.localized("menu.talk")
+        case .reflect: return LanguageManager.localized("menu.reflect")
+        case .settings: return LanguageManager.localized("menu.settings")
         }
     }
 }
@@ -32,13 +32,19 @@ struct FloatingMenuView: View {
     @EnvironmentObject var appState: AppState
     @Namespace private var animation
 
+    private var selectedCharacter: RikiCharacter? {
+        let avatarIndex = appState.activeProfile.selectedAvatarIndex
+        return RikiCharacter.allCharacters.first(where: { $0.id == avatarIndex })
+    }
+
     /// Display name for the Riki tab — uses selected avatar's name
     private var rikiDisplayName: String {
-        let avatarIndex = appState.activeProfile.selectedAvatarIndex
-        if let character = RikiCharacter.allCharacters.first(where: { $0.id == avatarIndex }) {
-            return character.name
-        }
-        return lang.localized("menu.talk")
+        selectedCharacter?.name ?? lang.localized("menu.talk")
+    }
+
+    /// Image name for the Riki tab icon — uses selected avatar's image
+    private var rikiIconImageName: String? {
+        selectedCharacter?.imageName
     }
 
     var body: some View {
@@ -50,7 +56,8 @@ struct FloatingMenuView: View {
                     tab: tab,
                     isSelected: selectedTab == tab,
                     namespace: animation,
-                    displayNameOverride: tab == .riki ? rikiDisplayName : nil
+                    displayNameOverride: tab == .riki ? rikiDisplayName : nil,
+                    iconImageOverride: tab == .riki ? rikiIconImageName : nil
                 ) {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         selectedTab = tab
@@ -78,6 +85,7 @@ private struct TabButton: View {
     let isSelected: Bool
     let namespace: Namespace.ID
     var displayNameOverride: String? = nil
+    var iconImageOverride: String? = nil
     let onTap: () -> Void
 
     private var displayName: String {
@@ -87,8 +95,17 @@ private struct TabButton: View {
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 4) {
-                Image(systemName: tab.icon)
-                    .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
+                if let imageName = iconImageOverride,
+                   let uiImage = UIImage(named: imageName) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 22, height: 22)
+                        .clipShape(Circle())
+                } else {
+                    Image(systemName: tab.icon)
+                        .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
+                }
 
                 Text(displayName)
                     .font(.system(size: 10, weight: isSelected ? .semibold : .medium))

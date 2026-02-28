@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 // MARK: - Language Enum
 
@@ -46,9 +47,14 @@ final class LanguageManager: ObservableObject {
 
     private static let storageKey = "komal.selectedLanguage"
 
+    /// Thread-safe storage for current language so nonisolated code can read it.
+    private nonisolated static let _language = OSAllocatedUnfairLock(initialState: AppLanguage.english)
+
     @Published var currentLanguage: AppLanguage {
         didSet {
-            UserDefaults.standard.set(currentLanguage.rawValue, forKey: Self.storageKey)
+            let lang = currentLanguage
+            Self._language.withLock { [lang] in $0 = lang }
+            UserDefaults.standard.set(lang.rawValue, forKey: Self.storageKey)
         }
     }
 
@@ -59,13 +65,27 @@ final class LanguageManager: ObservableObject {
         } else {
             self.currentLanguage = .english
         }
+        let initial = currentLanguage
+        Self._language.withLock { $0 = initial }
     }
 
     // MARK: - Lookup
 
+    /// Instance method — callable from @MainActor contexts that already have `shared`.
     func localized(_ key: String) -> String {
+        Self.localized(key)
+    }
+
+    func localized(_ key: String, _ args: CVarArg...) -> String {
+        let template = Self.localized(key)
+        return String(format: template, arguments: args)
+    }
+
+    /// Static nonisolated lookup — callable from any isolation context.
+    nonisolated static func localized(_ key: String) -> String {
+        let lang = _language.withLock { $0 }
         let dict: [String: String]
-        switch currentLanguage {
+        switch lang {
         case .english:    dict = EnglishStrings.all
         case .french:     dict = FrenchStrings.all
         case .spanish:    dict = SpanishStrings.all
@@ -76,15 +96,15 @@ final class LanguageManager: ObservableObject {
             return value
         }
         // Fallback to English
-        if currentLanguage != .english, let value = EnglishStrings.all[key] {
+        if lang != .english, let value = EnglishStrings.all[key] {
             return value
         }
         // Fallback to key itself
         return key
     }
 
-    func localized(_ key: String, _ args: CVarArg...) -> String {
-        let template = localized(key)
+    nonisolated static func localized(_ key: String, _ args: CVarArg...) -> String {
+        let template: String = localized(key)
         return String(format: template, arguments: args)
     }
 }

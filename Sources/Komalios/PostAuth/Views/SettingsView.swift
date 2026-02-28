@@ -228,15 +228,15 @@ struct SettingsView: View {
             )
             .presentationDetents([.height(420)])
         }
-        .alert(LanguageManager.shared.localized("settings.alert.logout.title"), isPresented: $showLogoutAlert) {
-            Button(LanguageManager.shared.localized("common.cancel"), role: .cancel) {
+        .alert(LanguageManager.localized("settings.alert.logout.title"), isPresented: $showLogoutAlert) {
+            Button(LanguageManager.localized("common.cancel"), role: .cancel) {
                 // User cancelled, do nothing
             }
-            Button(LanguageManager.shared.localized("common.yes"), role: .destructive) {
+            Button(LanguageManager.localized("common.yes"), role: .destructive) {
                 handleLogout()
             }
         } message: {
-            Text(LanguageManager.shared.localized("settings.logout_confirm"))
+            Text(LanguageManager.localized("settings.logout_confirm"))
         }
         .fullScreenCover(isPresented: $showDigitalJourney) {
             DigitalJourneyView()
@@ -268,15 +268,15 @@ struct SettingsView: View {
             BillingHistoryView()
                 .environmentObject(appState)
         }
-        .alert(LanguageManager.shared.localized("settings.alert.delete.title"), isPresented: $showDeleteAccountAlert) {
-            Button(LanguageManager.shared.localized("common.cancel"), role: .cancel) {
+        .alert(LanguageManager.localized("settings.alert.delete.title"), isPresented: $showDeleteAccountAlert) {
+            Button(LanguageManager.localized("common.cancel"), role: .cancel) {
                 // User cancelled, do nothing
             }
-            Button(LanguageManager.shared.localized("common.delete"), role: .destructive) {
+            Button(LanguageManager.localized("common.delete"), role: .destructive) {
                 handleDeleteAccount()
             }
         } message: {
-            Text(LanguageManager.shared.localized("settings.delete_confirm"))
+            Text(LanguageManager.localized("settings.delete_confirm"))
         }
     }
     
@@ -518,7 +518,7 @@ struct SettingsView: View {
             // SEL Journey
             SettingsCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    CardHeader(icon: "brain.head.profile", title: LanguageManager.shared.localized("settings.sel_journey"), color: KomalColors.pearlAqua)
+                    CardHeader(icon: "brain.head.profile", title: LanguageManager.localized("settings.sel_journey"), color: KomalColors.pearlAqua)
 
                     Button(action: {
                         #if targetEnvironment(simulator)
@@ -533,10 +533,10 @@ struct SettingsView: View {
                                 .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(LanguageManager.shared.localized("settings.view_sel_report"))
+                                Text(LanguageManager.localized("settings.view_sel_report"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text(LanguageManager.shared.localized("settings.sel_progress_desc"))
+                                Text(LanguageManager.localized("settings.sel_progress_desc"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -557,13 +557,13 @@ struct SettingsView: View {
             if EyeTrackingService.isSupported {
                 SettingsCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        CardHeader(icon: "eye.circle.fill", title: LanguageManager.shared.localized("eye.settings_title"), color: KomalColors.lavenderPurple)
+                        CardHeader(icon: "eye.circle.fill", title: LanguageManager.localized("eye.settings_title"), color: KomalColors.lavenderPurple)
 
                         ModernToggleRow(
                             icon: "eye.fill",
                             iconColor: KomalColors.lavenderPurple,
-                            title: LanguageManager.shared.localized("eye.enable_toggle"),
-                            subtitle: LanguageManager.shared.localized("eye.enable_subtitle"),
+                            title: LanguageManager.localized("eye.enable_toggle"),
+                            subtitle: LanguageManager.localized("eye.enable_subtitle"),
                             isOn: Binding(
                                 get: { appState.parentSettings.eyeTrackingEnabled },
                                 set: { newValue in
@@ -598,10 +598,10 @@ struct SettingsView: View {
                                         .frame(width: 24)
 
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(LanguageManager.shared.localized("eye.view_report"))
+                                        Text(LanguageManager.localized("eye.view_report"))
                                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                                             .foregroundColor(KomalColors.textPrimary)
-                                        Text(LanguageManager.shared.localized("eye.view_report_desc"))
+                                        Text(LanguageManager.localized("eye.view_report_desc"))
                                             .font(.caption)
                                             .foregroundColor(KomalColors.textSecondary)
                                     }
@@ -633,10 +633,10 @@ struct SettingsView: View {
                                 .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(LanguageManager.shared.localized("settings.wellness_dashboard"))
+                                Text(LanguageManager.localized("settings.wellness_dashboard"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text(LanguageManager.shared.localized("settings.wellness_desc"))
+                                Text(LanguageManager.localized("settings.wellness_desc"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -751,7 +751,7 @@ struct SettingsView: View {
                                 Text(appState.subscriptionState.currentPlan == .essentials ? "Upgrade Plan" : "Change Plan")
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text(LanguageManager.shared.localized("settings.view_plans"))
+                                Text(LanguageManager.localized("settings.view_plans"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -774,10 +774,10 @@ struct SettingsView: View {
                                 .foregroundColor(KomalColors.pearlAqua)
                                 .frame(width: 24)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(LanguageManager.shared.localized("settings.billing_invoices"))
+                                Text(LanguageManager.localized("settings.billing_invoices"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text(LanguageManager.shared.localized("settings.billing_desc"))
+                                Text(LanguageManager.localized("settings.billing_desc"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -810,10 +810,10 @@ struct SettingsView: View {
                                 .foregroundColor(KomalColors.bubblegumPink)
                                 .frame(width: 24)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(LanguageManager.shared.localized("settings.manage_appstore"))
+                                Text(LanguageManager.localized("settings.manage_appstore"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text(LanguageManager.shared.localized("settings.manage_appstore_desc"))
+                                Text(LanguageManager.localized("settings.manage_appstore_desc"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -842,7 +842,7 @@ struct SettingsView: View {
                                 .font(.system(size: 20))
                                 .foregroundColor(KomalColors.textSecondary)
                                 .frame(width: 24)
-                            Text(LanguageManager.shared.localized("plan.restore_purchases"))
+                            Text(LanguageManager.localized("plan.restore_purchases"))
                                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
                             Spacer()
@@ -954,10 +954,10 @@ struct SettingsView: View {
                                     .frame(width: 24)
                                 
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(LanguageManager.shared.localized("settings.view_insights"))
+                                    Text(LanguageManager.localized("settings.view_insights"))
                                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                                         .foregroundColor(KomalColors.textPrimary)
-                                    Text(LanguageManager.shared.localized("settings.insights_desc"))
+                                    Text(LanguageManager.localized("settings.insights_desc"))
                                         .font(.caption)
                                         .foregroundColor(KomalColors.textSecondary)
                                 }
@@ -1015,10 +1015,10 @@ struct SettingsView: View {
                                 .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(LanguageManager.shared.localized("settings.change_pin"))
+                                Text(LanguageManager.localized("settings.change_pin"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text(LanguageManager.shared.localized("settings.change_pin_desc"))
+                                Text(LanguageManager.localized("settings.change_pin_desc"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -1044,7 +1044,7 @@ struct SettingsView: View {
                         showFilterPreferences = true
                     }) {
                         HStack {
-                            Text(LanguageManager.shared.localized("settings.modify_filters"))
+                            Text(LanguageManager.localized("settings.modify_filters"))
                                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
                             Spacer()
@@ -1066,7 +1066,7 @@ struct SettingsView: View {
                             }
                         }) {
                             HStack {
-                                Text(LanguageManager.shared.localized("settings.custom_keywords"))
+                                Text(LanguageManager.localized("settings.custom_keywords"))
                                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
                                 Spacer()
@@ -1110,7 +1110,7 @@ struct SettingsView: View {
                                     }
                                 }
                             } else {
-                                Text(LanguageManager.shared.localized("settings.no_keywords"))
+                                Text(LanguageManager.localized("settings.no_keywords"))
                                     .font(.caption)
                                     .italic()
                                     .foregroundColor(KomalColors.textSecondary)
@@ -1128,7 +1128,7 @@ struct SettingsView: View {
                             }
                         }) {
                             HStack {
-                                Text(LanguageManager.shared.localized("settings.custom_websites"))
+                                Text(LanguageManager.localized("settings.custom_websites"))
                                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
                                 Spacer()
@@ -1174,7 +1174,7 @@ struct SettingsView: View {
                                     }
                                 }
                             } else {
-                                Text(LanguageManager.shared.localized("settings.no_websites"))
+                                Text(LanguageManager.localized("settings.no_websites"))
                                     .font(.caption)
                                     .italic()
                                     .foregroundColor(KomalColors.textSecondary)
@@ -1239,13 +1239,13 @@ struct SettingsView: View {
                             Image(systemName: "person.crop.circle.badge.questionmark")
                                 .font(.system(size: 20))
                                 .foregroundColor(KomalColors.lavenderPurple)
-                            Text(LanguageManager.shared.localized("settings.using_guest"))
+                            Text(LanguageManager.localized("settings.using_guest"))
                                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
                             Spacer()
                         }
 
-                        Text(LanguageManager.shared.localized("settings.guest_data_info"))
+                        Text(LanguageManager.localized("settings.guest_data_info"))
                             .font(.caption)
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -1261,7 +1261,7 @@ struct SettingsView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(KomalColors.pearlAqua)
 
-                                Text(LanguageManager.shared.localized("settings.sign_in"))
+                                Text(LanguageManager.localized("settings.sign_in"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.pearlAqua)
 
@@ -1286,7 +1286,7 @@ struct SettingsView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.red)
 
-                                Text(LanguageManager.shared.localized("settings.exit_guest"))
+                                Text(LanguageManager.localized("settings.exit_guest"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(.red)
 
@@ -1310,7 +1310,7 @@ struct SettingsView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.red)
 
-                                Text(LanguageManager.shared.localized("settings.delete_account"))
+                                Text(LanguageManager.localized("settings.delete_account"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(.red)
 
@@ -1342,7 +1342,7 @@ struct SettingsView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.red)
 
-                                Text(LanguageManager.shared.localized("settings.logout"))
+                                Text(LanguageManager.localized("settings.logout"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(.red)
 
@@ -1374,7 +1374,7 @@ struct SettingsView: View {
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(KomalColors.pearlAqua)
 
-                                Text(LanguageManager.shared.localized("settings.login"))
+                                Text(LanguageManager.localized("settings.login"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.pearlAqua)
 
@@ -1389,7 +1389,7 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
 
-                        Text(LanguageManager.shared.localized("settings.sync_desc"))
+                        Text(LanguageManager.localized("settings.sync_desc"))
                             .font(.caption)
                             .foregroundColor(KomalColors.textSecondary)
                             .padding(.top, 4)
@@ -1865,7 +1865,7 @@ struct BillingHistoryView: View {
                         VStack(spacing: 16) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text(LanguageManager.shared.localized("settings.current_plan"))
+                                    Text(LanguageManager.localized("settings.current_plan"))
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
                                     Text(appState.subscriptionState.currentPlan.displayName)
@@ -1879,7 +1879,7 @@ struct BillingHistoryView: View {
                                             Text(price)
                                                 .font(.system(size: 20, weight: .bold, design: .rounded))
                                                 .foregroundColor(KomalColors.textPrimary)
-                                            Text(LanguageManager.shared.localized("settings.per_month"))
+                                            Text(LanguageManager.localized("settings.per_month"))
                                                 .font(.system(size: 12, weight: .medium))
                                                 .foregroundColor(KomalColors.textSecondary)
                                         }
@@ -1893,7 +1893,7 @@ struct BillingHistoryView: View {
                                     Image(systemName: "calendar.badge.clock")
                                         .font(.system(size: 16))
                                         .foregroundColor(KomalColors.lavenderPurple)
-                                    Text(LanguageManager.shared.localized("settings.next_renewal").replacingOccurrences(of: "%@", with: Self.shortDateFormatter.string(from: renewal)))
+                                    Text(LanguageManager.localized("settings.next_renewal").replacingOccurrences(of: "%@", with: Self.shortDateFormatter.string(from: renewal)))
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
                                     Spacer()
@@ -1907,7 +1907,7 @@ struct BillingHistoryView: View {
 
                         // Transaction history
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(LanguageManager.shared.localized("settings.transaction_history"))
+                            Text(LanguageManager.localized("settings.transaction_history"))
                                 .font(.system(size: 18, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
 
@@ -1923,10 +1923,10 @@ struct BillingHistoryView: View {
                                     Image(systemName: "doc.text")
                                         .font(.system(size: 36))
                                         .foregroundColor(KomalColors.textSecondary.opacity(0.5))
-                                    Text(LanguageManager.shared.localized("settings.no_transactions"))
+                                    Text(LanguageManager.localized("settings.no_transactions"))
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
-                                    Text(LanguageManager.shared.localized("settings.transactions_placeholder"))
+                                    Text(LanguageManager.localized("settings.transactions_placeholder"))
                                         .font(.system(size: 13))
                                         .foregroundColor(KomalColors.textSecondary.opacity(0.7))
                                 }
@@ -1948,7 +1948,7 @@ struct BillingHistoryView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "info.circle")
                                     .font(.system(size: 13))
-                                Text(LanguageManager.shared.localized("settings.subscriptions_info"))
+                                Text(LanguageManager.localized("settings.subscriptions_info"))
                                     .font(.system(size: 12, weight: .medium))
                             }
                             .foregroundColor(KomalColors.textSecondary)
@@ -2020,7 +2020,7 @@ private struct TransactionRow: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(LanguageManager.shared.localized("settings.plan_monthly").replacingOccurrences(of: "%@", with: transaction.planName))
+                    Text(LanguageManager.localized("settings.plan_monthly").replacingOccurrences(of: "%@", with: transaction.planName))
                         .font(.system(size: 15, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
                     Text(Self.dateFormatter.string(from: transaction.purchaseDate))
@@ -2065,11 +2065,11 @@ struct PinEntryView: View {
                     .font(.system(size: 40))
                     .foregroundColor(KomalColors.lavenderPurple)
 
-                Text(LanguageManager.shared.localized("settings.enter_pin"))
+                Text(LanguageManager.localized("settings.enter_pin"))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
 
-                Text(LanguageManager.shared.localized("settings.pin_desc"))
+                Text(LanguageManager.localized("settings.pin_desc"))
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -2095,7 +2095,7 @@ struct PinEntryView: View {
                     }
 
                 if pinError {
-                    Text(LanguageManager.shared.localized("settings.incorrect_pin"))
+                    Text(LanguageManager.localized("settings.incorrect_pin"))
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundColor(.red)
                 }
@@ -2116,7 +2116,7 @@ struct PinEntryView: View {
                     HStack(spacing: 8) {
                         Image(systemName: BiometricAuthService.biometricIcon)
                             .font(.system(size: 20))
-                        Text(LanguageManager.shared.localized("settings.use_biometric", BiometricAuthService.biometricName))
+                        Text(LanguageManager.localized("settings.use_biometric", BiometricAuthService.biometricName))
                             .font(.system(size: 15, weight: .medium, design: .rounded))
                     }
                     .foregroundColor(KomalColors.lavenderPurple)
@@ -2126,7 +2126,7 @@ struct PinEntryView: View {
             // Buttons
             HStack(spacing: 16) {
                 Button(action: onCancel) {
-                    Text(LanguageManager.shared.localized("common.cancel"))
+                    Text(LanguageManager.localized("common.cancel"))
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                         .frame(maxWidth: .infinity)
@@ -2136,7 +2136,7 @@ struct PinEntryView: View {
                 }
 
                 Button(action: onSubmit) {
-                    Text(LanguageManager.shared.localized("settings.enter"))
+                    Text(LanguageManager.localized("settings.enter"))
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -2162,7 +2162,7 @@ struct PinEntryView: View {
                     HStack(spacing: 6) {
                         Image(systemName: BiometricAuthService.biometricIcon)
                             .font(.system(size: 14))
-                        Text(LanguageManager.shared.localized("settings.forgot_pin").replacingOccurrences(of: "%@", with: BiometricAuthService.biometricName))
+                        Text(LanguageManager.localized("settings.forgot_pin").replacingOccurrences(of: "%@", with: BiometricAuthService.biometricName))
                             .font(.system(size: 13, weight: .medium, design: .rounded))
                     }
                     .foregroundColor(KomalColors.textSecondary)
@@ -2192,11 +2192,11 @@ struct PinResetView: View {
                         .font(.system(size: 56))
                         .foregroundColor(KomalColors.pearlAqua)
 
-                    Text(LanguageManager.shared.localized("settings.pin_updated"))
+                    Text(LanguageManager.localized("settings.pin_updated"))
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 
-                    Text(LanguageManager.shared.localized("settings.pin_saved_msg"))
+                    Text(LanguageManager.localized("settings.pin_saved_msg"))
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -2207,11 +2207,11 @@ struct PinResetView: View {
                         .font(.system(size: 40))
                         .foregroundColor(KomalColors.lavenderPurple)
 
-                    Text(LanguageManager.shared.localized("settings.set_new_pin"))
+                    Text(LanguageManager.localized("settings.set_new_pin"))
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 
-                    Text(LanguageManager.shared.localized("settings.new_pin_desc"))
+                    Text(LanguageManager.localized("settings.new_pin_desc"))
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -2255,7 +2255,7 @@ struct PinResetView: View {
                         }
 
                     if mismatchError {
-                        Text(LanguageManager.shared.localized("settings.pin_mismatch"))
+                        Text(LanguageManager.localized("settings.pin_mismatch"))
                             .font(.system(size: 12, weight: .medium, design: .rounded))
                             .foregroundColor(.red)
                     }
@@ -2264,7 +2264,7 @@ struct PinResetView: View {
                 // Buttons
                 HStack(spacing: 16) {
                     Button(action: onCancel) {
-                        Text(LanguageManager.shared.localized("common.cancel"))
+                        Text(LanguageManager.localized("common.cancel"))
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                             .frame(maxWidth: .infinity)
@@ -2274,7 +2274,7 @@ struct PinResetView: View {
                     }
 
                     Button(action: onSave) {
-                        Text(LanguageManager.shared.localized("settings.save_pin"))
+                        Text(LanguageManager.localized("settings.save_pin"))
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)

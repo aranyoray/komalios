@@ -17,7 +17,7 @@ struct BrowsingHistoryView: View {
                     VStack(spacing: 16) {
                         ProgressView()
                             .scaleEffect(1.2)
-                        Text(LanguageManager.shared.localized("history.loading"))
+                        Text(LanguageManager.localized("history.loading"))
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -26,10 +26,10 @@ struct BrowsingHistoryView: View {
                         Image(systemName: "clock.arrow.circlepath")
                             .font(.system(size: 48, weight: .light))
                             .foregroundColor(KomalColors.textSecondary.opacity(0.5))
-                        Text(LanguageManager.shared.localized("history.no_history"))
+                        Text(LanguageManager.localized("history.no_history"))
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
-                        Text(LanguageManager.shared.localized("history.empty_message"))
+                        Text(LanguageManager.localized("history.empty_message"))
                             .font(.system(size: 14, weight: .regular, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -54,7 +54,7 @@ struct BrowsingHistoryView: View {
                     }
                 }
             }
-            .navigationTitle(LanguageManager.shared.localized("history.title"))
+            .navigationTitle(LanguageManager.localized("history.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -62,7 +62,7 @@ struct BrowsingHistoryView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 14, weight: .semibold))
-                            Text(LanguageManager.shared.localized("common.settings"))
+                            Text(LanguageManager.localized("common.settings"))
                                 .font(.system(size: 16, weight: .medium))
                         }
                         .foregroundColor(KomalColors.lavenderPurple)
@@ -89,7 +89,7 @@ struct BrowsingHistoryView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
 
-                Text(LanguageManager.shared.localized("history.time_range"))
+                Text(LanguageManager.localized("history.time_range"))
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
 
@@ -214,7 +214,7 @@ struct TopicBoxCard: View {
 
                         Spacer()
 
-                        Text("\(batch.events.count) \(LanguageManager.shared.localized("history.pages"))")
+                        Text("\(batch.events.count) \(LanguageManager.localized("history.pages"))")
                             .font(.system(size: 12, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.lavenderPurple)
                     }

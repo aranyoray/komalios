@@ -24,11 +24,11 @@ struct RikiCharacter: Identifiable {
     let profile: AvatarProfile
 
     var localizedGreeting: String {
-        LanguageManager.shared.localized("riki.greeting.\(name.lowercased())")
+        LanguageManager.localized("riki.greeting.\(name.lowercased())")
     }
 
     var localizedPersonality: String {
-        LanguageManager.shared.localized("riki.personality.\(name.lowercased())")
+        LanguageManager.localized("riki.personality.\(name.lowercased())")
     }
 
     static let allCharacters: [RikiCharacter] = [
@@ -79,31 +79,32 @@ struct RikiCharacter: Identifiable {
     ]
 }
 
-// MARK: - Emoji Mapper (keyword → contextual emojis for floating display)
+// MARK: - Emoji Mapper (keyword → contextual emojis triggered by child's speech)
 
 struct ChatEmojiMapper {
     private static let mapping: [(keywords: [String], emoji: String)] = [
-        (["happy", "glad", "great", "awesome", "cool", "amazing", "fantastic", "wonderful"], "🌟"),
-        (["sad", "upset", "down", "cry", "miss"], "💙"),
-        (["brave", "courage", "strong", "hero", "proud"], "💪"),
-        (["friend", "buddy", "together", "play", "hang out"], "🤝"),
-        (["school", "learn", "homework", "study", "class", "test"], "📚"),
-        (["game", "play", "fun", "adventure", "level"], "🎮"),
-        (["nature", "tree", "garden", "flower", "outside"], "🌿"),
-        (["animal", "pet", "dog", "cat", "puppy", "kitten"], "🐾"),
-        (["music", "song", "sing", "dance", "beat"], "🎵"),
-        (["food", "eat", "cook", "yummy", "snack", "lunch"], "🍕"),
-        (["sleep", "tired", "rest", "nap", "bed"], "😴"),
-        (["love", "care", "heart", "kind", "hug"], "💛"),
-        (["star", "space", "moon", "sky", "planet"], "⭐"),
-        (["sport", "run", "kick", "swim", "score", "team"], "⚽"),
-        (["art", "draw", "paint", "create", "color"], "🎨"),
-        (["think", "idea", "wonder", "curious", "imagine"], "💡"),
-        (["laugh", "funny", "joke", "silly", "haha"], "😄"),
+        (["happy", "glad", "great", "awesome", "cool", "amazing", "fantastic", "wonderful", "excited", "yay"], "🌟"),
+        (["sad", "upset", "down", "cry", "miss", "lonely", "hurt"], "💙"),
+        (["brave", "courage", "strong", "hero", "proud", "scared", "afraid", "nervous"], "💪"),
+        (["friend", "buddy", "together", "play", "hang out", "team", "group"], "🤝"),
+        (["school", "learn", "homework", "study", "class", "test", "teacher", "math", "grade"], "📚"),
+        (["game", "gaming", "play", "minecraft", "roblox", "level", "win", "xbox"], "🎮"),
+        (["nature", "tree", "garden", "flower", "outside", "park", "beach", "walk"], "🌿"),
+        (["animal", "pet", "dog", "cat", "puppy", "kitten", "rabbit", "bird", "fish"], "🐾"),
+        (["music", "song", "sing", "dance", "concert", "band", "listen", "playlist"], "🎵"),
+        (["food", "eat", "cook", "yummy", "snack", "lunch", "dinner", "pizza", "cookie"], "🍕"),
+        (["sleep", "tired", "rest", "nap", "bed", "dream", "night", "sleepy"], "😴"),
+        (["love", "care", "heart", "kind", "hug", "family", "mom", "dad", "sister", "brother"], "💛"),
+        (["star", "space", "moon", "sky", "planet", "wish", "dream", "hope"], "⭐"),
+        (["sport", "soccer", "basketball", "swim", "run", "gym", "exercise", "practice"], "⚽"),
+        (["art", "draw", "paint", "create", "color", "craft", "design", "picture"], "🎨"),
+        (["think", "idea", "wonder", "curious", "imagine", "why", "how", "question", "confused"], "💡"),
+        (["laugh", "funny", "joke", "silly", "haha", "hilarious", "lol", "giggle"], "😄"),
     ]
 
-    static func extractEmojis(from text: String) -> [String] {
-        let lowered = text.lowercased()
+    /// Returns up to 3 emojis matching keywords in the child's transcript
+    static func emojis(for transcript: String) -> [String] {
+        let lowered = transcript.lowercased()
         var emojis: [String] = []
         for entry in mapping {
             if entry.keywords.contains(where: { lowered.contains($0) }) {
@@ -111,32 +112,40 @@ struct ChatEmojiMapper {
             }
             if emojis.count >= 3 { break }
         }
-        return emojis.isEmpty ? ["✨"] : emojis
+        return emojis
     }
 }
 
-// MARK: - Floating Emoji View
+// MARK: - Floating Single Emoji (gentle drift animation)
 
-struct FloatingEmojiView: View {
-    let emojis: [String]
-    @State private var isAnimating = false
+private struct FloatingSingleEmoji: View {
+    let emoji: String
+    let isVisible: Bool
+    let driftPhase: Int
+
+    @State private var driftOffset: CGFloat = 0
+    @State private var displayOpacity: Double = 0
 
     var body: some View {
-        HStack(spacing: 16) {
-            ForEach(Array(emojis.enumerated()), id: \.offset) { index, emoji in
-                Text(emoji)
-                    .font(.system(size: 28))
-                    .opacity(isAnimating ? 0.9 : 0.0)
-                    .offset(y: isAnimating ? -20 : 0)
-                    .animation(
-                        .easeInOut(duration: 2.0)
-                            .delay(Double(index) * 0.4)
-                            .repeatForever(autoreverses: true),
-                        value: isAnimating
-                    )
+        Text(emoji)
+            .font(.system(size: 28))
+            .offset(y: driftOffset)
+            .opacity(displayOpacity)
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(driftPhase) * 0.3) {
+                    withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                        driftOffset = driftPhase.isMultiple(of: 2) ? -8 : 8
+                    }
+                }
+                withAnimation(.easeInOut(duration: 0.5)) { displayOpacity = 1.0 }
             }
-        }
-        .onAppear { isAnimating = true }
+            .onChange(of: isVisible) {
+                if isVisible {
+                    withAnimation(.easeInOut(duration: 0.5)) { displayOpacity = 1.0 }
+                } else {
+                    withAnimation(.easeOut(duration: 0.8)) { displayOpacity = 0.0 }
+                }
+            }
     }
 }
 
@@ -173,8 +182,10 @@ struct FocusedChatView: View {
     @State private var silenceTimer: Timer?
     @State private var conversationContext: String?
     @State private var conversationInterruptionNote: String?
-    @State private var currentEmojis: [String] = []
     @State private var greetingSpoken: Bool = false
+    @State private var displayTranscript: String = ""
+    @State private var activeEmojis: [String] = []
+    @State private var showEmojis: Bool = false
 
     // Silence tier tracking — per spec edge case C:
     // After 10s: gentle prompt, After 20s: offer opt-out, After 30s: close loop
@@ -204,15 +215,15 @@ struct FocusedChatView: View {
 
     /// Status text
     private var statusText: String? {
-        if isPaused { return LanguageManager.shared.localized("riki.paused") }
+        if isPaused { return LanguageManager.localized("riki.paused") }
         if audioPlayback.isPlaying {
-            return LanguageManager.shared.localized("riki.speaking", character.name)
+            return LanguageManager.localized("riki.speaking", character.name)
         }
         if isListening {
-            return LanguageManager.shared.localized("riki.listening")
+            return LanguageManager.localized("riki.listening")
         }
         if isLoading {
-            return LanguageManager.shared.localized("riki.typing")
+            return LanguageManager.localized("riki.typing")
         }
         return nil
     }
@@ -230,14 +241,14 @@ struct FocusedChatView: View {
                         .frame(width: 28, height: 28)
                         .clipShape(Circle())
                 }
-                Text(LanguageManager.shared.localized("riki.friend_title", character.name))
+                Text(LanguageManager.localized("riki.friend_title", character.name))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
             }
 
             Spacer().frame(height: 12)
 
-            // Large avatar with radiating glow + floating emojis
+            // Large avatar with radiating glow
             ZStack {
                 Circle()
                     .fill(glowColor.opacity(0.08))
@@ -263,14 +274,33 @@ struct FocusedChatView: View {
                         )
                 }
 
-                // Floating emojis during response
-                if audioPlayback.isPlaying && !currentEmojis.isEmpty {
-                    FloatingEmojiView(emojis: currentEmojis)
-                        .offset(y: -70)
-                        .transition(.opacity)
-                }
             }
             .animation(.easeInOut(duration: 0.6), value: glowColor)
+            .overlay(alignment: .trailing) {
+                if !activeEmojis.isEmpty {
+                    VStack(spacing: 6) {
+                        ForEach(Array(activeEmojis.prefix(3).enumerated()), id: \.offset) { index, emoji in
+                            FloatingSingleEmoji(emoji: emoji, isVisible: showEmojis, driftPhase: index)
+                        }
+                    }
+                    .offset(x: 15)
+                    .allowsHitTesting(false)
+                }
+            }
+            .contentShape(Circle())
+            .onTapGesture {
+                if audioPlayback.isPlaying {
+                    // Interrupt TTS and start listening
+                    conversationInterruptionNote = "[The child interrupted while you were speaking. Acknowledge naturally — say something like 'Okay, I'm listening' and pick up from what they say next.]"
+                    audioPlayback.interruptForChildSpeech()
+                    startListening()
+                    startSilenceTierMonitoring()
+                } else if !isListening && !isLoading && !isPaused {
+                    // Tap to manually start listening when idle
+                    startListening()
+                    startSilenceTierMonitoring()
+                }
+            }
 
             Spacer().frame(height: 8)
 
@@ -323,10 +353,9 @@ struct FocusedChatView: View {
             .frame(maxHeight: 200)
             .animation(.easeInOut(duration: 0.3), value: messages.count)
 
-            // Listening transcript preview — per spec: no censoring with ### symbols,
-            // let the AI redirect naturally via system prompt
-            if isListening && !speechRecognizer.transcript.isEmpty {
-                Text(speechRecognizer.transcript)
+            // Listening transcript preview — inappropriate words censored for display
+            if isListening && !displayTranscript.isEmpty {
+                Text(displayTranscript)
                     .font(.system(size: 14, weight: .regular, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -337,34 +366,13 @@ struct FocusedChatView: View {
 
             Spacer()
 
-            // Controls: Pause + Mic
-            HStack(spacing: 24) {
-                // Pause/Resume button
-                Button(action: togglePause) {
-                    Image(systemName: isPaused ? "play.fill" : "pause.fill")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(isPaused ? KomalColors.pearlAqua : KomalColors.textSecondary)
-                        .frame(width: 48, height: 48)
-                        .background(Circle().fill(.ultraThinMaterial))
-                }
-
-                // Mic button (centered)
-                Button(action: toggleListening) {
-                    Image(systemName: isListening ? "waveform" : "mic.fill")
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 64, height: 64)
-                        .background(
-                            Circle()
-                                .fill(isListening ? KomalColors.bubblegumPink : KomalColors.lavenderPurple)
-                        )
-                        .shadow(color: (isListening ? KomalColors.bubblegumPink : KomalColors.lavenderPurple).opacity(0.4), radius: 8, y: 4)
-                        .scaleEffect(isListening ? 1.15 : 1.0)
-                        .animation(KomalAnimations.spring, value: isListening)
-                }
-
-                // Invisible spacer to keep mic visually centered
-                Color.clear.frame(width: 48, height: 48)
+            // Pause/Resume control
+            Button(action: togglePause) {
+                Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(isPaused ? KomalColors.pearlAqua : KomalColors.textSecondary)
+                    .frame(width: 48, height: 48)
+                    .background(Circle().fill(.ultraThinMaterial))
             }
             .padding(.bottom, 64)
         }
@@ -387,6 +395,10 @@ struct FocusedChatView: View {
 
             Task {
                 await audioPlayback.speak(text: greeting, characterName: character.name)
+                // Greeting TTS finished — now safe to start auto-listen cycle
+                greetingSpoken = true
+                startListening()
+                startSilenceTierMonitoring()
             }
         }
         .onDisappear {
@@ -400,8 +412,17 @@ struct FocusedChatView: View {
         .onReceive(speechRecognizer.$transcript) { newValue in
             if !newValue.isEmpty {
                 inputText = newValue
+                displayTranscript = BrowserState.censorForDisplay(newValue)
                 // Reset silence tiers when child starts speaking
                 resetSilenceTiers()
+                // Extract emojis from child's speech
+                let detected = ChatEmojiMapper.emojis(for: newValue)
+                if !detected.isEmpty {
+                    activeEmojis = detected
+                    if !showEmojis {
+                        withAnimation { showEmojis = true }
+                    }
+                }
             }
             if isListening && !newValue.isEmpty {
                 silenceTimer?.invalidate()
@@ -415,14 +436,18 @@ struct FocusedChatView: View {
                 }
             }
         }
-        // Auto-start listening after TTS finishes
+        // Auto-start listening after TTS finishes + fade out emojis
         .onReceive(audioPlayback.$isPlaying) { playing in
-            if !playing && !isPaused && !isListening && !isLoading {
-                // Clear floating emojis
-                withAnimation(.easeOut(duration: 0.5)) { currentEmojis = [] }
-                // Auto-start listening after a brief delay
+            if !playing && greetingSpoken {
+                withAnimation(.easeOut(duration: 0.8)) { showEmojis = false }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { activeEmojis = [] }
+            }
+            // Seamless Siri-like flow: auto-listen after every TTS reply finishes.
+            // Guard on greetingSpoken to prevent premature listen before greeting plays.
+            if !playing && greetingSpoken && !isPaused && !isListening && !isLoading {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    if !isPaused && !isListening && !isLoading {
+                    // Re-check all conditions after delay — TTS may have started again
+                    if !audioPlayback.isPlaying && !isPaused && !isListening && !isLoading {
                         startListening()
                         startSilenceTierMonitoring()
                     }
@@ -441,12 +466,42 @@ struct FocusedChatView: View {
             silenceTimer = nil
             if isListening { stopListening() }
             audioPlayback.stop()
-            withAnimation(.easeOut(duration: 0.3)) { currentEmojis = [] }
+            showEmojis = false
+            activeEmojis = []
         } else {
             // Resume — auto-start listening
             if !isLoading && !audioPlayback.isPlaying {
                 startListening()
             }
+        }
+    }
+
+    private func hardBlockRedirect(ageGroup: AgeGroup) -> String {
+        switch ageGroup {
+        case .under10:
+            return [
+                "Let's talk about something really cool instead! What animals do you like?",
+                "Ooh I have a great idea — can you tell me about your favorite cartoon?",
+                "Let's do something fun together! What game are you playing lately?"
+            ].randomElement()!
+        case .tenToThirteen:
+            return [
+                "Let's switch to something way more interesting — what've you been into lately?",
+                "Ok different topic — what's something cool that happened this week?",
+                "Hey — tell me something awesome you discovered recently."
+            ].randomElement()!
+        case .thirteenToSixteen:
+            return [
+                "That one's off the table, but I'm all ears for what's actually on your mind.",
+                "Let's talk about something else — what's been the best part of your week?",
+                "Different direction — what's going on with you today?"
+            ].randomElement()!
+        case .sixteenToEighteen, .eighteenPlus:
+            return [
+                "Let's focus on something I can actually help with — what's on your mind?",
+                "I'll pass on that one. Anything else you want to talk through?",
+                "Gonna steer away from that one. What else is going on?"
+            ].randomElement()!
         }
     }
 
@@ -456,32 +511,27 @@ struct FocusedChatView: View {
 
         if isListening { stopListening() }
 
-        // Two-tier content filter:
-        // Strict keywords (explicit sites, child exploitation) → hard block
-        // Softer flags → let Gemini redirect naturally via system prompt
+        // Content filter: child exploitation → hard block, everything else → Gemini psychological redirect
+        let displayText = BrowserState.censorForDisplay(text)
         var redirectHint: String? = nil
         if let flagged = BrowserState.checkForInappropriateContent(text, isSearchQuery: true) {
-            if BrowserState.isStrictKeyword(flagged) {
-                // Hard block for the worst content — but per spec, never say
-                // "I can't talk about that". Use natural redirection instead.
-                messages.append(RikiChatMessage(id: UUID(), text: text, isFromUser: true))
+            if BrowserState.isChildExploitationKeyword(flagged) {
+                // Safety-critical hard block — no Gemini call
+                messages.append(RikiChatMessage(id: UUID(), text: displayText, isFromUser: true))
                 inputText = ""
-                let redirectMessages = [
-                    "Hey, let's talk about something that helps you feel stronger. What's something cool you learned recently?",
-                    "I've got a way better idea — want to hear something amazing I just thought of?",
-                    "Let's switch gears! What's the most fun thing you've done this week?"
-                ]
-                let redirect = redirectMessages.randomElement() ?? redirectMessages[0]
+                let redirect = hardBlockRedirect(ageGroup: appState.activeProfile.ageGroup)
                 withAnimation {
                     messages.append(RikiChatMessage(id: UUID(), text: redirect, isFromUser: false))
                 }
+                Task { await audioPlayback.speak(text: redirect, characterName: character.name) }
                 return
             }
-            // Softer flag — let Gemini handle the redirect naturally
-            redirectHint = "[SYSTEM NOTE: The child's message may touch on inappropriate content. Redirect naturally using the techniques described. Do not repeat the inappropriate words.]"
+            // All other inappropriate content → route through Gemini with psychological redirect hint
+            let ageLabel = appState.activeProfile.ageGroup.rawValue
+            redirectHint = "[SYSTEM NOTE — REDIRECT REQUIRED: Child's message contains inappropriate content. Apply psychological redirect for \(ageLabel) age group: use time dilution, cognitive defusion, and scaffolding. Make it educational if possible. Say 'Let's focus on...' not 'I can't talk about that.' Do NOT repeat the flagged word. Bridge to a related safe topic naturally.]"
         }
 
-        let userMessage = RikiChatMessage(id: UUID(), text: text, isFromUser: true)
+        let userMessage = RikiChatMessage(id: UUID(), text: displayText, isFromUser: true)
         withAnimation { messages.append(userMessage) }
 
         let persistedUserMsg = PersistedChatMessage(text: text, isFromUser: true, characterId: character.id)
@@ -533,7 +583,7 @@ struct FocusedChatView: View {
                 let displayResponse: String = await MainActor.run {
                     let pref = appState.contentFilterPreferences.parasocialContent
                     if scanResult.riskLevel == .high && pref != .allow {
-                        return LanguageManager.shared.localized("chat.content_redirect")
+                        return LanguageManager.localized("chat.content_redirect")
                     }
                     return response
                 }
@@ -545,23 +595,20 @@ struct FocusedChatView: View {
                     }
                     let persistedModelMsg = PersistedChatMessage(text: displayResponse, isFromUser: false, characterId: character.id)
                     memoryService.saveMessage(persistedModelMsg)
-
-                    // Set floating emojis based on response content
-                    withAnimation(.easeIn(duration: 0.4)) {
-                        currentEmojis = ChatEmojiMapper.extractEmojis(from: displayResponse)
-                    }
                 }
 
                 await audioPlayback.speak(text: displayResponse, characterName: character.name)
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    let fallback = LanguageManager.shared.localized("riki.error_fallback")
+                    let fallback = LanguageManager.localized("riki.error_fallback")
                     withAnimation {
                         messages.append(RikiChatMessage(id: UUID(), text: fallback, isFromUser: false))
                     }
                     print("Gemini chat error: \(error.localizedDescription)")
                 }
+                // Speak the fallback so auto-listen resumes after TTS
+                await audioPlayback.speak(text: LanguageManager.localized("riki.error_fallback"), characterName: character.name)
             }
         }
     }
@@ -622,24 +669,6 @@ struct FocusedChatView: View {
         silenceTierTimer?.invalidate()
         silenceTierTimer = nil
         silenceTierLevel = 0
-    }
-
-    private func toggleListening() {
-        // Per spec section 5: immediately stop TTS playback on interrupt
-        if audioPlayback.isPlaying {
-            audioPlayback.interruptForChildSpeech()
-            // Acknowledge interruption naturally per spec: "Okay okay, I'm listening."
-            conversationInterruptionNote = "[The child interrupted while you were speaking. Acknowledge naturally — say something like 'Okay, I'm listening' and pick up from what they say next.]"
-        }
-
-        if isListening {
-            stopListening()
-            resetSilenceTiers()
-            if !inputText.isEmpty { sendMessage() }
-        } else {
-            startListening()
-            startSilenceTierMonitoring()
-        }
     }
 
     private func startListening() {
@@ -729,21 +758,7 @@ struct RikiChatMessage: Identifiable {
     let isFromUser: Bool
 }
 
-// MARK: - Legacy Components (kept for compatibility)
-
-struct StepHeader: View {
-    let step: Int
-
-    var body: some View {
-        HStack(spacing: 8) {
-            ForEach(0..<4) { index in
-                Circle()
-                    .fill(index <= step ? KomalColors.bubblegumPink : KomalColors.lavenderPurple.opacity(0.3))
-                    .frame(width: 10, height: 10)
-            }
-        }
-    }
-}
+// MARK: - Shared Components (used by GateView, EmojiCheckInBubble, etc.)
 
 struct RikiAssistantCard: View {
     let title: String

@@ -45,7 +45,7 @@ struct EveningAnchorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(LanguageManager.shared.localized("common.skip")) { dismiss() }
+                    Button(LanguageManager.localized("common.skip")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.white.opacity(0.7))
                 }
@@ -64,11 +64,11 @@ struct EveningAnchorView: View {
                     .frame(width: 80, height: 80)
             }
 
-            Text(LanguageManager.shared.localized("anchor.evening.greeting"))
+            Text(LanguageManager.localized("anchor.evening.greeting"))
                 .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
 
-            Text(LanguageManager.shared.localized("anchor.evening.wind_down"))
+            Text(LanguageManager.localized("anchor.evening.wind_down"))
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.white.opacity(0.7))
         }
@@ -78,7 +78,7 @@ struct EveningAnchorView: View {
 
     private var eveningConversationSection: some View {
         VStack(spacing: 20) {
-            Text(LanguageManager.shared.localized("anchor.evening.how_feeling"))
+            Text(LanguageManager.localized("anchor.evening.how_feeling"))
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .foregroundColor(.white.opacity(0.8))
 
@@ -112,20 +112,20 @@ struct EveningAnchorView: View {
         VStack(spacing: 24) {
             // Brief breathing exercise
             VStack(spacing: 16) {
-                Text(LanguageManager.shared.localized("anchor.evening.deep_breaths"))
+                Text(LanguageManager.localized("anchor.evening.deep_breaths"))
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
 
                 BreathingCircle(size: 100, color: KomalColors.pearlAqua.opacity(0.6))
 
-                Text(LanguageManager.shared.localized("anchor.evening.breathe_in_out"))
+                Text(LanguageManager.localized("anchor.evening.breathe_in_out"))
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.6))
             }
             .padding(.vertical, 20)
 
             Button(action: saveAndDismiss) {
-                Text(LanguageManager.shared.localized("anchor.evening.good_night"))
+                Text(LanguageManager.localized("anchor.evening.good_night"))
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
                     .frame(maxWidth: .infinity)

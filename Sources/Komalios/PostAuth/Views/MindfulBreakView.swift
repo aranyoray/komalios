@@ -13,7 +13,7 @@ struct MindfulBreakView: View {
             VStack(spacing: 20) {
                 Spacer()
 
-                Text(LanguageManager.shared.localized("mindful.title"))
+                Text(LanguageManager.localized("mindful.title"))
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
 
@@ -31,7 +31,7 @@ struct MindfulBreakView: View {
 
                 BubblyCard(tintColor: KomalColors.yellow) {
                     VStack(spacing: 14) {
-                        Text(LanguageManager.shared.localized("mindful.pause_message"))
+                        Text(LanguageManager.localized("mindful.pause_message"))
                             .font(.system(size: 18, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -50,7 +50,7 @@ struct MindfulBreakView: View {
                 }
                 .padding(.horizontal, 20)
 
-                Button(LanguageManager.shared.localized("mindful.im_ready")) {
+                Button(LanguageManager.localized("mindful.im_ready")) {
                     dismiss()
                 }
                 .buttonStyle(PillButtonStyle())

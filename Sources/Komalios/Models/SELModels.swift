@@ -11,7 +11,7 @@ enum SELDomain: String, Codable, CaseIterable {
     case languageDevelopment
 
     var label: String {
-        LanguageManager.shared.localized(localizationKey)
+        LanguageManager.localized(localizationKey)
     }
 
     var localizationKey: String {

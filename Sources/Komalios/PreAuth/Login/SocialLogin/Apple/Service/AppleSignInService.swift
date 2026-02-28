@@ -27,7 +27,7 @@ final class AppleSignInService: NSObject {
                 currentNonce = nonce
                 request.nonce = Nonce.sha256(nonce) // Apple expects hashed nonce
             } catch {
-                completion?(.failure(error))
+                completion(.failure(error))
                 return
             }
         } else {

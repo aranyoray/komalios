@@ -67,11 +67,11 @@ struct ParentInsightsDashboardView: View {
                     .padding(.top, 16)
                 }
             }
-            .navigationTitle(LanguageManager.shared.localized("insights.dashboard.title"))
+            .navigationTitle(LanguageManager.localized("insights.dashboard.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(LanguageManager.shared.localized("common.done")) { dismiss() }
+                    Button(LanguageManager.localized("common.done")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                 }
             }
@@ -98,15 +98,15 @@ struct ParentInsightsDashboardView: View {
     private var growthDeltasSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "arrow.up.arrow.down", title: LanguageManager.shared.localized("insights.dashboard.this_week_vs_last"), color: KomalColors.pearlAqua)
+                CardHeader(icon: "arrow.up.arrow.down", title: LanguageManager.localized("insights.dashboard.this_week_vs_last"), color: KomalColors.pearlAqua)
 
                 let delta = growthService.getWeekOverWeekDelta()
 
                 HStack(spacing: 12) {
-                    DeltaStatView(label: LanguageManager.shared.localized("insights.dashboard.chats"), delta: delta.chatDelta, color: KomalColors.bubblegumPink)
-                    DeltaStatView(label: LanguageManager.shared.localized("insights.dashboard.reflections"), delta: delta.reflectionDelta, color: KomalColors.lavenderPurple)
-                    DeltaStatView(label: LanguageManager.shared.localized("insights.dashboard.moods"), delta: delta.moodDelta, color: .orange)
-                    DeltaStatView(label: LanguageManager.shared.localized("insights.dashboard.active_days"), delta: delta.activeDaysDelta, color: KomalColors.pearlAqua)
+                    DeltaStatView(label: LanguageManager.localized("insights.dashboard.chats"), delta: delta.chatDelta, color: KomalColors.bubblegumPink)
+                    DeltaStatView(label: LanguageManager.localized("insights.dashboard.reflections"), delta: delta.reflectionDelta, color: KomalColors.lavenderPurple)
+                    DeltaStatView(label: LanguageManager.localized("insights.dashboard.moods"), delta: delta.moodDelta, color: .orange)
+                    DeltaStatView(label: LanguageManager.localized("insights.dashboard.active_days"), delta: delta.activeDaysDelta, color: KomalColors.pearlAqua)
                 }
             }
         }
@@ -117,13 +117,13 @@ struct ParentInsightsDashboardView: View {
     private var conversationStarterSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 12) {
-                CardHeader(icon: "text.bubble.fill", title: LanguageManager.shared.localized("insights.dashboard.conversation_starter"), color: KomalColors.lavenderPurple)
+                CardHeader(icon: "text.bubble.fill", title: LanguageManager.localized("insights.dashboard.conversation_starter"), color: KomalColors.lavenderPurple)
 
                 if isLoadingStarter {
                     HStack(spacing: 8) {
                         ProgressView()
                             .scaleEffect(0.8)
-                        Text(LanguageManager.shared.localized("insights.dashboard.generating_starter"))
+                        Text(LanguageManager.localized("insights.dashboard.generating_starter"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -133,7 +133,7 @@ struct ParentInsightsDashboardView: View {
                         .foregroundColor(KomalColors.textPrimary)
                         .lineSpacing(4)
                 } else {
-                    Text(LanguageManager.shared.localized("insights.dashboard.starter_placeholder"))
+                    Text(LanguageManager.localized("insights.dashboard.starter_placeholder"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -146,16 +146,16 @@ struct ParentInsightsDashboardView: View {
     private var valueAlignmentSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 12) {
-                CardHeader(icon: "sparkles", title: LanguageManager.shared.localized("insights.dashboard.value_alignment"), color: KomalColors.pearlAqua)
+                CardHeader(icon: "sparkles", title: LanguageManager.localized("insights.dashboard.value_alignment"), color: KomalColors.pearlAqua)
 
-                Text(LanguageManager.shared.localized("insights.dashboard.value_alignment_desc"))
+                Text(LanguageManager.localized("insights.dashboard.value_alignment_desc"))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
 
                 if isLoadingValuePrompt {
                     HStack(spacing: 8) {
                         ProgressView().scaleEffect(0.8)
-                        Text(LanguageManager.shared.localized("insights.dashboard.generating_prompt"))
+                        Text(LanguageManager.localized("insights.dashboard.generating_prompt"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -166,9 +166,9 @@ struct ParentInsightsDashboardView: View {
                         .lineSpacing(4)
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
-                        ValueAlignmentRow(icon: "heart.fill", text: LanguageManager.shared.localized("insights.dashboard.value_kindness"), color: KomalColors.bubblegumPink)
-                        ValueAlignmentRow(icon: "person.2.fill", text: LanguageManager.shared.localized("insights.dashboard.value_fairness"), color: KomalColors.lavenderPurple)
-                        ValueAlignmentRow(icon: "hand.raised.fill", text: LanguageManager.shared.localized("insights.dashboard.value_helping"), color: KomalColors.pearlAqua)
+                        ValueAlignmentRow(icon: "heart.fill", text: LanguageManager.localized("insights.dashboard.value_kindness"), color: KomalColors.bubblegumPink)
+                        ValueAlignmentRow(icon: "person.2.fill", text: LanguageManager.localized("insights.dashboard.value_fairness"), color: KomalColors.lavenderPurple)
+                        ValueAlignmentRow(icon: "hand.raised.fill", text: LanguageManager.localized("insights.dashboard.value_helping"), color: KomalColors.pearlAqua)
                     }
                 }
             }
@@ -180,13 +180,13 @@ struct ParentInsightsDashboardView: View {
     private var dailyInsightSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 12) {
-                CardHeader(icon: "lightbulb.fill", title: LanguageManager.shared.localized("insights.dashboard.daily_insight"), color: .orange)
+                CardHeader(icon: "lightbulb.fill", title: LanguageManager.localized("insights.dashboard.daily_insight"), color: .orange)
 
                 if isLoadingInsight {
                     HStack(spacing: 8) {
                         ProgressView()
                             .scaleEffect(0.8)
-                        Text(LanguageManager.shared.localized("insights.dashboard.generating_insight"))
+                        Text(LanguageManager.localized("insights.dashboard.generating_insight"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -196,7 +196,7 @@ struct ParentInsightsDashboardView: View {
                         .foregroundColor(KomalColors.textPrimary)
                         .lineSpacing(4)
                 } else {
-                    Text(LanguageManager.shared.localized("insights.dashboard.insight_placeholder"))
+                    Text(LanguageManager.localized("insights.dashboard.insight_placeholder"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -209,13 +209,13 @@ struct ParentInsightsDashboardView: View {
     private var emotionalWellnessSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "heart.circle.fill", title: LanguageManager.shared.localized("insights.dashboard.emotional_wellness"), color: KomalColors.bubblegumPink)
+                CardHeader(icon: "heart.circle.fill", title: LanguageManager.localized("insights.dashboard.emotional_wellness"), color: KomalColors.bubblegumPink)
 
                 // Mood trend (last 7 days)
                 let trend = moodService.getMoodTrend(days: 7)
                 if !trend.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(LanguageManager.shared.localized("insights.dashboard.last_7_days"))
+                        Text(LanguageManager.localized("insights.dashboard.last_7_days"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -238,7 +238,7 @@ struct ParentInsightsDashboardView: View {
                 let distribution = moodService.getEmotionDistribution(days: 30)
                 if !distribution.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(LanguageManager.shared.localized("insights.dashboard.emotion_distribution"))
+                        Text(LanguageManager.localized("insights.dashboard.emotion_distribution"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -268,7 +268,7 @@ struct ParentInsightsDashboardView: View {
                 }
 
                 if trend.isEmpty && distribution.isEmpty {
-                    Text(LanguageManager.shared.localized("insights.dashboard.no_mood_data"))
+                    Text(LanguageManager.localized("insights.dashboard.no_mood_data"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -281,7 +281,7 @@ struct ParentInsightsDashboardView: View {
     private var conversationInsightsSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "bubble.left.and.bubble.right.fill", title: LanguageManager.shared.localized("insights.dashboard.conversation_insights"), color: KomalColors.lavenderPurple)
+                CardHeader(icon: "bubble.left.and.bubble.right.fill", title: LanguageManager.localized("insights.dashboard.conversation_insights"), color: KomalColors.lavenderPurple)
 
                 let memoryService = ConversationMemoryService.shared
                 let totalMessages = memoryService.totalMessageCount()
@@ -291,7 +291,7 @@ struct ParentInsightsDashboardView: View {
                         Text("\(totalMessages)")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.lavenderPurple)
-                        Text(LanguageManager.shared.localized("insights.dashboard.messages"))
+                        Text(LanguageManager.localized("insights.dashboard.messages"))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -301,7 +301,7 @@ struct ParentInsightsDashboardView: View {
                         Text("\(memoryService.getUniqueCharacterCount())")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.bubblegumPink)
-                        Text(LanguageManager.shared.localized("insights.dashboard.characters_used"))
+                        Text(LanguageManager.localized("insights.dashboard.characters_used"))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -312,7 +312,7 @@ struct ParentInsightsDashboardView: View {
                 let topics = memoryService.getConversationTopics(days: 30)
                 if !topics.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(LanguageManager.shared.localized("insights.dashboard.popular_topics"))
+                        Text(LanguageManager.localized("insights.dashboard.popular_topics"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -338,14 +338,14 @@ struct ParentInsightsDashboardView: View {
     private var growthMetricsSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "flame.fill", title: LanguageManager.shared.localized("insights.dashboard.growth_metrics"), color: .orange)
+                CardHeader(icon: "flame.fill", title: LanguageManager.localized("insights.dashboard.growth_metrics"), color: .orange)
 
                 HStack(spacing: 16) {
                     VStack(spacing: 4) {
                         Text("\(growthService.getEarnedMilestones().count)")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.pearlAqua)
-                        Text(LanguageManager.shared.localized("insights.dashboard.milestones"))
+                        Text(LanguageManager.localized("insights.dashboard.milestones"))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -355,7 +355,7 @@ struct ParentInsightsDashboardView: View {
                         Text("\(growthService.getActiveDaysCount())")
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.lavenderPurple)
-                        Text(LanguageManager.shared.localized("insights.dashboard.active_days_30d"))
+                        Text(LanguageManager.localized("insights.dashboard.active_days_30d"))
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -366,7 +366,7 @@ struct ParentInsightsDashboardView: View {
                 let activities = growthService.getDailyActivities(days: 30)
                 if !activities.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(LanguageManager.shared.localized("insights.dashboard.activity_30d"))
+                        Text(LanguageManager.localized("insights.dashboard.activity_30d"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -394,7 +394,7 @@ struct ParentInsightsDashboardView: View {
     private var retentionMetricsSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "chart.line.uptrend.xyaxis", title: LanguageManager.shared.localized("insights.dashboard.engagement_quality"), color: KomalColors.pearlAqua)
+                CardHeader(icon: "chart.line.uptrend.xyaxis", title: LanguageManager.localized("insights.dashboard.engagement_quality"), color: KomalColors.pearlAqua)
 
                 let state = appState.retentionState
 
@@ -403,7 +403,7 @@ struct ParentInsightsDashboardView: View {
                         Text("\(Int(state.voluntaryReturnRate * 100))%")
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.pearlAqua)
-                        Text(LanguageManager.shared.localized("insights.dashboard.voluntary_returns"))
+                        Text(LanguageManager.localized("insights.dashboard.voluntary_returns"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -414,7 +414,7 @@ struct ParentInsightsDashboardView: View {
                         Text(String(format: "%.1f", state.averageReflectionDepth))
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.lavenderPurple)
-                        Text(LanguageManager.shared.localized("insights.dashboard.avg_reflection_depth"))
+                        Text(LanguageManager.localized("insights.dashboard.avg_reflection_depth"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -425,7 +425,7 @@ struct ParentInsightsDashboardView: View {
                         Text("\(state.childInitiatedSessionCount)")
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.bubblegumPink)
-                        Text(LanguageManager.shared.localized("insights.dashboard.total_sessions"))
+                        Text(LanguageManager.localized("insights.dashboard.total_sessions"))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -433,7 +433,7 @@ struct ParentInsightsDashboardView: View {
                     .frame(maxWidth: .infinity)
                 }
 
-                Text(LanguageManager.shared.localized("insights.dashboard.voluntary_returns_explanation"))
+                Text(LanguageManager.localized("insights.dashboard.voluntary_returns_explanation"))
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(KomalColors.textSecondary)
                     .lineSpacing(2)
@@ -446,7 +446,7 @@ struct ParentInsightsDashboardView: View {
     private var anchorComplianceSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "clock.fill", title: LanguageManager.shared.localized("insights.dashboard.daily_checkins"), color: KomalColors.pearlAqua)
+                CardHeader(icon: "clock.fill", title: LanguageManager.localized("insights.dashboard.daily_checkins"), color: KomalColors.pearlAqua)
 
                 let compliance = growthService.getAnchorComplianceRate()
 
@@ -465,7 +465,7 @@ struct ParentInsightsDashboardView: View {
                                 .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
                         }
-                        Text(LanguageManager.shared.localized("insights.dashboard.morning"))
+                        Text(LanguageManager.localized("insights.dashboard.morning"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -485,7 +485,7 @@ struct ParentInsightsDashboardView: View {
                                 .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
                         }
-                        Text(LanguageManager.shared.localized("insights.dashboard.evening"))
+                        Text(LanguageManager.localized("insights.dashboard.evening"))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -502,9 +502,9 @@ struct ParentInsightsDashboardView: View {
             if moodService.hasConsecutiveSadEntries() {
                 SettingsCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        CardHeader(icon: "exclamationmark.triangle.fill", title: LanguageManager.shared.localized("insights.dashboard.wellness_alert"), color: .orange)
+                        CardHeader(icon: "exclamationmark.triangle.fill", title: LanguageManager.localized("insights.dashboard.wellness_alert"), color: .orange)
 
-                        Text(LanguageManager.shared.localized("insights.dashboard.wellness_alert_message"))
+                        Text(LanguageManager.localized("insights.dashboard.wellness_alert_message"))
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                             .lineSpacing(4)

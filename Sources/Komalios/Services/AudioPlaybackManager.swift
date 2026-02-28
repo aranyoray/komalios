@@ -34,12 +34,12 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
         // since SpeechRecognizer may have switched it to .record mode.
         configureAudioSession()
 
-        // Per spec: no censoring with ### or asterisks — AI redirects naturally via system prompt.
-        // TTS speaks the AI's response as-is since it's already child-safe.
-        guard !text.isEmpty else { return }
+        // Defense-in-depth: strip any inappropriate words before TTS synthesis
+        let sanitized = BrowserState.stripForTTS(text)
+        guard !sanitized.isEmpty else { return }
 
         do {
-            let audioData = try await ttsService.synthesize(text: text, characterName: characterName)
+            let audioData = try await ttsService.synthesize(text: sanitized, characterName: characterName)
             audioPlayer = try AVAudioPlayer(data: audioData)
             audioPlayer?.delegate = self
             audioPlayer?.prepareToPlay()
@@ -56,7 +56,8 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
         fadeTimer = nil
         audioPlayer?.stop()
         audioPlayer = nil
-        isPlaying = false
+        // Only publish if actually changing — prevents spurious onReceive fires
+        if isPlaying { isPlaying = false }
     }
 
     func interruptForChildSpeech() {

@@ -30,32 +30,32 @@ struct LoginView: View {
                             .shadow(color: Color.black.opacity(0.1), radius: 10, y: 5)
                         
                         VStack(spacing: 16) {
-                            Text(LanguageManager.shared.localized("login.welcome"))
+                            Text(LanguageManager.localized("login.welcome"))
                                 .font(.system(size: 32, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
 
-                            Text(LanguageManager.shared.localized("login.tagline"))
+                            Text(LanguageManager.localized("login.tagline"))
                                 .font(.system(size: 18, weight: .medium, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
                                 .multilineTextAlignment(.center)
                         }
                         
-                        SocialSignInButton(logoImage: "google_logo", title: LanguageManager.shared.localized("login.sign_in_google")) {
+                        SocialSignInButton(logoImage: "google_logo", title: LanguageManager.localized("login.sign_in_google")) {
                             viewModel.signInWithGoogle()
                         }
                         .padding()
                         
-                        SocialSignInButton(logoImage: "apple_logo", title: LanguageManager.shared.localized("login.sign_in_apple")) {
+                        SocialSignInButton(logoImage: "apple_logo", title: LanguageManager.localized("login.sign_in_apple")) {
                             viewModel.signInWithApple()
                         }
                         .padding()
                         
-                        Text(LanguageManager.shared.localized("login.or"))
+                        Text(LanguageManager.localized("login.or"))
                         
                         Button {
                             showOnboarding = true
                         } label: {
-                            Text(LanguageManager.shared.localized("login.guest_user"))
+                            Text(LanguageManager.localized("login.guest_user"))
                         }
                         .padding()
                         .foregroundStyle(Color.accentColor)
@@ -99,7 +99,7 @@ struct LoginView: View {
                     VStack(spacing: 16) {
                         ProgressView()
                             .scaleEffect(1.5)
-                        Text(LanguageManager.shared.localized("login.signing_in"))
+                        Text(LanguageManager.localized("login.signing_in"))
                             .font(.system(size: 16, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -114,7 +114,7 @@ struct LoginView: View {
                 ZStack {
                     GradientBackground()
                     VStack {
-                        Text(LanguageManager.shared.localized("login.failed"))
+                        Text(LanguageManager.localized("login.failed"))
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                         Text(string)
@@ -122,7 +122,7 @@ struct LoginView: View {
                             .foregroundColor(.red)
                             .padding()
                         
-                        Button(LanguageManager.shared.localized("login.try_again")) {
+                        Button(LanguageManager.localized("login.try_again")) {
                             viewModel.loginState = .notRunning
                         }
                         .buttonStyle(PillButtonStyle())
@@ -145,21 +145,21 @@ private struct LoginGuestOnboardingSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Text(LanguageManager.shared.localized("login.guest.welcome"))
+                Text(LanguageManager.localized("login.guest.welcome"))
                     .font(.title.bold())
-                Text(LanguageManager.shared.localized("login.guest.description"))
+                Text(LanguageManager.localized("login.guest.description"))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
-                Button(LanguageManager.shared.localized("common.continue")) {
+                Button(LanguageManager.localized("common.continue")) {
                     onFinish()
                 }
                 .buttonStyle(.borderedProminent)
             }
             .padding()
-            .navigationTitle(LanguageManager.shared.localized("login.guest.getting_started"))
+            .navigationTitle(LanguageManager.localized("login.guest.getting_started"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(LanguageManager.shared.localized("common.close")) { onFinish() }
+                    Button(LanguageManager.localized("common.close")) { onFinish() }
                 }
             }
         }

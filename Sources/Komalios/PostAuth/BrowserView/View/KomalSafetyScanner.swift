@@ -101,7 +101,7 @@ private struct KomalSafetyScannerContentView: View {
                         Spacer()
                         ProgressView()
                             .scaleEffect(1.2)
-                        Text(LanguageManager.shared.localized("browser.checking_page"))
+                        Text(LanguageManager.localized("browser.checking_page"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
                         Spacer()
@@ -129,7 +129,7 @@ private struct KomalSafetyScannerContentView: View {
                             .shadow(color: KomalColors.bubblegumPink.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
 
-                    Text(LanguageManager.shared.localized("checkin.whats_on_your_mind"))
+                    Text(LanguageManager.localized("checkin.whats_on_your_mind"))
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 
@@ -175,7 +175,7 @@ private struct KomalSafetyScannerContentView: View {
                         .overlay(Circle().stroke(KomalColors.bubblegumPink, lineWidth: 3))
                 }
 
-                Text(LanguageManager.shared.localized("checkin.whats_on_your_mind"))
+                Text(LanguageManager.localized("checkin.whats_on_your_mind"))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
 
@@ -246,7 +246,7 @@ private struct KomalSafetyScannerContentView: View {
                         omniboxFocused = false
                         isOmniboxEditing = false
                     } label: {
-                        Text(LanguageManager.shared.localized("common.cancel"))
+                        Text(LanguageManager.localized("common.cancel"))
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(Color(hex: "4285F4"))
                     }
@@ -263,7 +263,7 @@ private struct KomalSafetyScannerContentView: View {
                             .frame(width: 36, height: 36)
                     }
                     .disabled(!navigator.canGoBack)
-                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.go_back"))
+                    .accessibilityLabel(LanguageManager.localized("accessibility.go_back"))
 
                     // Forward
                     Button(action: { navigator.goForward() }) {
@@ -273,7 +273,7 @@ private struct KomalSafetyScannerContentView: View {
                             .frame(width: 36, height: 36)
                     }
                     .disabled(!navigator.canGoForward)
-                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.go_forward"))
+                    .accessibilityLabel(LanguageManager.localized("accessibility.go_forward"))
 
                     // Omnibox
                     omniboxCompact
@@ -294,28 +294,28 @@ private struct KomalSafetyScannerContentView: View {
                         }
                         .frame(width: 36, height: 36)
                     }
-                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.tab_switcher", viewModel.tabCount))
+                    .accessibilityLabel(LanguageManager.localized("accessibility.tab_switcher", viewModel.tabCount))
 
                     // Overflow menu
                     Menu {
                         Button(action: { navigator.reload() }) {
-                            Label(LanguageManager.shared.localized("browser.reload"), systemImage: "arrow.clockwise")
+                            Label(LanguageManager.localized("browser.reload"), systemImage: "arrow.clockwise")
                         }
                         Button(action: { shareCurrentPage() }) {
-                            Label(LanguageManager.shared.localized("browser.share"), systemImage: "square.and.arrow.up")
+                            Label(LanguageManager.localized("browser.share"), systemImage: "square.and.arrow.up")
                         }
                         Button(action: { showReflectionTime = true }) {
-                            Label(LanguageManager.shared.localized("reflect.title"), systemImage: "leaf.fill")
+                            Label(LanguageManager.localized("reflect.title"), systemImage: "leaf.fill")
                         }
                         Divider()
                         Button(action: { viewModel.addNewTab() }) {
-                            Label(LanguageManager.shared.localized("browser.new_tab"), systemImage: "plus")
+                            Label(LanguageManager.localized("browser.new_tab"), systemImage: "plus")
                         }
                         if viewModel.tabCount > 1 {
                             Button(role: .destructive, action: {
                                 viewModel.closeTab(at: viewModel.activeTabIndex)
                             }) {
-                                Label(LanguageManager.shared.localized("browser.close_tab"), systemImage: "xmark")
+                                Label(LanguageManager.localized("browser.close_tab"), systemImage: "xmark")
                             }
                         }
                     } label: {
@@ -360,7 +360,7 @@ private struct KomalSafetyScannerContentView: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(Color(UIColor.secondaryLabel))
                     }
-                    Text(hasURL ? displayDomain : LanguageManager.shared.localized("browser.search_or_url"))
+                    Text(hasURL ? displayDomain : LanguageManager.localized("browser.search_or_url"))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(hasURL ? Color(UIColor.label) : Color(UIColor.placeholderText))
                         .lineLimit(1)
@@ -407,7 +407,7 @@ private struct KomalSafetyScannerContentView: View {
                 .foregroundColor(Color(UIColor.secondaryLabel))
                 .font(.system(size: 15, weight: .medium))
 
-            TextField(LanguageManager.shared.localized("browser.search_or_url"), text: $viewModel.urlInput)
+            TextField(LanguageManager.localized("browser.search_or_url"), text: $viewModel.urlInput)
                 .font(.system(size: 16))
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
@@ -478,7 +478,7 @@ private struct KomalSafetyScannerContentView: View {
                         .opacity(0.35)
                 }
 
-                Text(LanguageManager.shared.localized("browser.search_or_url"))
+                Text(LanguageManager.localized("browser.search_or_url"))
                     .font(.system(size: 15, weight: .regular))
                     .foregroundColor(Color(UIColor.placeholderText))
             }
@@ -519,7 +519,7 @@ private struct TabSwitcherView: View {
                         Image(systemName: "square.on.square.dashed")
                             .font(.system(size: 48, weight: .light))
                             .foregroundColor(Color(UIColor.tertiaryLabel))
-                        Text(LanguageManager.shared.localized("browser.no_open_tabs"))
+                        Text(LanguageManager.localized("browser.no_open_tabs"))
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(Color(UIColor.secondaryLabel))
                     }
@@ -536,11 +536,11 @@ private struct TabSwitcherView: View {
                     }
                 }
             }
-            .navigationTitle(LanguageManager.shared.localized("browser.tabs"))
+            .navigationTitle(LanguageManager.localized("browser.tabs"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(LanguageManager.shared.localized("common.done")) {
+                    Button(LanguageManager.localized("common.done")) {
                         isPresented = false
                     }
                     .font(.system(size: 16, weight: .medium))
@@ -574,7 +574,7 @@ private struct TabSwitcherView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(tab.title.isEmpty ? LanguageManager.shared.localized("browser.new_tab") : tab.title)
+                    Text(tab.title.isEmpty ? LanguageManager.localized("browser.new_tab") : tab.title)
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(Color(UIColor.label))
                         .lineLimit(1)

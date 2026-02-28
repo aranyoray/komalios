@@ -23,7 +23,7 @@ struct EmojiCheckInBubble: View {
             if isExpanded {
                 VStack(spacing: 10) {
                     // Seamless conversational prompt — no "How are you feeling?" or emoji markers
-                    Text(LanguageManager.shared.localized("checkin.whats_on_your_mind"))
+                    Text(LanguageManager.localized("checkin.whats_on_your_mind"))
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 

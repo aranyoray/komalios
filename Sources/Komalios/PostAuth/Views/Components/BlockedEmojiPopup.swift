@@ -52,10 +52,10 @@ struct BlockedEmojiPopup: View {
                 }
 
                 VStack(spacing: 8) {
-                    Text(LanguageManager.shared.localized("blocked.not_available"))
+                    Text(LanguageManager.localized("blocked.not_available"))
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                    Text(LanguageManager.shared.localized("blocked.keeping_safe"))
+                    Text(LanguageManager.localized("blocked.keeping_safe"))
                         .font(.system(size: 16, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.8))
                 }
@@ -119,12 +119,12 @@ struct BlockedEmojiPopup: View {
                             .animation(KomalAnimations.spring, value: isListening)
                     }
 
-                    Text(isListening ? LanguageManager.shared.localized("riki.listening") : LanguageManager.shared.localized("blocked.tap_talk"))
+                    Text(isListening ? LanguageManager.localized("riki.listening") : LanguageManager.localized("blocked.tap_talk"))
                         .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.7))
                 }
 
-                Text(LanguageManager.shared.localized("blocked.countdown", countdown))
+                Text(LanguageManager.localized("blocked.countdown", countdown))
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.7))
             }
@@ -197,7 +197,7 @@ struct BlockedEmojiPopup: View {
                 let pref = await MainActor.run { appState.contentFilterPreferences.parasocialContent }
                 let displayResponse: String
                 if scanResult.riskLevel == .high && pref != .allow {
-                    displayResponse = LanguageManager.shared.localized("chat.content_redirect")
+                    displayResponse = LanguageManager.localized("chat.content_redirect")
                 } else {
                     displayResponse = response
                 }
@@ -209,7 +209,7 @@ struct BlockedEmojiPopup: View {
                 // Speak the response via TTS
                 await audioPlayback.speak(text: displayResponse, characterName: characterName)
             } catch {
-                let fallback = LanguageManager.shared.localized("blocked.fallback_response")
+                let fallback = LanguageManager.localized("blocked.fallback_response")
                 await MainActor.run {
                     chatResponse = fallback
                     isLoadingChat = false

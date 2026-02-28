@@ -21,6 +21,15 @@ final class DigitalJourneyViewModel: ObservableObject {
             case .allowed: return "ALLOW"
             }
         }
+
+        var displayName: String {
+            switch self {
+            case .all: return LanguageManager.localized("journey.filter.all")
+            case .blocked: return LanguageManager.localized("journey.filter.blocked")
+            case .gated: return LanguageManager.localized("journey.filter.gated")
+            case .allowed: return LanguageManager.localized("journey.filter.allowed")
+            }
+        }
     }
 
     private let appHistoryService = AppHistoryService.shared

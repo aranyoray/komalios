@@ -313,6 +313,72 @@ final class BrowserState: ObservableObject {
         return strictKeywords.contains(lowered) || strictPrefixKeywords.contains(where: { lowered.hasPrefix($0) })
     }
 
+    // MARK: - Child Exploitation Detection (safety-critical hard-block subset)
+
+    private static let childExploitationKeywords: Set<String> = [
+        "childporn", "kidporn", "pedo", "preteen", "csam",
+        "child exploitation", "child abuse", "child trafficking", "child grooming",
+        "jailbait", "lolicon", "shotacon"
+    ]
+
+    private static let childExploitationPrefixes: Set<String> = [
+        "pedophil", "childexploit", "childtraffick"
+    ]
+
+    /// Returns true only for child exploitation keywords — the safety-critical subset
+    /// that must always be hard-blocked (no Gemini routing).
+    static func isChildExploitationKeyword(_ keyword: String) -> Bool {
+        let lowered = keyword.lowercased()
+        return childExploitationKeywords.contains(lowered) ||
+            childExploitationPrefixes.contains(where: { lowered.hasPrefix($0) })
+    }
+
+    // MARK: - Pre-compiled Word Filter Regexes (shared cache)
+
+    /// Pre-compiled regex patterns for all inappropriate keywords. Used by ChatWordFilter
+    /// and AudioPlaybackManager to censor words for display and TTS without re-compiling per call.
+    static let wordFilterRegexes: [NSRegularExpression] = {
+        var regexes: [NSRegularExpression] = []
+        let allKeywords = strictKeywords.union(searchOnlyKeywords)
+        for keyword in allKeywords {
+            let pattern = "(?i)\\b\(NSRegularExpression.escapedPattern(for: keyword))\\b"
+            if let regex = try? NSRegularExpression(pattern: pattern) {
+                regexes.append(regex)
+            }
+        }
+        let allPrefixes = strictPrefixKeywords.union(searchOnlyPrefixKeywords)
+        for prefix in allPrefixes {
+            let pattern = "(?i)\\b\(NSRegularExpression.escapedPattern(for: prefix))\\w*"
+            if let regex = try? NSRegularExpression(pattern: pattern) {
+                regexes.append(regex)
+            }
+        }
+        return regexes
+    }()
+
+    /// Censor inappropriate words for display (replaces with "...").
+    static func censorForDisplay(_ text: String) -> String {
+        var result = text
+        for regex in wordFilterRegexes {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: "...")
+        }
+        return result
+    }
+
+    /// Strip inappropriate words for TTS (replaces with empty string for silence).
+    static func stripForTTS(_ text: String) -> String {
+        var result = text
+        for regex in wordFilterRegexes {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: "")
+        }
+        while result.contains("  ") {
+            result = result.replacingOccurrences(of: "  ", with: " ")
+        }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     func addToHistory(_ url: URL) {
         if !tabHistory.contains(url) {
             tabHistory.insert(url, at: 0)

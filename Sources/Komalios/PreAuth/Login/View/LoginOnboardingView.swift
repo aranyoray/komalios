@@ -17,17 +17,17 @@ struct LoginOnboardingView: View {
                     .font(.system(size: 56, weight: .bold))
                     .foregroundStyle(.tint)
 
-                Text(LanguageManager.shared.localized("login.onboarding.welcome"))
+                Text(LanguageManager.localized("login.onboarding.welcome"))
                     .font(.system(size: 32, weight: .bold, design: .rounded))
 
-                Text(LanguageManager.shared.localized("login.onboarding.description"))
+                Text(LanguageManager.localized("login.onboarding.description"))
                     .font(.system(size: 17, weight: .regular, design: .rounded))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
 
                 Button(action: finish) {
-                    Text(LanguageManager.shared.localized("login.onboarding.get_started"))
+                    Text(LanguageManager.localized("login.onboarding.get_started"))
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .frame(maxWidth: .infinity)
                 }

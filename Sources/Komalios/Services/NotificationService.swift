@@ -2,6 +2,7 @@
 import Foundation
 import UserNotifications
 
+@MainActor
 final class NotificationService {
     static let shared = NotificationService()
     private init() {}
@@ -9,10 +10,13 @@ final class NotificationService {
     // MARK: - Permission
 
     func requestPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if granted {
-                print("🔔 Notification permission granted")
-            } else if let error = error {
+        Task {
+            do {
+                let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+                if granted {
+                    print("🔔 Notification permission granted")
+                }
+            } catch {
                 print("🔔 Notification permission error: \(error)")
             }
         }
@@ -21,17 +25,16 @@ final class NotificationService {
     // MARK: - Morning Anchor
 
     func scheduleMorningAnchor(hour: Int = 8, minute: Int = 0) {
-        Task { @MainActor in
-            let title = LanguageManager.shared.localized("notification.morning.title")
-            let body = LanguageManager.shared.localized("notification.morning.body")
-            UNUserNotificationCenter.current().getNotificationSettings { settings in
-                guard settings.authorizationStatus == .authorized else { return }
-                self._scheduleMorningAnchor(hour: hour, minute: minute, title: title, body: body)
-            }
+        Task {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            guard settings.authorizationStatus == .authorized else { return }
+            let title = LanguageManager.localized("notification.morning.title")
+            let body = LanguageManager.localized("notification.morning.body")
+            await _scheduleMorningAnchor(hour: hour, minute: minute, title: title, body: body)
         }
     }
 
-    private func _scheduleMorningAnchor(hour: Int, minute: Int, title: String, body: String) {
+    private func _scheduleMorningAnchor(hour: Int, minute: Int, title: String, body: String) async {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -45,29 +48,27 @@ final class NotificationService {
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
         let request = UNNotificationRequest(identifier: "morningAnchor", content: content, trigger: trigger)
 
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("🔔 Error scheduling morning anchor: \(error)")
-            } else {
-                print("🔔 Morning anchor scheduled at \(hour):\(String(format: "%02d", minute))")
-            }
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("🔔 Morning anchor scheduled at \(hour):\(String(format: "%02d", minute))")
+        } catch {
+            print("🔔 Error scheduling morning anchor: \(error)")
         }
     }
 
     // MARK: - Evening Anchor
 
     func scheduleEveningAnchor(hour: Int = 19, minute: Int = 0) {
-        Task { @MainActor in
-            let title = LanguageManager.shared.localized("notification.evening.title")
-            let body = LanguageManager.shared.localized("notification.evening.body")
-            UNUserNotificationCenter.current().getNotificationSettings { settings in
-                guard settings.authorizationStatus == .authorized else { return }
-                self._scheduleEveningAnchor(hour: hour, minute: minute, title: title, body: body)
-            }
+        Task {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            guard settings.authorizationStatus == .authorized else { return }
+            let title = LanguageManager.localized("notification.evening.title")
+            let body = LanguageManager.localized("notification.evening.body")
+            await _scheduleEveningAnchor(hour: hour, minute: minute, title: title, body: body)
         }
     }
 
-    private func _scheduleEveningAnchor(hour: Int, minute: Int, title: String, body: String) {
+    private func _scheduleEveningAnchor(hour: Int, minute: Int, title: String, body: String) async {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -81,29 +82,27 @@ final class NotificationService {
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
         let request = UNNotificationRequest(identifier: "eveningAnchor", content: content, trigger: trigger)
 
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("🔔 Error scheduling evening anchor: \(error)")
-            } else {
-                print("🔔 Evening anchor scheduled at \(hour):\(String(format: "%02d", minute))")
-            }
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("🔔 Evening anchor scheduled at \(hour):\(String(format: "%02d", minute))")
+        } catch {
+            print("🔔 Error scheduling evening anchor: \(error)")
         }
     }
 
     // MARK: - Reconnection Reminder
 
     func scheduleReconnectionReminder(afterDays: Int = 3) {
-        Task { @MainActor in
-            let title = LanguageManager.shared.localized("notification.reconnect.title")
-            let body = LanguageManager.shared.localized("notification.reconnect.body")
-            UNUserNotificationCenter.current().getNotificationSettings { settings in
-                guard settings.authorizationStatus == .authorized else { return }
-                self._scheduleReconnectionReminder(afterDays: afterDays, title: title, body: body)
-            }
+        Task {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            guard settings.authorizationStatus == .authorized else { return }
+            let title = LanguageManager.localized("notification.reconnect.title")
+            let body = LanguageManager.localized("notification.reconnect.body")
+            await _scheduleReconnectionReminder(afterDays: afterDays, title: title, body: body)
         }
     }
 
-    private func _scheduleReconnectionReminder(afterDays: Int, title: String, body: String) {
+    private func _scheduleReconnectionReminder(afterDays: Int, title: String, body: String) async {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -116,10 +115,10 @@ final class NotificationService {
         )
         let request = UNNotificationRequest(identifier: "reconnection", content: content, trigger: trigger)
 
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("🔔 Error scheduling reconnection: \(error)")
-            }
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+        } catch {
+            print("🔔 Error scheduling reconnection: \(error)")
         }
     }
 

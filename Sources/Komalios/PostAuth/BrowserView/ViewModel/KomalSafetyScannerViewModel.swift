@@ -252,7 +252,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 }
 
                 debugLogLine("[DEBUG-SCAN] Blocking untrusted URL (analysis unavailable): \(url)")
-                blockReason = LanguageManager.shared.localized("browser.content_unverified")
+                blockReason = LanguageManager.localized("browser.content_unverified")
                 category = .unknown
                 currentURL = nil
                 showBlocked = true
@@ -587,7 +587,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             debugLogLine("[DEBUG-SCAN] Category: \(first.name) (probability: \(first.probability))")
         }
 
-        blockReason = ageAction.reason ?? LanguageManager.shared.localized("browser.content_filtered")
+        blockReason = ageAction.reason ?? LanguageManager.localized("browser.content_filtered")
 
         if let url = URL(string: normalizedURL) {
             historyService.logUnifiedDecision(url: url, decision: decision, ageBand: ageBand)

@@ -16,7 +16,7 @@
     // Pre-hide ALL images on ALL domains during analysis.
     // This eliminates the window where inappropriate images are visible
     // before CoreML classification completes.
-    var skipPreHide = false;
+    var skipPreHide = isTrustedDomain;
 
     // Placeholder that will be replaced with actual base64 logo at runtime
     const KOMAL_LOGO_PLACEHOLDER = 'KOMAL_LOGO_BASE64';
@@ -25,7 +25,7 @@
     var komalStyle = document.createElement('style');
     komalStyle.textContent =
         '[data-komal-pending] { visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }' +
-        '[data-komal-replaced] { object-fit: contain !important; background-color: #FFF5F8 !important; border-radius: 8px !important; border: 2px solid #FFB6C1 !important; }';
+        '[data-komal-replaced] { visibility: visible !important; opacity: 1 !important; object-fit: contain !important; background-color: #FFF5F8 !important; border-radius: 8px !important; border: 2px solid #FFB6C1 !important; }';
     (document.head || document.documentElement).appendChild(komalStyle);
 
     const komalImageScanner = {
@@ -92,17 +92,17 @@
         // Reveal a safe element after analysis completes
         revealElement: function(el) {
             el.removeAttribute('data-komal-pending');
-            el.style.removeProperty('visibility');
-            el.style.removeProperty('opacity');
+            el.style.setProperty('visibility', 'visible', 'important');
+            el.style.setProperty('opacity', '1', 'important');
             el.style.removeProperty('pointer-events');
         },
 
         // Mark an image as safe so CSS pre-hide reveals it
         markElementSafe: function(el) {
             el.setAttribute('data-komal-safe', 'true');
-            // Also remove inline hide styles if any
-            el.style.removeProperty('visibility');
-            el.style.removeProperty('opacity');
+            // Override inline + CSS pre-hide styles
+            el.style.setProperty('visibility', 'visible', 'important');
+            el.style.setProperty('opacity', '1', 'important');
             el.style.removeProperty('pointer-events');
         },
 
@@ -267,8 +267,8 @@
                 el.setAttribute('data-komal-category', category || 'unknown');
                 el.removeAttribute('poster');
                 el.removeAttribute('data-komal-pending');
-                el.style.removeProperty('visibility');
-                el.style.removeProperty('opacity');
+                el.style.setProperty('visibility', 'visible', 'important');
+                el.style.setProperty('opacity', '1', 'important');
                 this.filteredCount++;
                 this.pendingImages.delete(imageId);
                 this.pendingTimestamps.delete(imageId);
@@ -316,9 +316,9 @@
             // Store replacement src for periodic enforcement
             this.replacementSrcs.set(imageId, replacementSrc);
 
-            // Remove pre-hide inline styles (replacement is now visible)
+            // Remove pre-hide and make replacement visible
             el.removeAttribute('data-komal-pending');
-            el.style.removeProperty('visibility');
+            el.style.setProperty('visibility', 'visible', 'important');
             el.style.setProperty('opacity', '1', 'important');
 
             this.filteredCount++;
@@ -485,8 +485,8 @@
             el.setAttribute('data-komal-replaced', 'true');
             el.setAttribute('data-komal-category', category || 'unknown');
             el.removeAttribute('data-komal-pending');
-            el.style.removeProperty('visibility');
-            el.style.removeProperty('opacity');
+            el.style.setProperty('visibility', 'visible', 'important');
+            el.style.setProperty('opacity', '1', 'important');
             el.style.setProperty('background-image', 'none', 'important');
             el.style.setProperty('background-color', '#FFF5F8', 'important');
             el.style.setProperty('border-radius', '8px', 'important');
@@ -499,10 +499,16 @@
             var self = this;
             var now = Date.now();
 
-            // Check for timed-out pending images — fail-closed (replace for safety)
+            // Check for timed-out pending images
+            // Trusted domains: fail-open (keep image visible) to avoid false positives on cultural/educational content
+            // Untrusted domains: fail-closed (replace for safety)
             self.pendingTimestamps.forEach(function(timestamp, imageId) {
                 if (now - timestamp > self.pendingTimeoutMs) {
-                    self.replaceImage(imageId, 'timeout');
+                    if (isTrustedDomain) {
+                        self.markSafe(imageId);
+                    } else {
+                        self.replaceImage(imageId, 'timeout');
+                    }
                 }
             });
 
@@ -585,13 +591,12 @@
         init: function() {
             var self = this;
 
-            // Initial scan after page load
-            if (document.readyState === 'complete') {
-                setTimeout(function() { self.processNewImages(); }, 500);
+            // Initial scan — start immediately since document-start CSS already pre-hides images.
+            // No delay needed; faster scan = faster reveal of safe images.
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() { self.processNewImages(); });
             } else {
-                window.addEventListener('load', function() {
-                    setTimeout(function() { self.processNewImages(); }, 500);
-                });
+                self.processNewImages();
             }
 
             // Watch for dynamically added images

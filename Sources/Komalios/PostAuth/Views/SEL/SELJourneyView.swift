@@ -31,11 +31,11 @@ struct SELJourneyView: View {
                     reportContent
                 }
             }
-            .navigationTitle(LanguageManager.shared.localized("sel.growth_report"))
+            .navigationTitle(LanguageManager.localized("sel.growth_report"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(LanguageManager.shared.localized("common.done")) { dismiss() }
+                    Button(LanguageManager.localized("common.done")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                 }
             }
@@ -49,13 +49,13 @@ struct SELJourneyView: View {
                 .font(.system(size: 48))
                 .foregroundColor(KomalColors.lavenderPurple.opacity(0.5))
 
-            Text(LanguageManager.shared.localized("sel.no_data_yet"))
+            Text(LanguageManager.localized("sel.no_data_yet"))
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(KomalColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
 
-            Text(LanguageManager.shared.localized("sel.empty_state_hint"))
+            Text(LanguageManager.localized("sel.empty_state_hint"))
                 .font(.system(size: 13, weight: .regular))
                 .foregroundColor(KomalColors.textSecondary.opacity(0.7))
                 .multilineTextAlignment(.center)
@@ -76,7 +76,7 @@ struct SELJourneyView: View {
             VStack(spacing: 20) {
                 // Header
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(LanguageManager.shared.localized("sel.progress_description"))
+                    Text(LanguageManager.localized("sel.progress_description"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -128,7 +128,7 @@ struct SELJourneyView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(LanguageManager.shared.localized("sel.overall_score"))
+                    Text(LanguageManager.localized("sel.overall_score"))
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(KomalColors.textPrimary)
 
@@ -158,14 +158,14 @@ struct SELJourneyView: View {
 
     private var radarChartCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(LanguageManager.shared.localized("sel.domain_profile"))
+            Text(LanguageManager.localized("sel.domain_profile"))
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
             if let latest = records.last {
                 SELRadarChart(scores: latest.domainScores)
                     .frame(height: 220)
-                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.radar_chart"))
+                    .accessibilityLabel(LanguageManager.localized("accessibility.sel.radar_chart"))
             }
         }
         .padding(16)
@@ -178,7 +178,7 @@ struct SELJourneyView: View {
 
     private var domainBreakdownSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(LanguageManager.shared.localized("sel.domain_breakdown"))
+            Text(LanguageManager.localized("sel.domain_breakdown"))
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
                 .padding(.leading, 4)
@@ -202,16 +202,16 @@ struct SELJourneyView: View {
 
     private var trendLinesCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(LanguageManager.shared.localized("sel.seven_day_trends"))
+            Text(LanguageManager.localized("sel.seven_day_trends"))
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
             if last7.count >= 2 {
                 SELLineChart(records: last7)
                     .frame(height: 100)
-                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.trend_chart"))
+                    .accessibilityLabel(LanguageManager.localized("accessibility.sel.trend_chart"))
             } else {
-                Text(LanguageManager.shared.localized("sel.need_more_sessions"))
+                Text(LanguageManager.localized("sel.need_more_sessions"))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
             }
@@ -241,7 +241,7 @@ struct SELJourneyView: View {
 
     private var sessionHistorySection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(LanguageManager.shared.localized("sel.recent_sessions"))
+            Text(LanguageManager.localized("sel.recent_sessions"))
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
                 .padding(.leading, 4)
@@ -257,15 +257,15 @@ struct SELJourneyView: View {
                             .font(.system(size: 13, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.lavenderPurple)
                     }
-                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.score", avg))
+                    .accessibilityLabel(LanguageManager.localized("accessibility.sel.score", avg))
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(formatDate(record.date))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textPrimary)
                         Text(record.mindfulnessCompleted
-                            ? LanguageManager.shared.localized("sel.checks_mindfulness", record.checkResults.count) + " ✅"
-                            : LanguageManager.shared.localized("sel.checks_completed", record.checkResults.count))
+                            ? LanguageManager.localized("sel.checks_mindfulness", record.checkResults.count) + " ✅"
+                            : LanguageManager.localized("sel.checks_completed", record.checkResults.count))
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -274,7 +274,7 @@ struct SELJourneyView: View {
 
                     SELMiniSparkline(scores: Array(record.domainScores.values))
                         .frame(width: 40, height: 20)
-                        .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.sparkline"))
+                        .accessibilityLabel(LanguageManager.localized("accessibility.sel.sparkline"))
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -300,7 +300,7 @@ struct SELJourneyView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(LanguageManager.shared.localized("eye.sel_bridge_title"))
+                    Text(LanguageManager.localized("eye.sel_bridge_title"))
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
                     Text("\(eye.attentionScore)/100")
@@ -332,11 +332,11 @@ struct SELJourneyView: View {
 
     private func eyeBridgeInterpretation(_ eye: EyeTrackingDailySummary) -> String {
         if eye.attentionScore >= 70 {
-            return LanguageManager.shared.localized("sel.eye_bridge.high")
+            return LanguageManager.localized("sel.eye_bridge.high")
         } else if eye.attentionScore >= 40 {
-            return LanguageManager.shared.localized("sel.eye_bridge.moderate")
+            return LanguageManager.localized("sel.eye_bridge.moderate")
         } else {
-            return LanguageManager.shared.localized("sel.eye_bridge.low")
+            return LanguageManager.localized("sel.eye_bridge.low")
         }
     }
 
@@ -572,12 +572,12 @@ struct SELDomainCard: View {
                 Text("\(score)")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
-                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.score", score))
+                    .accessibilityLabel(LanguageManager.localized("accessibility.sel.score", score))
 
                 Text(delta > 0 ? "+\(delta)" : delta == 0 ? "—" : "\(delta)")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(delta > 0 ? .green : delta < 0 ? .red : .gray)
-                    .accessibilityLabel(delta == 0 ? LanguageManager.shared.localized("accessibility.sel.no_change") : "\(delta)")
+                    .accessibilityLabel(delta == 0 ? LanguageManager.localized("accessibility.sel.no_change") : "\(delta)")
             }
         }
         .padding(.horizontal, 16)

@@ -35,11 +35,11 @@ struct GrowthJourneyView: View {
                     .padding(.top, 16)
                 }
             }
-            .navigationTitle(LanguageManager.shared.localized("growth.title"))
+            .navigationTitle(LanguageManager.localized("growth.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(LanguageManager.shared.localized("common.done")) { dismiss() }
+                    Button(LanguageManager.localized("common.done")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                 }
             }
@@ -113,7 +113,7 @@ struct GrowthJourneyView: View {
                 // Observed traits
                 if !progression.observedTraits.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(LanguageManager.shared.localized("growth.noticed_about_you"))
+                        Text(LanguageManager.localized("growth.noticed_about_you"))
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
 
@@ -138,7 +138,7 @@ struct GrowthJourneyView: View {
     private var milestonesSection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "trophy.fill", title: LanguageManager.shared.localized("growth.milestones"), color: KomalColors.bubblegumPink)
+                CardHeader(icon: "trophy.fill", title: LanguageManager.localized("growth.milestones"), color: KomalColors.bubblegumPink)
 
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 12),
@@ -157,7 +157,7 @@ struct GrowthJourneyView: View {
     private var weeklyActivitySection: some View {
         SettingsCard {
             VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "chart.bar.fill", title: LanguageManager.shared.localized("growth.this_week"), color: KomalColors.pearlAqua)
+                CardHeader(icon: "chart.bar.fill", title: LanguageManager.localized("growth.this_week"), color: KomalColors.pearlAqua)
 
                 let activities = growthService.getDailyActivities(days: 7)
                 let totalChats = activities.reduce(0) { $0 + $1.chatCount }
@@ -166,10 +166,10 @@ struct GrowthJourneyView: View {
                 let activeDays = activities.filter { $0.isActive }.count
 
                 HStack(spacing: 16) {
-                    WeekStatBubble(value: "\(activeDays)", label: LanguageManager.shared.localized("growth.active_days"), color: KomalColors.pearlAqua)
-                    WeekStatBubble(value: "\(totalChats)", label: LanguageManager.shared.localized("growth.chats"), color: KomalColors.bubblegumPink)
-                    WeekStatBubble(value: "\(totalReflections)", label: LanguageManager.shared.localized("growth.reflections"), color: KomalColors.lavenderPurple)
-                    WeekStatBubble(value: "\(totalMoods)", label: LanguageManager.shared.localized("growth.moods"), color: .orange)
+                    WeekStatBubble(value: "\(activeDays)", label: LanguageManager.localized("growth.active_days"), color: KomalColors.pearlAqua)
+                    WeekStatBubble(value: "\(totalChats)", label: LanguageManager.localized("growth.chats"), color: KomalColors.bubblegumPink)
+                    WeekStatBubble(value: "\(totalReflections)", label: LanguageManager.localized("growth.reflections"), color: KomalColors.lavenderPurple)
+                    WeekStatBubble(value: "\(totalMoods)", label: LanguageManager.localized("growth.moods"), color: .orange)
                 }
             }
         }

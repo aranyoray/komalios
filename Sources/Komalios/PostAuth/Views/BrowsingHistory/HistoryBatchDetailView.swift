@@ -18,7 +18,7 @@ struct HistoryBatchDetailView: View {
                         if !batch.emojiSequence.isEmpty {
                             SettingsCard {
                                 VStack(alignment: .leading, spacing: 10) {
-                                    Text(LanguageManager.shared.localized("history.emoji_journey"))
+                                    Text(LanguageManager.localized("history.emoji_journey"))
                                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                                         .foregroundColor(KomalColors.textSecondary)
 
@@ -49,7 +49,7 @@ struct HistoryBatchDetailView: View {
                         // Combined summary card
                         SettingsCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                CardHeader(icon: "doc.text.magnifyingglass", title: LanguageManager.shared.localized("history.summary"), color: KomalColors.lavenderPurple)
+                                CardHeader(icon: "doc.text.magnifyingglass", title: LanguageManager.localized("history.summary"), color: KomalColors.lavenderPurple)
 
                                 HStack(spacing: 8) {
                                     if let emoji = batch.leadEmoji {
@@ -90,7 +90,7 @@ struct HistoryBatchDetailView: View {
                         // Domain-grouped links
                         SettingsCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                CardHeader(icon: "list.bullet", title: LanguageManager.shared.localized("history.pages_visited"), color: KomalColors.lavenderPurple)
+                                CardHeader(icon: "list.bullet", title: LanguageManager.localized("history.pages_visited"), color: KomalColors.lavenderPurple)
 
                                 ForEach(Array(domainGroups.enumerated()), id: \.offset) { groupIndex, group in
                                     if groupIndex > 0 {
@@ -128,7 +128,7 @@ struct HistoryBatchDetailView: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle(LanguageManager.shared.localized("history.session_detail"))
+            .navigationTitle(LanguageManager.localized("history.session_detail"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -136,7 +136,7 @@ struct HistoryBatchDetailView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 14, weight: .semibold))
-                            Text(LanguageManager.shared.localized("history.back_label"))
+                            Text(LanguageManager.localized("history.back_label"))
                                 .font(.system(size: 16, weight: .medium))
                         }
                         .foregroundColor(KomalColors.lavenderPurple)

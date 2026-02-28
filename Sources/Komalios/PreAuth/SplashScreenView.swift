@@ -50,7 +50,7 @@ struct SplashScreenView: View {
                     .opacity(opacity)
                 
                 // Tagline
-                Text(LanguageManager.shared.localized("splash.tagline"))
+                Text(LanguageManager.localized("splash.tagline"))
                     .font(.system(size: 18, weight: .medium, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
                     .opacity(opacity * 0.8)

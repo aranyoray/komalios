@@ -42,7 +42,7 @@ struct MorningAnchorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(LanguageManager.shared.localized("common.skip")) { dismiss() }
+                    Button(LanguageManager.localized("common.skip")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -61,11 +61,11 @@ struct MorningAnchorView: View {
                     .frame(width: 80, height: 80)
             }
 
-            Text(LanguageManager.shared.localized("anchor.morning.greeting"))
+            Text(LanguageManager.localized("anchor.morning.greeting"))
                 .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
-            Text(LanguageManager.shared.localized("anchor.morning.how_feeling"))
+            Text(LanguageManager.localized("anchor.morning.how_feeling"))
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(KomalColors.textSecondary)
         }
@@ -76,7 +76,7 @@ struct MorningAnchorView: View {
     private var morningConversationSection: some View {
         VStack(spacing: 20) {
             // Quick mood bubbles — text-only, no emoji markers
-            Text(LanguageManager.shared.localized("anchor.morning.how_feeling"))
+            Text(LanguageManager.localized("anchor.morning.how_feeling"))
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .foregroundColor(KomalColors.textSecondary)
 
@@ -100,7 +100,7 @@ struct MorningAnchorView: View {
             }
 
             // Looking forward prompt
-            TextField(LanguageManager.shared.localized("anchor.morning.looking_forward_placeholder"), text: $lookingForwardTo)
+            TextField(LanguageManager.localized("anchor.morning.looking_forward_placeholder"), text: $lookingForwardTo)
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .padding(16)
                 .background(Color.white)
@@ -114,7 +114,7 @@ struct MorningAnchorView: View {
                 }
 
             Button(action: saveAndDismiss) {
-                Text(LanguageManager.shared.localized("anchor.morning.start_my_day"))
+                Text(LanguageManager.localized("anchor.morning.start_my_day"))
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)

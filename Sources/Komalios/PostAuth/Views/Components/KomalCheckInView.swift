@@ -53,7 +53,7 @@ struct KomalCheckInView: View {
                         if !showResponse {
                             // Seamless conversational prompt — no emoji grid, no sliders
                             VStack(spacing: 12) {
-                                Text(LanguageManager.shared.localized("checkin.hi_there"))
+                                Text(LanguageManager.localized("checkin.hi_there"))
                                     .font(.system(size: 24, weight: .bold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
 
@@ -80,7 +80,7 @@ struct KomalCheckInView: View {
                                     showResponse = true
                                 }
                             }) {
-                                Text(LanguageManager.shared.localized("common.next"))
+                                Text(LanguageManager.localized("common.next"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
@@ -99,7 +99,7 @@ struct KomalCheckInView: View {
                                     .lineSpacing(4)
 
                                 Button(action: { dismiss() }) {
-                                    Text(LanguageManager.shared.localized("checkin.thanks_komal"))
+                                    Text(LanguageManager.localized("checkin.thanks_komal"))
                                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                                         .foregroundColor(.white)
                                         .frame(maxWidth: .infinity)

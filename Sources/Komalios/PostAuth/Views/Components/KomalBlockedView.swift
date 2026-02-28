@@ -50,7 +50,7 @@ struct KomalBlockedView: View {
                     .shadow(color: Color.black.opacity(0.1), radius: 10, y: 5)
                     .scaleEffect(showMessage ? 1.0 : 0.95)
                     .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showMessage)
-                    .accessibilityLabel(LanguageManager.shared.localized("accessibility.komal_character"))
+                    .accessibilityLabel(LanguageManager.localized("accessibility.komal_character"))
                     .onAppear {
                         withAnimation {
                             showMessage = true
@@ -59,7 +59,7 @@ struct KomalBlockedView: View {
                 
                 BubblyCard {
                     VStack(spacing: 20) {
-                        Text(LanguageManager.shared.localized("blocked.hi_there"))
+                        Text(LanguageManager.localized("blocked.hi_there"))
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                         
@@ -83,7 +83,7 @@ struct KomalBlockedView: View {
                                 Image(systemName: "magnifyingglass")
                                     .font(.system(size: 16, weight: .semibold))
                                 
-                                Text(LanguageManager.shared.localized("blocked.find_something_else"))
+                                Text(LanguageManager.localized("blocked.find_something_else"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                             }
                             .foregroundColor(.white)

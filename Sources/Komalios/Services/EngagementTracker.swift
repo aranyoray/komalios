@@ -101,7 +101,7 @@ final class EngagementTracker: ObservableObject {
         (function() {
             var s = document.createElement('style');
             s.id = 'komal-prehide';
-            s.textContent = 'img:not([data-komal-safe]):not([data-komal-replaced]) { opacity: 0 !important; pointer-events: none !important; } video:not([data-komal-safe]):not([data-komal-replaced]) { opacity: 0 !important; pointer-events: none !important; }';
+            s.textContent = 'img:not([data-komal-safe]):not([data-komal-replaced]) { visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; } video:not([data-komal-safe]):not([data-komal-replaced]) { visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }';
             (document.head || document.documentElement).appendChild(s);
 
             // Synchronous URL pre-classification for known risky domains
@@ -124,6 +124,8 @@ final class EngagementTracker: ObservableObject {
             var observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(m) {
                     m.addedNodes.forEach(function(node) {
+                        if (node.nodeType !== 1) return;
+                        // Instantly replace images from known risky domains
                         if (node.tagName === 'IMG' && node.src && window.__komalPreClassify(node.src)) {
                             node.setAttribute('data-komal-replaced', 'true');
                             node.setAttribute('data-komal-original', node.src);
@@ -131,6 +133,28 @@ final class EngagementTracker: ObservableObject {
                             node.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%23FFF5F8"/><text x="100" y="90" text-anchor="middle" font-size="40">\\uD83D\\uDEE1\\uFE0F</text><text x="100" y="120" text-anchor="middle" font-size="12" fill="%23D4A0A0">Komal</text></svg>');
                             node.style.objectFit = 'contain';
                             node.style.backgroundColor = '#FFF5F8';
+                        }
+                        // Hide ALL other new images inline immediately (belt-and-suspenders with CSS rule)
+                        else if (node.tagName === 'IMG' && !node.hasAttribute('data-komal-safe')) {
+                            node.style.setProperty('visibility', 'hidden', 'important');
+                            node.style.setProperty('opacity', '0', 'important');
+                        }
+                        // Also hide child images inside added container nodes
+                        if (node.querySelectorAll) {
+                            var imgs = node.querySelectorAll('img:not([data-komal-safe]):not([data-komal-replaced])');
+                            for (var k = 0; k < imgs.length; k++) {
+                                if (imgs[k].src && window.__komalPreClassify(imgs[k].src)) {
+                                    imgs[k].setAttribute('data-komal-replaced', 'true');
+                                    imgs[k].setAttribute('data-komal-original', imgs[k].src);
+                                    imgs[k].removeAttribute('srcset');
+                                    imgs[k].src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%23FFF5F8"/><text x="100" y="90" text-anchor="middle" font-size="40">\\uD83D\\uDEE1\\uFE0F</text><text x="100" y="120" text-anchor="middle" font-size="12" fill="%23D4A0A0">Komal</text></svg>');
+                                    imgs[k].style.objectFit = 'contain';
+                                    imgs[k].style.backgroundColor = '#FFF5F8';
+                                } else {
+                                    imgs[k].style.setProperty('visibility', 'hidden', 'important');
+                                    imgs[k].style.setProperty('opacity', '0', 'important');
+                                }
+                            }
                         }
                     });
                 });
@@ -141,7 +165,7 @@ final class EngagementTracker: ObservableObject {
         scripts.append(WKUserScript(
             source: preHideCSS,
             injectionTime: .atDocumentStart,
-            forMainFrameOnly: true  // Must match image scanner's scope (also mainFrame-only)
+            forMainFrameOnly: false  // Cover iframes too — images in sub-frames must also be pre-hidden
         ))
 
         if let engagementScript = engagementScript {

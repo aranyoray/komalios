@@ -37,11 +37,11 @@ struct EyeTrackingReportView: View {
                     reportContent
                 }
             }
-            .navigationTitle(LanguageManager.shared.localized("eye.report_title"))
+            .navigationTitle(LanguageManager.localized("eye.report_title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(LanguageManager.shared.localized("common.done")) { dismiss() }
+                    Button(LanguageManager.localized("common.done")) { dismiss() }
                         .font(.system(size: 15, weight: .medium))
                 }
             }
@@ -49,14 +49,14 @@ struct EyeTrackingReportView: View {
         .onAppear {
             summaries = EyeTrackingService.shared.getSummaries(days: 30)
         }
-        .alert(LanguageManager.shared.localized("eye.delete_confirm_title"), isPresented: $showDeleteConfirmation) {
-            Button(LanguageManager.shared.localized("common.cancel"), role: .cancel) {}
-            Button(LanguageManager.shared.localized("eye.delete_button"), role: .destructive) {
+        .alert(LanguageManager.localized("eye.delete_confirm_title"), isPresented: $showDeleteConfirmation) {
+            Button(LanguageManager.localized("common.cancel"), role: .cancel) {}
+            Button(LanguageManager.localized("eye.delete_button"), role: .destructive) {
                 EyeTrackingService.shared.deleteAllData()
                 summaries = []
             }
         } message: {
-            Text(LanguageManager.shared.localized("eye.delete_confirm_message"))
+            Text(LanguageManager.localized("eye.delete_confirm_message"))
         }
     }
 
@@ -68,11 +68,11 @@ struct EyeTrackingReportView: View {
                 .font(.system(size: 48))
                 .foregroundColor(KomalColors.lavenderPurple.opacity(0.5))
 
-            Text(LanguageManager.shared.localized("eye.no_data_title"))
+            Text(LanguageManager.localized("eye.no_data_title"))
                 .font(.system(size: 17, weight: .semibold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
-            Text(LanguageManager.shared.localized("eye.no_data_message"))
+            Text(LanguageManager.localized("eye.no_data_message"))
                 .font(.system(size: 14, weight: .regular))
                 .foregroundColor(KomalColors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -128,7 +128,7 @@ struct EyeTrackingReportView: View {
             Image(systemName: "lock.shield.fill")
                 .font(.system(size: 14))
                 .foregroundColor(KomalColors.pearlAqua)
-            Text(LanguageManager.shared.localized("eye.privacy_badge"))
+            Text(LanguageManager.localized("eye.privacy_badge"))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(KomalColors.pearlAqua)
         }
@@ -149,14 +149,14 @@ struct EyeTrackingReportView: View {
                     color: KomalColors.lavenderPurple,
                     value: "\(summary.attentionScore)",
                     unit: "/100",
-                    label: LanguageManager.shared.localized("eye.metric_attention")
+                    label: LanguageManager.localized("eye.metric_attention")
                 )
                 metricTile(
                     icon: "timer",
                     color: KomalColors.bubblegumPink,
                     value: String(format: "%.0f", summary.avgFocusDurationSeconds),
                     unit: "s",
-                    label: LanguageManager.shared.localized("eye.metric_focus")
+                    label: LanguageManager.localized("eye.metric_focus")
                 )
             }
             HStack(spacing: 12) {
@@ -165,14 +165,14 @@ struct EyeTrackingReportView: View {
                     color: .orange,
                     value: String(format: "%.1f", summary.blinkRatePerMinute),
                     unit: "/min",
-                    label: LanguageManager.shared.localized("eye.metric_blink")
+                    label: LanguageManager.localized("eye.metric_blink")
                 )
                 metricTile(
                     icon: "battery.25percent",
                     color: fatigueColor(summary.screenFatigueIndex),
                     value: "\(summary.screenFatigueIndex)",
                     unit: "/100",
-                    label: LanguageManager.shared.localized("eye.metric_fatigue")
+                    label: LanguageManager.localized("eye.metric_fatigue")
                 )
             }
         }
@@ -210,7 +210,7 @@ struct EyeTrackingReportView: View {
     private var attentionTrendCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(LanguageManager.shared.localized("eye.trend_attention"))
+                Text(LanguageManager.localized("eye.trend_attention"))
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
 
@@ -243,7 +243,7 @@ struct EyeTrackingReportView: View {
 
     private var blinkRateTrendCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(LanguageManager.shared.localized("eye.trend_blink"))
+            Text(LanguageManager.localized("eye.trend_blink"))
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
@@ -265,7 +265,7 @@ struct EyeTrackingReportView: View {
 
     private func gazeHeatmapCard(_ summary: EyeTrackingDailySummary) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(LanguageManager.shared.localized("eye.gaze_distribution"))
+            Text(LanguageManager.localized("eye.gaze_distribution"))
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
 
@@ -318,7 +318,7 @@ struct EyeTrackingReportView: View {
                 Image(systemName: "lightbulb.fill")
                     .font(.system(size: 16))
                     .foregroundColor(.yellow)
-                Text(LanguageManager.shared.localized("eye.interpretation_title"))
+                Text(LanguageManager.localized("eye.interpretation_title"))
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
             }
@@ -372,7 +372,7 @@ struct EyeTrackingReportView: View {
             HStack(spacing: 8) {
                 Image(systemName: "trash")
                     .font(.system(size: 14))
-                Text(LanguageManager.shared.localized("eye.delete_button"))
+                Text(LanguageManager.localized("eye.delete_button"))
                     .font(.system(size: 14, weight: .medium))
             }
             .foregroundColor(.red)

@@ -71,7 +71,7 @@ struct ReflectionTimeView: View {
                 }
 
                 ToolbarItem(placement: .principal) {
-                    Text(LanguageManager.shared.localized("reflect.title"))
+                    Text(LanguageManager.localized("reflect.title"))
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                 }
             }
@@ -125,11 +125,11 @@ struct ReflectionTimeView: View {
                 }
 
                 VStack(spacing: 8) {
-                    Text(LanguageManager.shared.localized("reflect.welcome.title"))
+                    Text(LanguageManager.localized("reflect.welcome.title"))
                         .font(.system(size: 24, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 
-                    Text(LanguageManager.shared.localized("reflect.welcome.subtitle"))
+                    Text(LanguageManager.localized("reflect.welcome.subtitle"))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -138,8 +138,8 @@ struct ReflectionTimeView: View {
                 VStack(spacing: 12) {
                     SessionOptionCard(
                         icon: "brain.head.profile",
-                        title: LanguageManager.shared.localized("reflect.daily_checkin.title"),
-                        description: LanguageManager.shared.localized("reflect.daily_checkin.desc"),
+                        title: LanguageManager.localized("reflect.daily_checkin.title"),
+                        description: LanguageManager.localized("reflect.daily_checkin.desc"),
                         color: KomalColors.bubblegumPink
                     ) {
                         withAnimation { currentSession = .sel }
@@ -147,8 +147,8 @@ struct ReflectionTimeView: View {
 
                     SessionOptionCard(
                         icon: "bubble.left.and.bubble.right.fill",
-                        title: LanguageManager.shared.localized("reflect.free_chat.title"),
-                        description: LanguageManager.shared.localized("reflect.free_chat.desc"),
+                        title: LanguageManager.localized("reflect.free_chat.title"),
+                        description: LanguageManager.localized("reflect.free_chat.desc"),
                         color: Color.orange
                     ) {
                         withAnimation { currentSession = .freeChat }
@@ -203,7 +203,7 @@ struct TimerBar: View {
 
                 Spacer()
 
-                Text(LanguageManager.shared.localized("reflect.remaining"))
+                Text(LanguageManager.localized("reflect.remaining"))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
             }
@@ -322,7 +322,7 @@ struct FreeChatSessionView: View {
                 Button(action: onBack) {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.left")
-                        Text(LanguageManager.shared.localized("common.back"))
+                        Text(LanguageManager.localized("common.back"))
                     }
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(KomalColors.lavenderPurple)
@@ -345,7 +345,7 @@ struct FreeChatSessionView: View {
                                 HStack(spacing: 6) {
                                     ProgressView()
                                         .scaleEffect(0.7)
-                                    Text(LanguageManager.shared.localized("reflect.free_chat.thinking"))
+                                    Text(LanguageManager.localized("reflect.free_chat.thinking"))
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
                                 }
@@ -386,7 +386,7 @@ struct FreeChatSessionView: View {
                         .animation(KomalAnimations.spring, value: isRecording)
                 }
 
-                TextField(LanguageManager.shared.localized("reflect.free_chat.placeholder"), text: $inputText)
+                TextField(LanguageManager.localized("reflect.free_chat.placeholder"), text: $inputText)
                     .font(.system(size: 16, weight: .medium))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -414,9 +414,9 @@ struct FreeChatSessionView: View {
 
             // Initial greeting
             let greetings = [
-                LanguageManager.shared.localized("reflect.chat.greeting.1"),
-                LanguageManager.shared.localized("reflect.chat.greeting.2"),
-                LanguageManager.shared.localized("reflect.chat.greeting.3")
+                LanguageManager.localized("reflect.chat.greeting.1"),
+                LanguageManager.localized("reflect.chat.greeting.2"),
+                LanguageManager.localized("reflect.chat.greeting.3")
             ]
             messages.append(ReflectionChatMessage(
                 id: UUID(),
@@ -507,7 +507,7 @@ struct FreeChatSessionView: View {
                 inputText = ""
                 let redirectMessage = ReflectionChatMessage(
                     id: UUID(),
-                    text: LanguageManager.shared.localized("chat.content_redirect"),
+                    text: LanguageManager.localized("chat.content_redirect"),
                     isFromUser: false
                 )
                 withAnimation { messages.append(redirectMessage) }
@@ -538,7 +538,7 @@ struct FreeChatSessionView: View {
                 let displayResponse: String = await MainActor.run {
                     let pref = appState.contentFilterPreferences.parasocialContent
                     if scanResult.riskLevel == .high && pref != .allow {
-                        return LanguageManager.shared.localized("chat.content_redirect")
+                        return LanguageManager.localized("chat.content_redirect")
                     }
                     return response
                 }
@@ -555,11 +555,11 @@ struct FreeChatSessionView: View {
                     isGenerating = false
                     // Fallback response
                     let fallbackResponses = [
-                        LanguageManager.shared.localized("reflect.chat.fallback.1"),
-                        LanguageManager.shared.localized("reflect.chat.fallback.2"),
-                        LanguageManager.shared.localized("reflect.chat.fallback.3"),
-                        LanguageManager.shared.localized("reflect.chat.fallback.4"),
-                        LanguageManager.shared.localized("reflect.chat.fallback.5")
+                        LanguageManager.localized("reflect.chat.fallback.1"),
+                        LanguageManager.localized("reflect.chat.fallback.2"),
+                        LanguageManager.localized("reflect.chat.fallback.3"),
+                        LanguageManager.localized("reflect.chat.fallback.4"),
+                        LanguageManager.localized("reflect.chat.fallback.5")
                     ]
                     let responseMessage = ReflectionChatMessage(
                         id: UUID(),
@@ -624,15 +624,15 @@ struct CompletionView: View {
             }
 
             VStack(spacing: 8) {
-                Text(LanguageManager.shared.localized("reflect.completion.title"))
+                Text(LanguageManager.localized("reflect.completion.title"))
                     .font(.system(size: 28, weight: .bold, design: .rounded))
 
-                Text(LanguageManager.shared.localized("reflect.completion.subtitle"))
+                Text(LanguageManager.localized("reflect.completion.subtitle"))
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
             }
 
-            Text(LanguageManager.shared.localized("reflect.completion.message"))
+            Text(LanguageManager.localized("reflect.completion.message"))
                 .font(.system(size: 14, weight: .regular))
                 .foregroundColor(KomalColors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -641,7 +641,7 @@ struct CompletionView: View {
             Spacer()
 
             Button(action: { dismiss() }) {
-                Text(LanguageManager.shared.localized("common.done"))
+                Text(LanguageManager.localized("common.done"))
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)

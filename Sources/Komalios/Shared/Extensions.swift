@@ -21,12 +21,12 @@ extension UIApplication {
 extension String {
     /// Shorthand for localization using current language
     var localized: String {
-        LanguageManager.shared.localized(self)
+        LanguageManager.localized(self)
     }
 
     /// Localize with format arguments
     func localized(_ args: CVarArg...) -> String {
-        let template = LanguageManager.shared.localized(self)
+        let template = LanguageManager.localized(self)
         return String(format: template, arguments: args)
     }
 }

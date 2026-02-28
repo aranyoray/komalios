@@ -28,9 +28,9 @@ struct GateView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         RikiAssistantCard(
-                            title: LanguageManager.shared.localized("gate.riki_pause"),
-                            message: LanguageManager.shared.localized("gate.touches_on", category.label),
-                            buttonTitle: LanguageManager.shared.localized("gate.start_break")
+                            title: LanguageManager.localized("gate.riki_pause"),
+                            message: LanguageManager.localized("gate.touches_on", category.label),
+                            buttonTitle: LanguageManager.localized("gate.start_break")
                         ) {
                             showMindfulBreak = true
                         }
@@ -43,7 +43,7 @@ struct GateView: View {
                                         .font(.system(size: 24))
                                         .foregroundColor(KomalColors.pearlAqua)
 
-                                    Text(LanguageManager.shared.localized("gate.parent_approval"))
+                                    Text(LanguageManager.localized("gate.parent_approval"))
                                         .font(.system(size: 22, weight: .bold, design: .rounded))
                                         .foregroundColor(KomalColors.textPrimary)
 
@@ -67,7 +67,7 @@ struct GateView: View {
                                     } label: {
                                         HStack {
                                             Image(systemName: BiometricAuthService.biometricIcon)
-                                            Text(LanguageManager.shared.localized("gate.approve_biometric", BiometricAuthService.biometricName))
+                                            Text(LanguageManager.localized("gate.approve_biometric", BiometricAuthService.biometricName))
                                         }
                                         .frame(maxWidth: .infinity)
                                     }
@@ -75,25 +75,25 @@ struct GateView: View {
 
                                     HStack {
                                         VStack { Divider() }
-                                        Text(LanguageManager.shared.localized("gate.or_enter_pin"))
+                                        Text(LanguageManager.localized("gate.or_enter_pin"))
                                             .font(.system(size: 12, weight: .medium, design: .rounded))
                                             .foregroundColor(KomalColors.textSecondary)
                                         VStack { Divider() }
                                     }
                                 }
 
-                                SecureField(LanguageManager.shared.localized("gate.enter_pin"), text: $pin)
+                                SecureField(LanguageManager.localized("gate.enter_pin"), text: $pin)
                                     .roundedTextFieldStyle()
                                     .keyboardType(.numberPad)
 
                                 if showPinError {
                                     if isLockedOut, let until = lockedUntil {
                                         let remaining = Int(until.timeIntervalSinceNow) + 1
-                                        Text(LanguageManager.shared.localized("gate.locked_out", remaining))
+                                        Text(LanguageManager.localized("gate.locked_out", remaining))
                                             .font(.system(size: 13, weight: .medium))
                                             .foregroundColor(.red)
                                     } else {
-                                        Text(LanguageManager.shared.localized("gate.wrong_pin"))
+                                        Text(LanguageManager.localized("gate.wrong_pin"))
                                             .font(.system(size: 13, weight: .medium))
                                             .foregroundColor(.red)
                                     }
@@ -118,7 +118,7 @@ struct GateView: View {
                                 } label: {
                                     HStack {
                                         Image(systemName: "checkmark.circle.fill")
-                                        Text(LanguageManager.shared.localized("gate.approve_continue"))
+                                        Text(LanguageManager.localized("gate.approve_continue"))
                                     }
                                     .frame(maxWidth: .infinity)
                                 }
@@ -128,7 +128,7 @@ struct GateView: View {
                         }
                         .padding(.horizontal, 16)
 
-                        Text(LanguageManager.shared.localized("gate.access_gated", appState.currentProfileName, appState.activeProfile.ageGroup.rawValue))
+                        Text(LanguageManager.localized("gate.access_gated", appState.currentProfileName, appState.activeProfile.ageGroup.rawValue))
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
@@ -137,7 +137,7 @@ struct GateView: View {
                     .padding(.vertical, 16)
                 }
             }
-            .navigationTitle(LanguageManager.shared.localized("gate.title"))
+            .navigationTitle(LanguageManager.localized("gate.title"))
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showMindfulBreak) {
                 MindfulBreakView()

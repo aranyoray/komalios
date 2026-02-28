@@ -9,10 +9,10 @@ struct BlockedView: View {
     /// curiosity-satisfying explanation, invite guided exploration."
     private var educationalMessages: [String] {
         [
-            LanguageManager.shared.localized("blocked.educational.1"),
-            LanguageManager.shared.localized("blocked.educational.2"),
-            LanguageManager.shared.localized("blocked.educational.3"),
-            LanguageManager.shared.localized("blocked.educational.4")
+            LanguageManager.localized("blocked.educational.1"),
+            LanguageManager.localized("blocked.educational.2"),
+            LanguageManager.localized("blocked.educational.3"),
+            LanguageManager.localized("blocked.educational.4")
         ]
     }
 
@@ -31,7 +31,7 @@ struct BlockedView: View {
 
                 BubblyCard {
                     VStack(spacing: 14) {
-                        Text(LanguageManager.shared.localized("blocked.hi_there"))
+                        Text(LanguageManager.localized("blocked.hi_there"))
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
 
@@ -48,7 +48,7 @@ struct BlockedView: View {
                                 Image(systemName: "magnifyingglass")
                                     .foregroundColor(.white)
 
-                                Text(LanguageManager.shared.localized("blocked.find_something_else"))
+                                Text(LanguageManager.localized("blocked.find_something_else"))
                                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                                     .foregroundColor(.white)
                             }

@@ -21,11 +21,11 @@ struct FilterPreferencesView: View {
                 VStack(spacing: 16) {
                     // Header
                     VStack(spacing: 8) {
-                        Text(LanguageManager.shared.localized("filter.content_settings"))
+                        Text(LanguageManager.localized("filter.content_settings"))
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
 
-                        Text(LanguageManager.shared.localized("filter.customize"))
+                        Text(LanguageManager.localized("filter.customize"))
                             .font(.system(size: 14, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary)
                     }
@@ -33,21 +33,21 @@ struct FilterPreferencesView: View {
                     
                     // Legend — gradient bar with labels
                     HStack(spacing: 0) {
-                        Text(LanguageManager.shared.localized("filter.block"))
+                        Text(LanguageManager.localized("filter.block"))
                             .font(.system(size: 11, weight: .bold, design: .rounded))
                             .textCase(.uppercase)
                             .foregroundColor(Color(hex: "C0392B"))
 
                         Spacer()
 
-                        Text(LanguageManager.shared.localized("filter.gate"))
+                        Text(LanguageManager.localized("filter.gate"))
                             .font(.system(size: 11, weight: .bold, design: .rounded))
                             .textCase(.uppercase)
                             .foregroundColor(Color(hex: "BF4800")) // Darkened for 4.94:1 AA contrast
 
                         Spacer()
 
-                        Text(LanguageManager.shared.localized("filter.allow"))
+                        Text(LanguageManager.localized("filter.allow"))
                             .font(.system(size: 11, weight: .bold, design: .rounded))
                             .textCase(.uppercase)
                             .foregroundColor(Color(hex: "1E8449"))
@@ -84,7 +84,7 @@ struct FilterPreferencesView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(LanguageManager.shared.localized("common.done")) {
+                    Button(LanguageManager.localized("common.done")) {
                         appState.savePreferences()
                         dismiss()
                     }

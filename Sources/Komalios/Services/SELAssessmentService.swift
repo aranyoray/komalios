@@ -53,7 +53,7 @@ final class SELAssessmentService: ObservableObject {
 
     // MARK: - Scenario Pools (localized)
 
-    private func l(_ key: String) -> String { LanguageManager.shared.localized(key) }
+    private func l(_ key: String) -> String { LanguageManager.localized(key) }
 
     private func buildScenario(id: String, domain: SELDomain, emoji: String, checks: [(id: String, competency: String, emojis: [String], scores: [Int])]) -> SELScenario {
         SELScenario(
@@ -223,7 +223,7 @@ final class SELAssessmentService: ObservableObject {
                 growthAreas: [],
                 overallScore: 0,
                 trend: .stable,
-                insight: LanguageManager.shared.localized("sel.insight.no_data")
+                insight: LanguageManager.localized("sel.insight.no_data")
             )
         }
 

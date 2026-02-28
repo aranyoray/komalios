@@ -73,6 +73,17 @@ enum TimeRangeOption: String, CaseIterable, Identifiable {
         case .allTime: return nil
         }
     }
+
+    var displayName: String {
+        switch self {
+        case .oneHour: return LanguageManager.localized("journey.range.1h")
+        case .threeHours: return LanguageManager.localized("journey.range.3h")
+        case .sixHours: return LanguageManager.localized("journey.range.6h")
+        case .twelveHours: return LanguageManager.localized("journey.range.12h")
+        case .twentyFourHours: return LanguageManager.localized("journey.range.24h")
+        case .allTime: return LanguageManager.localized("journey.range.all")
+        }
+    }
 }
 
 struct HistoryBatch: Identifiable {

@@ -68,18 +68,18 @@ struct SELDailySessionView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            Text(LanguageManager.shared.localized("sel.mindfulness_moment"))
+            Text(LanguageManager.localized("sel.mindfulness_moment"))
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(KomalColors.lavenderPurple)
                 .tracking(1.5)
                 .padding(.bottom, 16)
 
-            Text(LanguageManager.shared.localized("sel.deep_breaths", breathCycles))
+            Text(LanguageManager.localized("sel.deep_breaths", breathCycles))
                 .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
                 .padding(.bottom, 8)
 
-            Text(LanguageManager.shared.localized("sel.breathe_instruction"))
+            Text(LanguageManager.localized("sel.breathe_instruction"))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(KomalColors.textSecondary)
                 .padding(.bottom, 20)
@@ -102,17 +102,17 @@ struct SELDailySessionView: View {
                     .font(.system(size: 36))
             }
             .padding(.bottom, 20)
-            .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.breathing_circle"))
-            .accessibilityValue(LanguageManager.shared.localized("sel.breath_counter", breathCount + 1, breathCycles))
+            .accessibilityLabel(LanguageManager.localized("accessibility.sel.breathing_circle"))
+            .accessibilityValue(LanguageManager.localized("sel.breath_counter", breathCount + 1, breathCycles))
 
-            Text(LanguageManager.shared.localized("sel.breath_counter", breathCount + 1, breathCycles))
+            Text(LanguageManager.localized("sel.breath_counter", breathCount + 1, breathCycles))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(KomalColors.textSecondary)
 
             Spacer()
 
             Button(action: { withAnimation { phase = .scenarios } }) {
-                Text(LanguageManager.shared.localized("sel.skip_to_activities"))
+                Text(LanguageManager.localized("sel.skip_to_activities"))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
                     .underline()
@@ -165,7 +165,7 @@ struct SELDailySessionView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         // Domain label
-                        Text(LanguageManager.shared.localized("sel.domain_check", scenario.domain.label.uppercased(), checkIdx + 1))
+                        Text(LanguageManager.localized("sel.domain_check", scenario.domain.label.uppercased(), checkIdx + 1))
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(KomalColors.lavenderPurple)
                             .tracking(0.5)
@@ -299,9 +299,9 @@ struct SELDailySessionView: View {
 
     private func feedbackText(for score: Int) -> String {
         switch score {
-        case 3: return LanguageManager.shared.localized("sel.feedback.great") + " 🌟"
-        case 2: return LanguageManager.shared.localized("sel.feedback.good") + " 👍"
-        default: return LanguageManager.shared.localized("sel.feedback.okay") + " 😊"
+        case 3: return LanguageManager.localized("sel.feedback.great") + " 🌟"
+        case 2: return LanguageManager.localized("sel.feedback.good") + " 👍"
+        default: return LanguageManager.localized("sel.feedback.okay") + " 😊"
         }
     }
 
@@ -314,27 +314,27 @@ struct SELDailySessionView: View {
             Text("🌟")
                 .font(.system(size: 64))
                 .padding(.bottom, 24)
-                .accessibilityLabel(LanguageManager.shared.localized("accessibility.sel.completion_star"))
+                .accessibilityLabel(LanguageManager.localized("accessibility.sel.completion_star"))
 
-            Text(LanguageManager.shared.localized("sel.wonderful_job"))
+            Text(LanguageManager.localized("sel.wonderful_job"))
                 .font(.system(size: 24, weight: .bold, design: .rounded))
                 .foregroundColor(KomalColors.textPrimary)
                 .padding(.bottom, 8)
 
-            Text(LanguageManager.shared.localized("sel.closing_message"))
+            Text(LanguageManager.localized("sel.closing_message"))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(KomalColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 12)
 
-            Text(LanguageManager.shared.localized("sel.activities_completed", results.count))
+            Text(LanguageManager.localized("sel.activities_completed", results.count))
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(KomalColors.lavenderPurple)
                 .padding(.bottom, 32)
 
             Button(action: handleFinish) {
-                Text(LanguageManager.shared.localized("common.done"))
+                Text(LanguageManager.localized("common.done"))
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(maxWidth: 280)

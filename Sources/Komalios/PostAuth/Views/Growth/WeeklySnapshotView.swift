@@ -26,7 +26,7 @@ struct WeeklySnapshotView: View {
                                 .font(.system(size: 48))
                                 .foregroundColor(KomalColors.bubblegumPink)
 
-                            Text(LanguageManager.shared.localized("growth.snapshot.title"))
+                            Text(LanguageManager.localized("growth.snapshot.title"))
                                 .font(.system(size: 26, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
 
@@ -41,13 +41,13 @@ struct WeeklySnapshotView: View {
                             SnapshotStatCard(
                                 icon: "calendar",
                                 value: "\(snapshot.activeDays)",
-                                label: LanguageManager.shared.localized("growth.active_days"),
+                                label: LanguageManager.localized("growth.active_days"),
                                 color: KomalColors.pearlAqua
                             )
                             SnapshotStatCard(
                                 icon: "bubble.left.fill",
                                 value: "\(snapshot.totalChats)",
-                                label: LanguageManager.shared.localized("growth.chats"),
+                                label: LanguageManager.localized("growth.chats"),
                                 color: KomalColors.bubblegumPink
                             )
                         }
@@ -57,13 +57,13 @@ struct WeeklySnapshotView: View {
                             SnapshotStatCard(
                                 icon: "sparkles",
                                 value: "\(snapshot.totalReflections)",
-                                label: LanguageManager.shared.localized("growth.reflections"),
+                                label: LanguageManager.localized("growth.reflections"),
                                 color: KomalColors.lavenderPurple
                             )
                             SnapshotStatCard(
                                 icon: "heart.fill",
                                 value: "\(snapshot.totalMoodCheckIns)",
-                                label: LanguageManager.shared.localized("growth.snapshot.mood_checkins"),
+                                label: LanguageManager.localized("growth.snapshot.mood_checkins"),
                                 color: .orange
                             )
                         }
@@ -73,7 +73,7 @@ struct WeeklySnapshotView: View {
                         if let emotion = snapshot.dominantEmotion {
                             SettingsCard {
                                 VStack(spacing: 8) {
-                                    Text(LanguageManager.shared.localized("growth.snapshot.most_common_mood"))
+                                    Text(LanguageManager.localized("growth.snapshot.most_common_mood"))
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
                                     Text(emotion)
@@ -88,7 +88,7 @@ struct WeeklySnapshotView: View {
                         if let characterName = snapshot.topCharacterName {
                             SettingsCard {
                                 VStack(spacing: 8) {
-                                    Text(LanguageManager.shared.localized("growth.snapshot.favorite_friend"))
+                                    Text(LanguageManager.localized("growth.snapshot.favorite_friend"))
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
                                     Text(characterName)
@@ -103,7 +103,7 @@ struct WeeklySnapshotView: View {
                         if let insight = snapshot.aiGrowthInsight {
                             SettingsCard {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    CardHeader(icon: "lightbulb.fill", title: LanguageManager.shared.localized("growth.snapshot.growth_insight"), color: KomalColors.pearlAqua)
+                                    CardHeader(icon: "lightbulb.fill", title: LanguageManager.localized("growth.snapshot.growth_insight"), color: KomalColors.pearlAqua)
 
                                     Text(insight)
                                         .font(.system(size: 14, weight: .medium, design: .rounded))
@@ -115,7 +115,7 @@ struct WeeklySnapshotView: View {
                         }
 
                         Button(action: { dismiss() }) {
-                            Text(LanguageManager.shared.localized("growth.snapshot.keep_going"))
+                            Text(LanguageManager.localized("growth.snapshot.keep_going"))
                                 .font(.system(size: 17, weight: .semibold, design: .rounded))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -131,7 +131,7 @@ struct WeeklySnapshotView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(LanguageManager.shared.localized("common.done")) { dismiss() }
+                    Button(LanguageManager.localized("common.done")) { dismiss() }
                 }
             }
         }
