@@ -92,16 +92,50 @@ final class EngagementTracker: ObservableObject {
         #endif
         var scripts: [WKUserScript] = []
 
-        // CRITICAL: Inject pre-hide CSS at DOCUMENT START so images are hidden
-        // BEFORE they render. The image scanner JS (at document end) will reveal
-        // safe images and replace unsafe ones. Without this, images flash visible
-        // during the entire page load before the scanner runs.
+        // CRITICAL: Inject pre-hide CSS + URL pre-classification at DOCUMENT START
+        // so images are hidden BEFORE they render. Per spec: "Intercept request →
+        // pre-classify URL hash → IF risk score > threshold: Do not render image.
+        // Show Komal placeholder. Must be synchronous."
+        // Images from known risky domains are blocked entirely without download.
         let preHideCSS = """
         (function() {
             var s = document.createElement('style');
             s.id = 'komal-prehide';
             s.textContent = 'img:not([data-komal-safe]):not([data-komal-replaced]) { opacity: 0 !important; pointer-events: none !important; } video:not([data-komal-safe]):not([data-komal-replaced]) { opacity: 0 !important; pointer-events: none !important; }';
             (document.head || document.documentElement).appendChild(s);
+
+            // Synchronous URL pre-classification for known risky domains
+            var riskyDomains = ['pornhub','xvideos','xnxx','xhamster','redtube','youporn','spankbang','brazzers','onlyfans','playboy','hentai','rule34','e621','nhentai','gelbooru','danbooru','chaturbate','livejasmin','stripchat','bongacams','bestgore','liveleak','theync','documentingreality'];
+            var riskyPaths = ['nsfw','xxx','porn','adult','nude','naked','sexy','explicit','18+','mature','gore','violence','hentai','r34','rule34'];
+
+            window.__komalPreClassify = function(src) {
+                if (!src) return false;
+                var lower = src.toLowerCase();
+                for (var i = 0; i < riskyDomains.length; i++) {
+                    if (lower.indexOf(riskyDomains[i]) !== -1) return true;
+                }
+                for (var j = 0; j < riskyPaths.length; j++) {
+                    if (lower.indexOf(riskyPaths[j]) !== -1) return true;
+                }
+                return false;
+            };
+
+            // MutationObserver to intercept images as soon as they appear in DOM
+            var observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(m) {
+                    m.addedNodes.forEach(function(node) {
+                        if (node.tagName === 'IMG' && node.src && window.__komalPreClassify(node.src)) {
+                            node.setAttribute('data-komal-replaced', 'true');
+                            node.setAttribute('data-komal-original', node.src);
+                            node.removeAttribute('srcset');
+                            node.src = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="%23FFF5F8"/><text x="100" y="90" text-anchor="middle" font-size="40">\\uD83D\\uDEE1\\uFE0F</text><text x="100" y="120" text-anchor="middle" font-size="12" fill="%23D4A0A0">Komal</text></svg>');
+                            node.style.objectFit = 'contain';
+                            node.style.backgroundColor = '#FFF5F8';
+                        }
+                    });
+                });
+            });
+            observer.observe(document.documentElement, { childList: true, subtree: true });
         })();
         """
         scripts.append(WKUserScript(

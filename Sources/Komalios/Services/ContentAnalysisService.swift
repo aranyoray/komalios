@@ -1047,7 +1047,7 @@ final class ContentAnalysisService {
             let visionActions = convertToAgeActions(vision.subcategories, source: .vision, ageBand: band, filterPreferences: bandPreferences)
             let audioActions = convertToAgeActions(audio.subcategories, source: .audio, ageBand: band, filterPreferences: bandPreferences)
             let linksActions = convertToAgeActions(links.subcategories, source: .links, ageBand: band, filterPreferences: bandPreferences)
-            let cloudActions = cloud != nil ? convertToAgeActions(cloud!.subcategories, source: .cloud, ageBand: band, filterPreferences: bandPreferences) : nil
+            let cloudActions = cloud.map { convertToAgeActions($0.subcategories, source: .cloud, ageBand: band, filterPreferences: bandPreferences) }
 
             // Merge using most restrictive rule (BLOCK > GATE > ALLOW) for THIS band
             let candidates: [AgeAction] = [

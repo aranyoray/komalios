@@ -22,17 +22,26 @@ struct EmojiCheckInBubble: View {
         VStack(alignment: .trailing, spacing: 8) {
             if isExpanded {
                 VStack(spacing: 10) {
-                    Text(LanguageManager.shared.localized("checkin.how_are_you"))
+                    // Seamless conversational prompt — no "How are you feeling?" or emoji markers
+                    Text(LanguageManager.shared.localized("checkin.whats_on_your_mind"))
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 
-                    HStack(spacing: 12) {
-                        ForEach(emojis, id: \.self) { emoji in
+                    // Quick response bubbles instead of emoji markers
+                    HStack(spacing: 8) {
+                        ForEach(["Great!", "Okay", "Meh"], id: \.self) { response in
                             Button {
                                 withAnimation(KomalAnimations.spring) { isExpanded = false }
-                                onEmojiSelected(emoji)
+                                onEmojiSelected(response)
                             } label: {
-                                Text(emoji).font(.system(size: 30))
+                                Text(response)
+                                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                                    .foregroundColor(KomalColors.textPrimary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        Capsule().fill(KomalColors.background)
+                                    )
                             }
                             .buttonStyle(ScaleButtonStyle())
                         }

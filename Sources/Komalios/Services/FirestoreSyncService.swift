@@ -486,7 +486,7 @@ actor FirestoreSyncService {
 
     // MARK: - Helpers
 
-    /// Batch-delete all documents in a subcollection.
+    /// Batch-delete all documents in a subcollection (chunked to stay within Firestore's 500-op batch limit).
     private func deleteSubcollection(path: String) async {
         do {
             let snapshot = try await db.collection(path).getDocuments()
@@ -495,12 +495,19 @@ actor FirestoreSyncService {
                 return
             }
 
-            let batch = db.batch()
-            for doc in snapshot.documents {
-                batch.deleteDocument(doc.reference)
+            let batchLimit = 500
+            var deleted = 0
+            for chunkStart in stride(from: 0, to: snapshot.documents.count, by: batchLimit) {
+                let chunkEnd = min(chunkStart + batchLimit, snapshot.documents.count)
+                let chunk = snapshot.documents[chunkStart..<chunkEnd]
+                let batch = db.batch()
+                for doc in chunk {
+                    batch.deleteDocument(doc.reference)
+                }
+                try await batch.commit()
+                deleted += chunk.count
             }
-            try await batch.commit()
-            log.info("DELETE \(path) — \(snapshot.documents.count) docs deleted")
+            log.info("DELETE \(path) — \(deleted) docs deleted")
         } catch {
             log.error("DELETE FAILED \(path) — \(error.localizedDescription)")
         }

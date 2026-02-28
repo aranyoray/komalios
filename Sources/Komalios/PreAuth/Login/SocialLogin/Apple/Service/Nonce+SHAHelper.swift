@@ -8,8 +8,17 @@
 import Foundation
 import CryptoKit
 
+enum NonceError: LocalizedError {
+    case randomGenerationFailed(OSStatus)
+    var errorDescription: String? {
+        switch self {
+        case .randomGenerationFailed(let status): return "Unable to generate nonce. OSStatus \(status)"
+        }
+    }
+}
+
 enum Nonce {
-    static func randomString(length: Int = 32) -> String {
+    static func randomString(length: Int = 32) throws -> String {
         precondition(length > 0)
         let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
         var result = ""
@@ -18,7 +27,7 @@ enum Nonce {
         while remaining > 0 {
             var randoms = [UInt8](repeating: 0, count: 16)
             let status = SecRandomCopyBytes(kSecRandomDefault, randoms.count, &randoms)
-            if status != errSecSuccess { fatalError("Unable to generate nonce. OSStatus \(status)") }
+            if status != errSecSuccess { throw NonceError.randomGenerationFailed(status) }
 
             for r in randoms {
                 if remaining == 0 { break }

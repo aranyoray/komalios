@@ -40,8 +40,12 @@ struct RootView: View {
             // Contextual prompt overlay
             if let prompt = contextPrompt {
                 ContextualPromptOverlay(prompt: prompt) { action in
+                    // Edge Case E: Record acceptance when child engages with prompt
+                    ContextualPromptEngine.shared.recordAcceptance()
                     handlePromptAction(action)
                 } onDismiss: {
+                    // Edge Case E: Record dismissal when child ignores prompt
+                    ContextualPromptEngine.shared.recordDismissal()
                     withAnimation { contextPrompt = nil }
                 }
             }

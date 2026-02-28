@@ -16,6 +16,7 @@ final class BrowsingHistoryViewModel: ObservableObject {
 
     private let gemini = GeminiChatService()
     private var allLoadedEvents: [LocalHistoryEvent] = []
+    private var filterTask: Task<Void, Never>?
 
     /// - Parameter showAllByDefault: When true (parent context), shows all events including allowed.
     init(showAllByDefault: Bool = false) {
@@ -82,11 +83,14 @@ final class BrowsingHistoryViewModel: ObservableObject {
     // MARK: - Filter Changed
 
     func onFilterChanged() {
-        guard !allLoadedEvents.isEmpty, !isLoading else { return }
-        Task {
+        guard !allLoadedEvents.isEmpty else { return }
+        filterTask?.cancel()
+        filterTask = Task {
             isLoading = true
             await applyFiltersAndGroup()
-            isLoading = false
+            if !Task.isCancelled {
+                isLoading = false
+            }
         }
     }
 
@@ -126,6 +130,7 @@ final class BrowsingHistoryViewModel: ObservableObject {
         // Generate AI summaries
         let geminiService = gemini
         for (index, batch) in initialBatches.enumerated() {
+            guard !Task.isCancelled else { return }
             do {
                 let eventData: [[String: String]] = batch.events.map { event in
                     var dict: [String: String] = ["url": event.url, "action": event.action]

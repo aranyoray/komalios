@@ -9,6 +9,7 @@ import Foundation
 import Combine
 
 /// Service for analyzing text content and detecting concerning material
+@MainActor
 final class ContentAnalyzerService: ObservableObject {
     static let shared = ContentAnalyzerService()
     
@@ -71,27 +72,23 @@ final class ContentAnalyzerService: ObservableObject {
     
     /// Process a viewport snapshot from JavaScript
     func processViewportSnapshot(_ data: [String: Any], pageURL: URL) {
-        analysisQueue.async { [weak self] in
+        Task.detached(priority: .userInitiated) { [weak self] in
             guard let self = self else { return }
 
             let snapshot = self.parseSnapshot(data, pageURL: pageURL)
 
-            // Use summaryQueue → main to serialize with startPageTracking / finalizeCurrentPage
-            self.summaryQueue.async { [weak self] in
+            await MainActor.run { [weak self] in
                 guard let self = self else { return }
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    self.recentSnapshots.insert(snapshot, at: 0)
-                    if self.recentSnapshots.count > 50 {
-                        self.recentSnapshots = Array(self.recentSnapshots.prefix(50))
-                    }
-
-                    self.totalContentAnalyzed += snapshot.visibleContent.count
-                    self.flaggedContentCount += snapshot.flaggedKeywords.count
-
-                    // Update current page summary
-                    self.updatePageSummary(with: snapshot)
+                self.recentSnapshots.insert(snapshot, at: 0)
+                if self.recentSnapshots.count > 50 {
+                    self.recentSnapshots = Array(self.recentSnapshots.prefix(50))
                 }
+
+                self.totalContentAnalyzed += snapshot.visibleContent.count
+                self.flaggedContentCount += snapshot.flaggedKeywords.count
+
+                // Update current page summary
+                self.updatePageSummary(with: snapshot)
             }
         }
     }
@@ -239,7 +236,7 @@ final class ContentAnalyzerService: ObservableObject {
     
     // MARK: - Private Methods
     
-    private func parseSnapshot(_ data: [String: Any], pageURL: URL) -> ViewportSnapshot {
+    nonisolated private func parseSnapshot(_ data: [String: Any], pageURL: URL) -> ViewportSnapshot {
         let visibleContentData = data["visibleContent"] as? [[String: Any]] ?? []
         
         var visibleContent: [VisibleContent] = []
@@ -266,7 +263,7 @@ final class ContentAnalyzerService: ObservableObject {
         )
     }
     
-    private func parseVisibleContent(_ data: [String: Any]) -> VisibleContent {
+    nonisolated private func parseVisibleContent(_ data: [String: Any]) -> VisibleContent {
         let typeString = data["contentType"] as? String ?? "unknown"
         let contentType = VisibleContentType(rawValue: typeString) ?? .unknown
         

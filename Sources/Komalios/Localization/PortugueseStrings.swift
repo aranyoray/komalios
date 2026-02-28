@@ -187,7 +187,7 @@ enum PortugueseStrings {
         d["onboarding.concerns.desc"] = "Selecione suas principais preocupações. Priorizaremos a proteção nessas áreas."
 
         // Concern items
-        d["onboarding.concern.cyberbullying"] = "Cyberbullying"
+        d["onboarding.concern.cyberbullying"] = "Intimidação virtual"
         d["onboarding.concern.cyberbullying.desc"] = "Assédio, mensagens maldosas, exclusão"
         d["onboarding.concern.inappropriate"] = "Conteúdo inapropriado"
         d["onboarding.concern.inappropriate.desc"] = "Violência, temas adultos, material explícito"
@@ -202,7 +202,7 @@ enum PortugueseStrings {
         d["onboarding.concern.scams"] = "Golpes financeiros"
         d["onboarding.concern.scams.desc"] = "Compras no app, phishing"
         d["onboarding.concern.mental"] = "Saúde mental"
-        d["onboarding.concern.mental.desc"] = "Ansiedade, comparação, FOMO"
+        d["onboarding.concern.mental.desc"] = "Ansiedade, comparação, medo de ficar de fora"
 
         // MARK: - Onboarding Filters
         d["onboarding.filters.step"] = "7 de 8"
@@ -247,6 +247,21 @@ enum PortugueseStrings {
         d["menu.talk"] = "Conversar"
         d["menu.reflect"] = "Refletir"
         d["menu.settings"] = "Ajustes"
+
+        // MARK: - Plan Selection
+        d["plan.choose_title"] = "Escolha seu plano"
+        d["plan.choose_subtitle"] = "Escolha o nível certo de proteção para sua família"
+        d["plan.start_essentials"] = "Começar com Essentials"
+        d["plan.subscribe_to"] = "Assinar %@"
+        d["plan.restore_purchases"] = "Restaurar compras"
+        d["plan.purchase_error"] = "Erro na compra"
+        d["plan.unavailable"] = "Este plano não está disponível no momento. Tente novamente mais tarde."
+        d["plan.recommended"] = "RECOMENDADO"
+        d["plan.free"] = "Grátis"
+        d["plan.per_month"] = "%@/mês"
+        d["plan.loading"] = "Carregando..."
+        d["plan.profiles_up_to"] = "Até %d perfis infantis"
+        d["plan.profiles_unlimited"] = "Perfis infantis ilimitados"
 
         // MARK: - Settings
         d["settings.title"] = "Ajustes"
@@ -327,6 +342,32 @@ enum PortugueseStrings {
         d["settings.pin.placeholder"] = "PIN"
         d["settings.pin.error"] = "PIN incorreto. Tente novamente."
         d["settings.pin.biometric"] = "Usar %@"
+
+        // Settings - Subscription & Billing
+        d["settings.view_plans"] = "Ver todos os planos e preços"
+        d["settings.billing_invoices"] = "Faturamento e recibos"
+        d["settings.billing_desc"] = "Ver histórico de transações e recibos"
+        d["settings.manage_appstore"] = "Gerenciar na App Store"
+        d["settings.manage_appstore_desc"] = "Cancelar, renovar ou atualizar método de pagamento"
+        d["settings.current_plan"] = "Plano atual"
+        d["settings.per_month"] = "por mês"
+        d["settings.next_renewal"] = "Próxima renovação: %@"
+        d["settings.transaction_history"] = "Histórico de transações"
+        d["settings.no_transactions"] = "Nenhuma transação ainda"
+        d["settings.transactions_placeholder"] = "Seu histórico de compras aparecerá aqui"
+        d["settings.subscriptions_info"] = "As assinaturas são gerenciadas pelo seu Apple ID. Para solicitar um reembolso, visite reportaproblem.apple.com"
+        d["settings.plan_monthly"] = "%@ Mensal"
+
+        // Settings - PIN Management
+        d["settings.change_pin"] = "Alterar PIN"
+        d["settings.change_pin_desc"] = "Defina um novo PIN parental de 4 dígitos"
+        d["settings.forgot_pin"] = "Esqueceu o PIN? Redefina com %@"
+        d["settings.pin_updated"] = "PIN atualizado"
+        d["settings.pin_saved_msg"] = "Seu novo PIN parental foi salvo."
+        d["settings.set_new_pin"] = "Novo PIN"
+        d["settings.new_pin_desc"] = "Digite um novo PIN parental de 4 dígitos"
+        d["settings.pin_mismatch"] = "Os PINs não coincidem ou estão incompletos"
+        d["settings.save_pin"] = "Salvar PIN"
 
         // Settings - Localized UI Strings
         d["settings.logout_confirm"] = "Deseja sair?"
@@ -507,8 +548,12 @@ enum PortugueseStrings {
         // MARK: - Chat Content Filtering
         d["chat.content_redirect"] = "Ei, não posso conversar sobre isso! Que tal falarmos de algo legal? O que você mais gosta de fazer depois da escola?"
         d["browser.checking_page"] = "Verificando esta página para você..."
-        d["blocked.hi_there"] = "Oi! 👋"
+        d["blocked.hi_there"] = "E aí!"
         d["blocked.find_something_else"] = "Vamos encontrar outra coisa!"
+        d["blocked.educational.1"] = "Essa página não é ideal para explorar agora. Que tal encontrarmos algo incrível juntos?"
+        d["blocked.educational.2"] = "Alguns cantos da internet precisam de um guia adulto. Vamos descobrir algo legal!"
+        d["blocked.educational.3"] = "Tem tanta coisa para explorar! Vamos encontrar um caminho que leve a algo massa."
+        d["blocked.educational.4"] = "Nem toda porta precisa ser aberta hoje. Vamos encontrar uma que leve a algo incrível!"
         d["blocked.friendly_1"] = "Desculpe, mas este conteúdo não está disponível agora. Vamos encontrar algo divertido para explorar juntos! 🌟"
         d["blocked.friendly_2"] = "Isso não é bem pra gente agora. Que tal procurarmos algo incrível? 💙"
         d["blocked.friendly_3"] = "Vamos pular esse e encontrar algo ainda melhor! Estou aqui para te ajudar a descobrir coisas legais! 🎈"
@@ -528,6 +573,7 @@ enum PortugueseStrings {
         // MARK: - Emoji Check-in
         d["checkin.how_feeling"] = "Como você está se sentindo explorando isso?"
         d["checkin.how_are_you"] = "Como você está se sentindo?"
+        d["checkin.whats_on_your_mind"] = "O que está na sua mente?"
         d["checkin.hi_there"] = "Oi! 👋"
         d["checkin.intro_message"] = "Sou o Komal, e estou aqui navegando na internet com você! Como você está se sentindo agora?"
         d["checkin.thanks_komal"] = "Obrigado, Komal! 😊"
@@ -594,7 +640,7 @@ enum PortugueseStrings {
         d["reflect.sel.a_little"] = "Um pouco"
         d["reflect.sel.a_lot"] = "Muito"
         d["reflect.sel.things_help"] = "Coisas que podem ajudar:"
-        d["reflect.mindfulness.header"] = "Mindfulness"
+        d["reflect.mindfulness.header"] = "Atenção plena"
         d["reflect.mindfulness.calm_mind"] = "Reserve um momento para acalmar sua mente"
         d["reflect.going_deeper"] = "Aprofundando..."
         d["reflect.thinking_followup"] = "Pensando em uma continuação..."
@@ -751,7 +797,6 @@ enum PortugueseStrings {
         d["anchor.evening.subtitle"] = "Como foi seu dia?"
         d["anchor.evening.wind_down"] = "Vamos relaxar juntos"
         d["anchor.evening.how_feeling"] = "Como você está se sentindo esta noite?"
-        d["anchor.evening.best_part"] = "Qual foi a melhor parte do seu dia?"
         d["anchor.evening.best_placeholder"] = "A melhor parte foi..."
         d["anchor.evening.best_part_placeholder"] = "Me conta sobre isso..."
         d["anchor.evening.anything_bothering"] = "Algo te incomodando?"
@@ -863,6 +908,12 @@ enum PortugueseStrings {
         d["insights.dashboard.evening"] = "Noite"
         d["insights.dashboard.wellness_alert"] = "Alerta de bem-estar"
         d["insights.dashboard.wellness_alert_message"] = "Seu filho relatou estar triste por 3 ou mais check-ins consecutivos. Considere ter uma conversa gentil sobre como ele está se sentindo."
+        d["insights.dashboard.value_alignment"] = "Alinhamento de valores"
+        d["insights.dashboard.value_alignment_desc"] = "Converse sobre os valores que seu filho explorou online esta semana:"
+        d["insights.dashboard.generating_prompt"] = "Gerando sugestão..."
+        d["insights.dashboard.value_kindness"] = "O que você aprendeu sobre gentileza hoje?"
+        d["insights.dashboard.value_fairness"] = "Me conte sobre uma vez que alguém foi justo com você esta semana."
+        d["insights.dashboard.value_helping"] = "Como você ajudou alguém hoje?"
 
         // MARK: - Browsing History
         d["history.title"] = "Histórico de navegação"

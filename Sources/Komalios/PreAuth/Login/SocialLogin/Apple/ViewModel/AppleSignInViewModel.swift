@@ -23,22 +23,18 @@ final class AppleSignInViewModel: ObservableObject {
         service.startSignIn(useNonce: true) { [weak self] result in
             guard let self else { return }
 
-            switch result {
-            case .success(let payload):
-                // If you have a backend:
-                // send payload.identityToken + payload.nonce to server for verification,
-                // then create your own session.
-                self.state = .signedIn(
-                    userId: payload.userId,
-                    email: payload.email,
-                    fullName: payload.fullName
-                )
+            Task { @MainActor in
+                switch result {
+                case .success(let payload):
+                    self.state = .signedIn(
+                        userId: payload.userId,
+                        email: payload.email,
+                        fullName: payload.fullName
+                    )
 
-                // Debug
-                // print("identityToken:", payload.identityToken ?? "nil")
-
-            case .failure(let error):
-                self.state = .failed(error.localizedDescription)
+                case .failure(let error):
+                    self.state = .failed(error.localizedDescription)
+                }
             }
         }
     }

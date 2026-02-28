@@ -48,11 +48,11 @@ actor TextToSpeechService {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+            let bodyStr = String(data: data, encoding: .utf8) ?? "no body"
             #if DEBUG
-            let body = String(data: data, encoding: .utf8) ?? "no body"
-            print("[TTS] API error: status=\(statusCode) body=\(body)")
+            print("[TTS] API error: status=\(statusCode) body=\(bodyStr)")
             #endif
-            throw TTSError.apiError("status \(statusCode): \(body)")
+            throw TTSError.apiError("status \(statusCode): \(bodyStr)")
         }
 
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],

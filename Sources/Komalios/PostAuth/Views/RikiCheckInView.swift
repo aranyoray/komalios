@@ -5,12 +5,23 @@ import Speech
 
 // MARK: - Character Model
 
+/// Per spec section 5: Each avatar has an AvatarProfile with tone, age alignment,
+/// humor level, vocabulary band, and regulation style.
+struct AvatarProfile {
+    let toneStyle: String       // e.g. "playful", "calm", "energetic"
+    let ageAlignment: String    // e.g. "young_child", "preteen", "all_ages"
+    let humorLevel: Double      // 0–1 (0=serious, 1=very funny)
+    let vocabularyBand: String  // e.g. "simple", "moderate", "advanced"
+    let regulationStyle: String // e.g. "grounding", "redirecting", "mirroring"
+}
+
 struct RikiCharacter: Identifiable {
     let id: Int
     let name: String
     let imageName: String
     let greeting: String
     let personality: String
+    let profile: AvatarProfile
 
     var localizedGreeting: String {
         LanguageManager.shared.localized("riki.greeting.\(name.lowercased())")
@@ -23,37 +34,48 @@ struct RikiCharacter: Identifiable {
     static let allCharacters: [RikiCharacter] = [
         RikiCharacter(id: 1, name: "Momo", imageName: "animal1",
                       greeting: "Hey friend! I'm Momo. What's on your mind today?",
-                      personality: "A playful, curious monkey who loves climbing trees and exploring. Energetic and fun, loves jokes and riddles. Talks like a real buddy who's always up for an adventure."),
+                      personality: "A playful, curious monkey who loves climbing trees and exploring. Energetic and fun, loves jokes and riddles. Talks like a real buddy who's always up for an adventure.",
+                      profile: AvatarProfile(toneStyle: "playful", ageAlignment: "young_child", humorLevel: 0.9, vocabularyBand: "simple", regulationStyle: "redirecting")),
         RikiCharacter(id: 2, name: "Goldie", imageName: "animal2",
                       greeting: "Hey there! I'm Goldie, and I'm so happy to see you! What should we talk about?",
-                      personality: "A loyal, enthusiastic golden retriever. Loves playing fetch, going on walks, and making friends happy. Super supportive, always excited to hear what's going on in your life."),
+                      personality: "A loyal, enthusiastic golden retriever. Loves playing fetch, going on walks, and making friends happy. Super supportive, always excited to hear what's going on in your life.",
+                      profile: AvatarProfile(toneStyle: "enthusiastic", ageAlignment: "all_ages", humorLevel: 0.6, vocabularyBand: "simple", regulationStyle: "mirroring")),
         RikiCharacter(id: 3, name: "Oreo", imageName: "animal3",
                       greeting: "Hello! I'm Oreo. Ready for a fun chat?",
-                      personality: "A clever, friendly monkey who loves puzzles and learning new things. Thoughtful and encouraging, great at helping you think through tricky stuff."),
+                      personality: "A clever, friendly monkey who loves puzzles and learning new things. Thoughtful and encouraging, great at helping you think through tricky stuff.",
+                      profile: AvatarProfile(toneStyle: "thoughtful", ageAlignment: "preteen", humorLevel: 0.5, vocabularyBand: "moderate", regulationStyle: "redirecting")),
         RikiCharacter(id: 4, name: "Leo", imageName: "animal4",
                       greeting: "Hey! I'm Leo. Tell me something brave about your day!",
-                      personality: "A brave, kind lion who leads with courage. Encourages you to be brave, try new things, and believe in yourself. Warm and protective, like a big brother."),
+                      personality: "A brave, kind lion who leads with courage. Encourages you to be brave, try new things, and believe in yourself. Warm and protective, like a big brother.",
+                      profile: AvatarProfile(toneStyle: "encouraging", ageAlignment: "all_ages", humorLevel: 0.4, vocabularyBand: "moderate", regulationStyle: "grounding")),
         RikiCharacter(id: 5, name: "Bunny", imageName: "animal5",
                       greeting: "Hi there! I'm Bunny. What fun things have you been up to?",
-                      personality: "A gentle, sweet bunny who loves gardens, nature, and cozy things. A calming presence who's really good at listening and understanding how you feel."),
+                      personality: "A gentle, sweet bunny who loves gardens, nature, and cozy things. A calming presence who's really good at listening and understanding how you feel.",
+                      profile: AvatarProfile(toneStyle: "calm", ageAlignment: "young_child", humorLevel: 0.3, vocabularyBand: "simple", regulationStyle: "grounding")),
         RikiCharacter(id: 6, name: "Tiki", imageName: "animal6",
                       greeting: "Hey! I'm Tiki. What adventure shall we go on today?",
-                      personality: "An adventurous tiger who loves exploring and discovering new things. Brave but gentle, loves telling stories about nature and faraway places."),
+                      personality: "An adventurous tiger who loves exploring and discovering new things. Brave but gentle, loves telling stories about nature and faraway places.",
+                      profile: AvatarProfile(toneStyle: "adventurous", ageAlignment: "preteen", humorLevel: 0.6, vocabularyBand: "moderate", regulationStyle: "redirecting")),
         RikiCharacter(id: 7, name: "Fluffy", imageName: "animal7",
                       greeting: "Hi! I'm Fluffy. Come sit with me and let's have a cozy chat!",
-                      personality: "A soft, warm-hearted sheep who loves comfort and kindness. Very gentle and calming, great at helping you with feelings and worries. Like a best friend who always makes you feel better."),
+                      personality: "A soft, warm-hearted sheep who loves comfort and kindness. Very gentle and calming, great at helping you with feelings and worries. Like a best friend who always makes you feel better.",
+                      profile: AvatarProfile(toneStyle: "gentle", ageAlignment: "young_child", humorLevel: 0.2, vocabularyBand: "simple", regulationStyle: "mirroring")),
         RikiCharacter(id: 8, name: "Kitty", imageName: "animal8",
                       greeting: "Hey! I'm Kitty. I've been napping and now I'm ready to chat!",
-                      personality: "A curious, independent cat who loves cozy spots and being playful. Witty and fun, sometimes a little cheeky but always kind at heart."),
+                      personality: "A curious, independent cat who loves cozy spots and being playful. Witty and fun, sometimes a little cheeky but always kind at heart.",
+                      profile: AvatarProfile(toneStyle: "witty", ageAlignment: "preteen", humorLevel: 0.8, vocabularyBand: "moderate", regulationStyle: "redirecting")),
         RikiCharacter(id: 9, name: "Panda", imageName: "animal9",
                       greeting: "Hi there! I'm Panda. Want to hang out and chat for a bit?",
-                      personality: "A chill, lovable panda who enjoys taking it easy and being silly. Laid-back and funny, always knows how to make you laugh with goofy comments."),
+                      personality: "A chill, lovable panda who enjoys taking it easy and being silly. Laid-back and funny, always knows how to make you laugh with goofy comments.",
+                      profile: AvatarProfile(toneStyle: "chill", ageAlignment: "all_ages", humorLevel: 0.9, vocabularyBand: "simple", regulationStyle: "grounding")),
         RikiCharacter(id: 10, name: "Ellie", imageName: "animal10",
                       greeting: "Hey! I'm Ellie. I never forget my friends! What's new with you?",
-                      personality: "A wise, caring elephant with a great memory. Thoughtful and nurturing, loves sharing fun facts and helping you learn new things. Like a really smart friend who makes learning feel easy."),
+                      personality: "A wise, caring elephant with a great memory. Thoughtful and nurturing, loves sharing fun facts and helping you learn new things. Like a really smart friend who makes learning feel easy.",
+                      profile: AvatarProfile(toneStyle: "wise", ageAlignment: "all_ages", humorLevel: 0.4, vocabularyBand: "advanced", regulationStyle: "grounding")),
         RikiCharacter(id: 11, name: "Ducky", imageName: "animal11",
                       greeting: "Hey! I'm Ducky. Let's make today a good one — what's going on?",
-                      personality: "A cheerful, bubbly duck who loves being upbeat and positive. Great at cheering you up when things feel tough, always finds the bright side.")
+                      personality: "A cheerful, bubbly duck who loves being upbeat and positive. Great at cheering you up when things feel tough, always finds the bright side.",
+                      profile: AvatarProfile(toneStyle: "cheerful", ageAlignment: "young_child", humorLevel: 0.8, vocabularyBand: "simple", regulationStyle: "mirroring"))
     ]
 }
 
@@ -154,8 +176,15 @@ struct FocusedChatView: View {
     @State private var currentEmojis: [String] = []
     @State private var greetingSpoken: Bool = false
 
+    // Silence tier tracking — per spec edge case C:
+    // After 10s: gentle prompt, After 20s: offer opt-out, After 30s: close loop
+    @State private var silenceTierTimer: Timer?
+    @State private var silenceTierLevel: Int = 0  // 0=none, 1=10s, 2=20s, 3=30s
+
     @StateObject private var speechRecognizer = SpeechRecognizer()
     @StateObject private var audioPlayback = AudioPlaybackManager()
+    @ObservedObject private var rageDetector = RageDetectionService.shared
+    @ObservedObject private var networkMonitor = NetworkMonitorService.shared
 
     private let geminiService = GeminiChatService()
     private let memoryService = ConversationMemoryService.shared
@@ -294,9 +323,10 @@ struct FocusedChatView: View {
             .frame(maxHeight: 200)
             .animation(.easeInOut(duration: 0.3), value: messages.count)
 
-            // Listening transcript preview
+            // Listening transcript preview — per spec: no censoring with ### symbols,
+            // let the AI redirect naturally via system prompt
             if isListening && !speechRecognizer.transcript.isEmpty {
-                Text(BrowserState.censorText(speechRecognizer.transcript))
+                Text(speechRecognizer.transcript)
                     .font(.system(size: 14, weight: .regular, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
                     .multilineTextAlignment(.center)
@@ -362,11 +392,16 @@ struct FocusedChatView: View {
         .onDisappear {
             silenceTimer?.invalidate()
             silenceTimer = nil
+            silenceTierTimer?.invalidate()
+            silenceTierTimer = nil
             memoryService.endCurrentSession(characterId: character.id)
+            rageDetector.reset()
         }
         .onReceive(speechRecognizer.$transcript) { newValue in
             if !newValue.isEmpty {
-                inputText = BrowserState.censorText(newValue)
+                inputText = newValue
+                // Reset silence tiers when child starts speaking
+                resetSilenceTiers()
             }
             if isListening && !newValue.isEmpty {
                 silenceTimer?.invalidate()
@@ -389,6 +424,7 @@ struct FocusedChatView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     if !isPaused && !isListening && !isLoading {
                         startListening()
+                        startSilenceTierMonitoring()
                     }
                 }
             }
@@ -426,10 +462,16 @@ struct FocusedChatView: View {
         var redirectHint: String? = nil
         if let flagged = BrowserState.checkForInappropriateContent(text, isSearchQuery: true) {
             if BrowserState.isStrictKeyword(flagged) {
-                // Hard block for the worst content
+                // Hard block for the worst content — but per spec, never say
+                // "I can't talk about that". Use natural redirection instead.
                 messages.append(RikiChatMessage(id: UUID(), text: text, isFromUser: true))
                 inputText = ""
-                let redirect = LanguageManager.shared.localized("chat.content_redirect")
+                let redirectMessages = [
+                    "Hey, let's talk about something that helps you feel stronger. What's something cool you learned recently?",
+                    "I've got a way better idea — want to hear something amazing I just thought of?",
+                    "Let's switch gears! What's the most fun thing you've done this week?"
+                ]
+                let redirect = redirectMessages.randomElement() ?? redirectMessages[0]
                 withAnimation {
                     messages.append(RikiChatMessage(id: UUID(), text: redirect, isFromUser: false))
                 }
@@ -455,13 +497,27 @@ struct FocusedChatView: View {
             GeminiChatService.Message(role: msg.isFromUser ? "user" : "model", text: msg.text)
         }
 
-        let effectiveContext = [conversationContext, conversationInterruptionNote, redirectHint]
+        let effectiveContext = [conversationContext, conversationInterruptionNote, redirectHint, rageDetector.rageContextNote]
             .compactMap { $0 }
             .joined(separator: "\n")
         // Clear interruption note after threading it
         conversationInterruptionNote = nil
 
         Task {
+            // Edge Case D: Network offline fallback — no gating delay allowed
+            guard networkMonitor.isConnected else {
+                let isDistressed = rageDetector.isRageDetected
+                let fallback = networkMonitor.getOfflineResponse(isDistressed: isDistressed)
+                await MainActor.run {
+                    isLoading = false
+                    withAnimation {
+                        messages.append(RikiChatMessage(id: UUID(), text: fallback, isFromUser: false))
+                    }
+                }
+                await audioPlayback.speak(text: fallback, characterName: character.name)
+                return
+            }
+
             do {
                 let response = try await geminiService.sendMessage(
                     userMessage: text,
@@ -510,14 +566,79 @@ struct FocusedChatView: View {
         }
     }
 
+    // MARK: - Silence Tier Monitoring (per spec edge case C)
+
+    private func startSilenceTierMonitoring() {
+        silenceTierTimer?.invalidate()
+        silenceTierLevel = 0
+        silenceTierTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
+            Task { @MainActor in
+                guard isListening && speechRecognizer.transcript.isEmpty && !isPaused else {
+                    silenceTierTimer?.invalidate()
+                    silenceTierTimer = nil
+                    silenceTierLevel = 0
+                    return
+                }
+
+                silenceTierLevel += 1
+
+                switch silenceTierLevel {
+                case 1:
+                    // 10s: Gentle prompt
+                    let gentlePrompt = "I'm right here whenever you're ready to talk."
+                    withAnimation {
+                        messages.append(RikiChatMessage(id: UUID(), text: gentlePrompt, isFromUser: false))
+                    }
+                    Task { await audioPlayback.speak(text: gentlePrompt, characterName: character.name) }
+
+                case 2:
+                    // 20s: Offer opt-out
+                    let optOut = "No pressure at all! We can chat later if you'd like."
+                    withAnimation {
+                        messages.append(RikiChatMessage(id: UUID(), text: optOut, isFromUser: false))
+                    }
+                    Task { await audioPlayback.speak(text: optOut, characterName: character.name) }
+
+                case 3:
+                    // 30s: Close loop respectfully
+                    let closing = "I'll be here whenever you want to talk. See you soon!"
+                    withAnimation {
+                        messages.append(RikiChatMessage(id: UUID(), text: closing, isFromUser: false))
+                    }
+                    Task { await audioPlayback.speak(text: closing, characterName: character.name) }
+                    stopListening()
+                    silenceTierTimer?.invalidate()
+                    silenceTierTimer = nil
+
+                default:
+                    silenceTierTimer?.invalidate()
+                    silenceTierTimer = nil
+                }
+            }
+        }
+    }
+
+    private func resetSilenceTiers() {
+        silenceTierTimer?.invalidate()
+        silenceTierTimer = nil
+        silenceTierLevel = 0
+    }
+
     private func toggleListening() {
-        if audioPlayback.isPlaying { audioPlayback.interruptForChildSpeech() }
+        // Per spec section 5: immediately stop TTS playback on interrupt
+        if audioPlayback.isPlaying {
+            audioPlayback.interruptForChildSpeech()
+            // Acknowledge interruption naturally per spec: "Okay okay, I'm listening."
+            conversationInterruptionNote = "[The child interrupted while you were speaking. Acknowledge naturally — say something like 'Okay, I'm listening' and pick up from what they say next.]"
+        }
 
         if isListening {
             stopListening()
+            resetSilenceTiers()
             if !inputText.isEmpty { sendMessage() }
         } else {
             startListening()
+            startSilenceTierMonitoring()
         }
     }
 

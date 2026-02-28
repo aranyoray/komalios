@@ -51,6 +51,23 @@ final class ImageFilterService: ObservableObject {
     // Confidence threshold for filtering (0.0 - 1.0)
     // Only block images with meaningful confidence of inappropriate content
     private let filterConfidenceThreshold: Float = 0.50
+
+    // MARK: - URL Pre-Classification (Synchronous Blocking)
+    // Per spec: "Intercept request → pre-classify URL hash → IF risk > threshold: Do not render image"
+    // These known risky domain/path patterns are checked BEFORE any network request or image render.
+    private let riskyDomainPatterns: Set<String> = [
+        "pornhub", "xvideos", "xnxx", "xhamster", "redtube", "youporn",
+        "spankbang", "brazzers", "onlyfans", "playboy", "hentai",
+        "rule34", "e621", "nhentai", "gelbooru", "danbooru",
+        "chaturbate", "livejasmin", "stripchat", "bongacams",
+        "bestgore", "liveleak", "theync", "documentingreality"
+    ]
+
+    private let riskyPathPatterns: [String] = [
+        "nsfw", "xxx", "porn", "adult", "nude", "naked", "sexy",
+        "explicit", "18+", "mature", "gore", "violence",
+        "hentai", "r34", "rule34"
+    ]
     
     // MARK: - Initialization
     
@@ -122,7 +139,43 @@ final class ImageFilterService: ObservableObject {
     }
 
     // MARK: - Public API
-    
+
+    /// Synchronous URL pre-classification — called BEFORE any image download or render.
+    /// Returns a blocked result if the URL matches known risky patterns, nil otherwise.
+    /// Per spec: Must be synchronous. No network calls. No image rendering before this check.
+    func preClassifyURL(_ url: URL) -> ImageAnalysisResult? {
+        let urlString = url.absoluteString.lowercased()
+        let host = url.host?.lowercased() ?? ""
+
+        // Check domain against known risky domains
+        for pattern in riskyDomainPatterns {
+            if host.contains(pattern) {
+                return ImageAnalysisResult(
+                    imageURL: url,
+                    category: .explicit,
+                    confidence: 0.95,
+                    shouldFilter: true,
+                    action: .replaced
+                )
+            }
+        }
+
+        // Check URL path/query against risky path patterns
+        for pattern in riskyPathPatterns {
+            if urlString.contains(pattern) {
+                return ImageAnalysisResult(
+                    imageURL: url,
+                    category: .explicit,
+                    confidence: 0.85,
+                    shouldFilter: true,
+                    action: .replaced
+                )
+            }
+        }
+
+        return nil
+    }
+
     /// Analyze an image from URL and return classification result
     func analyzeImage(url: URL, preferences: ContentFilterPreferences) async -> ImageAnalysisResult {
         totalImagesAnalyzed += 1
@@ -131,6 +184,14 @@ final class ImageFilterService: ObservableObject {
         let cacheKey = url.absoluteString
         if let cached = urlResultCache[cacheKey] {
             return cached
+        }
+
+        // Synchronous URL pre-classification — block known risky URLs instantly
+        // Per spec: "Intercept request → pre-classify URL hash → Do not render image"
+        if let preClassified = preClassifyURL(url) {
+            totalImagesFiltered += 1
+            cacheResult(preClassified, forKey: cacheKey)
+            return preClassified
         }
 
         // Handle data: URLs by decoding base64 inline
@@ -223,7 +284,7 @@ final class ImageFilterService: ObservableObject {
         if revealingResult.level >= RevealingLevel.explicitExposure {
             let shouldFilter = self.shouldFilter(category: .explicit, preferences: preferences)
             if shouldFilter {
-                DispatchQueue.main.async { self.totalImagesFiltered += 1 }
+                self.totalImagesFiltered += 1
             }
             print("🛡️ Revealing level \(revealingResult.level.rawValue) → upgraded to explicit (score: \(revealingResult.aggregateScore))")
             return ImageAnalysisResult(
@@ -239,7 +300,7 @@ final class ImageFilterService: ObservableObject {
         if revealingResult.level >= RevealingLevel.partialExposure {
             let shouldFilter = self.shouldFilter(category: .suggestive, preferences: preferences)
             if shouldFilter {
-                DispatchQueue.main.async { self.totalImagesFiltered += 1 }
+                self.totalImagesFiltered += 1
             }
             print("🛡️ Revealing level \(revealingResult.level.rawValue) → upgraded to suggestive (score: \(revealingResult.aggregateScore))")
             return ImageAnalysisResult(
@@ -554,7 +615,7 @@ final class ImageFilterService: ObservableObject {
                 let shouldFilter = self.shouldFilter(category: category, preferences: preferences)
 
                 if shouldFilter {
-                    DispatchQueue.main.async { self.totalImagesFiltered += 1 }
+                    self.totalImagesFiltered += 1
                 }
 
                 return ImageAnalysisResult(
@@ -579,11 +640,9 @@ final class ImageFilterService: ObservableObject {
             let shouldFilter = self.shouldFilter(category: category, preferences: preferences) && confidence >= filterConfidenceThreshold
             
             if shouldFilter {
-                DispatchQueue.main.async {
-                    self.totalImagesFiltered += 1
-                }
+                self.totalImagesFiltered += 1
             }
-            
+
             return ImageAnalysisResult(
                 imageURL: url,
                 category: category,
@@ -592,7 +651,7 @@ final class ImageFilterService: ObservableObject {
                 action: shouldFilter ? .replaced : .allowed
             )
         }
-        
+
         // Default: safe
         return ImageAnalysisResult(
             imageURL: url,
@@ -742,7 +801,8 @@ final class ImageFilterService: ObservableObject {
                 .paragraphStyle: paragraphStyle
             ]
 
-            let text = "Protected by Komal"
+            // Per spec: No "Protected by Komal" text — just show the shield
+            let text = "Komal"
             let textRect = CGRect(x: 0, y: 140, width: size.width, height: 30)
             text.draw(in: textRect, withAttributes: textAttributes)
         }

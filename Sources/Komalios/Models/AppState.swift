@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import FirebaseAuth
 
+@MainActor
 final class AppState: ObservableObject {
     @Published var activeProfile = ChildProfile.sample
     @Published var parentSettings = ParentSettings.sample

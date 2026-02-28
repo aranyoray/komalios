@@ -29,24 +29,7 @@ struct BlockedEmojiPopup: View {
         ZStack {
             Color.black.opacity(0.6).ignoresSafeArea().onTapGesture {}
 
-            // Top-right mute button (only when talk feature is active)
-            if showTalkFeature {
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(action: { audioPlayback.isMuted.toggle() }) {
-                            Image(systemName: audioPlayback.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(audioPlayback.isMuted ? .white.opacity(0.5) : .white)
-                                .frame(width: 40, height: 40)
-                                .background(Circle().fill(Color.white.opacity(0.2)))
-                        }
-                        .padding(.trailing, 20)
-                        .padding(.top, 16)
-                    }
-                    Spacer()
-                }
-            }
+            // Per spec section 5: "No mute button" — removed mute toggle
 
             VStack(spacing: 24) {
                 Spacer()
@@ -192,6 +175,17 @@ struct BlockedEmojiPopup: View {
     private func sendVoiceMessage(_ text: String) {
         isLoadingChat = true
         Task {
+            // Edge Case D: Network offline fallback
+            guard NetworkMonitorService.shared.isConnected else {
+                let fallback = NetworkMonitorService.shared.getOfflineResponse()
+                await MainActor.run {
+                    chatResponse = fallback
+                    isLoadingChat = false
+                }
+                await audioPlayback.speak(text: fallback, characterName: characterName)
+                return
+            }
+
             do {
                 let response = try await geminiService.sendMessage(
                     userMessage: text, conversationHistory: [], characterName: characterName,

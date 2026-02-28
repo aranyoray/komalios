@@ -11,123 +11,94 @@ import SwiftUI
 struct KomalCheckInView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedEmotion: String? = nil
+    @State private var userInput: String = ""
     @State private var showResponse = false
-    
-    private var emotions: [(String, String)] {
-        let lang = LanguageManager.shared
-        return [
-            ("😊", lang.localized("checkin.emotion.happy")),
-            ("😐", lang.localized("checkin.emotion.okay")),
-            ("😔", lang.localized("checkin.emotion.sad")),
-            ("😴", lang.localized("checkin.emotion.tired")),
-            ("🤔", lang.localized("checkin.emotion.curious")),
-            ("😎", lang.localized("checkin.emotion.excited"))
-        ]
+    @State private var responseText: String = ""
+
+    /// Seamless conversational prompts — no emoji markers, no sliders, no multi-click friction
+    private let conversationalPrompts = [
+        "What's been on your mind today?",
+        "Tell me about something that happened today.",
+        "What's something you noticed today?",
+        "What are you curious about right now?"
+    ]
+
+    private var selectedPrompt: String {
+        conversationalPrompts.randomElement() ?? conversationalPrompts[0]
     }
 
-    private func responseForEmotion(_ label: String) -> String {
-        let lang = LanguageManager.shared
-        let happyLabel = lang.localized("checkin.emotion.happy")
-        let okayLabel = lang.localized("checkin.emotion.okay")
-        let sadLabel = lang.localized("checkin.emotion.sad")
-        let tiredLabel = lang.localized("checkin.emotion.tired")
-        let curiousLabel = lang.localized("checkin.emotion.curious")
-        let excitedLabel = lang.localized("checkin.emotion.excited")
-        if label == happyLabel { return lang.localized("checkin.response.happy") }
-        if label == okayLabel { return lang.localized("checkin.response.okay") }
-        if label == sadLabel { return lang.localized("checkin.response.sad") }
-        if label == tiredLabel { return lang.localized("checkin.response.tired") }
-        if label == curiousLabel { return lang.localized("checkin.response.curious") }
-        if label == excitedLabel { return lang.localized("checkin.response.excited") }
-        return lang.localized("checkin.response.happy")
-    }
-    
+    private let warmResponses = [
+        "That's really cool to share. Thanks for telling me!",
+        "I hear you. It's good to talk about these things.",
+        "Thanks for opening up! That takes courage.",
+        "I'm glad you told me that. You're doing great."
+    ]
+
     var body: some View {
         ZStack {
             GradientBackground()
-            
+
             VStack(spacing: 24) {
                 Spacer()
-                
+
                 // Selected avatar image
                 Image("animal\(appState.activeProfile.selectedAvatarIndex)")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 140, height: 140)
                     .shadow(color: Color.black.opacity(0.1), radius: 10, y: 5)
-                    .scaleEffect(showResponse ? 1.0 : 1.1)
-                    .animation(
-                        showResponse
-                            ? .spring(response: 0.3, dampingFraction: 0.6)
-                            : .spring(response: 0.3, dampingFraction: 0.6).repeatForever(autoreverses: true),
-                        value: showResponse
-                    )
-                
+
                 BubblyCard {
                     VStack(spacing: 20) {
                         if !showResponse {
-                            // Initial greeting
+                            // Seamless conversational prompt — no emoji grid, no sliders
                             VStack(spacing: 12) {
                                 Text(LanguageManager.shared.localized("checkin.hi_there"))
                                     .font(.system(size: 24, weight: .bold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
 
-                                Text(LanguageManager.shared.localized("checkin.intro_message"))
+                                Text(selectedPrompt)
                                     .font(.system(size: 16, weight: .medium, design: .rounded))
                                     .foregroundColor(KomalColors.textSecondary)
                                     .multilineTextAlignment(.center)
                                     .lineSpacing(4)
                             }
-                            
-                            // Emotion buttons
-                            LazyVGrid(columns: [
-                                GridItem(.flexible()),
-                                GridItem(.flexible()),
-                                GridItem(.flexible())
-                            ], spacing: 12) {
-                                ForEach(emotions, id: \.1) { emoji, label in
-                                    Button(action: {
-                                        selectedEmotion = label
-                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                                            showResponse = true
-                                        }
-                                    }) {
-                                        VStack(spacing: 8) {
-                                            Text(emoji)
-                                                .font(.system(size: 32))
-                                            Text(label)
-                                                .font(.system(size: 12, weight: .medium, design: .rounded))
-                                                .foregroundColor(KomalColors.textSecondary)
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 16)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 16)
-                                                .fill(selectedEmotion == label ? KomalColors.pearlAqua.opacity(0.2) : KomalColors.background)
-                                        )
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 16)
-                                                .stroke(selectedEmotion == label ? KomalColors.pearlAqua : Color.clear, lineWidth: 2)
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
+
+                            TextField("Type here...", text: $userInput)
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .padding(14)
+                                .background(KomalColors.background)
+                                .cornerRadius(16)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                                )
+
+                            Button(action: {
+                                responseText = warmResponses.randomElement() ?? warmResponses[0]
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                    showResponse = true
                                 }
+                            }) {
+                                Text(LanguageManager.shared.localized("common.next"))
+                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(userInput.isEmpty ? KomalColors.pearlAqua.opacity(0.5) : KomalColors.pearlAqua)
+                                    .cornerRadius(16)
                             }
+                            .disabled(userInput.isEmpty)
                         } else {
-                            // Response after emotion selected
+                            // Warm response — no friction, single tap to continue
                             VStack(spacing: 16) {
-                                if let emotion = selectedEmotion {
-                                    Text(responseForEmotion(emotion))
-                                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                                        .foregroundColor(KomalColors.textPrimary)
-                                        .multilineTextAlignment(.center)
-                                        .lineSpacing(4)
-                                }
-                                
-                                Button(action: {
-                                    dismiss()
-                                }) {
+                                Text(responseText)
+                                    .font(.system(size: 18, weight: .medium, design: .rounded))
+                                    .foregroundColor(KomalColors.textPrimary)
+                                    .multilineTextAlignment(.center)
+                                    .lineSpacing(4)
+
+                                Button(action: { dismiss() }) {
                                     Text(LanguageManager.shared.localized("checkin.thanks_komal"))
                                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                                         .foregroundColor(.white)
@@ -142,7 +113,7 @@ struct KomalCheckInView: View {
                     .padding(24)
                 }
                 .padding(.horizontal, 20)
-                
+
                 Spacer()
             }
         }

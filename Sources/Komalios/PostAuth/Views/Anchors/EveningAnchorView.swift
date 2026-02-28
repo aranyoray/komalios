@@ -10,25 +10,8 @@ struct EveningAnchorView: View {
 
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
-    @State private var currentStep = 0
-    @State private var selectedEmotion: String? = nil
-    @State private var selectedEmoji: String = ""
+    @State private var selectedMood: String? = nil
     @State private var showBreathing = false
-
-    // (emoji, storageKey, localizedLabel, color)
-    private var emotions: [(String, String, String, Color)] {
-        let lang = LanguageManager.shared
-        return [
-            ("😊", "Happy", lang.localized("reflect.emotion.happy"), KomalColors.pearlAqua),
-            ("😢", "Sad", lang.localized("reflect.emotion.sad"), Color.blue),
-            ("😠", "Angry", lang.localized("reflect.emotion.angry"), Color.red),
-            ("😰", "Worried", lang.localized("reflect.emotion.worried"), Color.orange),
-            ("😴", "Tired", lang.localized("reflect.emotion.tired"), Color.gray),
-            ("🤩", "Excited", lang.localized("reflect.emotion.excited"), KomalColors.bubblegumPink),
-            ("😐", "Okay", lang.localized("reflect.emotion.okay"), Color.gray),
-            ("🤔", "Confused", lang.localized("reflect.emotion.confused"), KomalColors.lavenderPurple)
-        ]
-    }
 
     var body: some View {
         NavigationView {
@@ -47,9 +30,10 @@ struct EveningAnchorView: View {
                     VStack(spacing: 24) {
                         characterGreeting
 
-                        if currentStep == 0 {
-                            emotionPickerSection
-                        } else {
+                        // Single-step conversational flow — no emoji grid
+                        eveningConversationSection
+
+                        if showBreathing {
                             windDownSection
                         }
                     }
@@ -90,56 +74,33 @@ struct EveningAnchorView: View {
         }
     }
 
-    // MARK: - Emotion Picker
+    // MARK: - Evening Conversation (single step, text-based mood)
 
-    private var emotionPickerSection: some View {
+    private var eveningConversationSection: some View {
         VStack(spacing: 20) {
             Text(LanguageManager.shared.localized("anchor.evening.how_feeling"))
-                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .foregroundColor(.white.opacity(0.8))
 
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                ForEach(emotions, id: \.1) { emotion in
+            // Quick text-based mood bubbles — no emoji markers
+            HStack(spacing: 10) {
+                ForEach(["Great", "Good", "Okay", "Tired"], id: \.self) { mood in
                     Button(action: {
                         withAnimation {
-                            selectedEmotion = emotion.1
-                            selectedEmoji = emotion.0
+                            selectedMood = mood
+                            showBreathing = true
                         }
                     }) {
-                        VStack(spacing: 6) {
-                            Text(emotion.0)
-                                .font(.system(size: 32))
-                            Text(emotion.2)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(selectedEmotion == emotion.1 ? .white : .white.opacity(0.7))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(selectedEmotion == emotion.1 ? emotion.3.opacity(0.4) : Color.white.opacity(0.1))
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(selectedEmotion == emotion.1 ? emotion.3 : Color.clear, lineWidth: 2)
-                        )
+                        Text(mood)
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(selectedMood == mood ? .white : .white.opacity(0.8))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule().fill(selectedMood == mood ? KomalColors.lavenderPurple : Color.white.opacity(0.15))
+                            )
                     }
                     .buttonStyle(.plain)
-                }
-            }
-
-            if selectedEmotion != nil {
-                Button(action: { withAnimation { currentStep = 1 } }) {
-                    Text(LanguageManager.shared.localized("common.next"))
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(KomalColors.lavenderPurple)
-                        .cornerRadius(14)
                 }
             }
         }
@@ -173,34 +134,35 @@ struct EveningAnchorView: View {
                     .cornerRadius(14)
             }
         }
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 
     // MARK: - Save
 
     private func saveAndDismiss() {
-        guard let emotion = selectedEmotion else { dismiss(); return }
+        guard let mood = selectedMood else { dismiss(); return }
 
         let todayStr = Self.dayFormatter.string(from: Date())
 
-        // Save anchor
+        // Save anchor — using text-based mood instead of emoji
         let anchor = DailyAnchor(
             date: todayStr,
             anchorType: .evening,
-            emotion: emotion,
-            emoji: selectedEmoji,
+            emotion: mood,
+            emoji: "",
             intensity: 5
         )
         GrowthTrackingService.shared.saveAnchor(anchor)
         GrowthTrackingService.shared.recordActivity(type: .eveningAnchor)
 
         // Save mood entry
-        let mood = MoodEntry(
-            emotion: emotion,
-            emoji: selectedEmoji,
+        let moodEntry = MoodEntry(
+            emotion: mood,
+            emoji: "",
             intensity: 5,
             context: .eveningAnchor
         )
-        MoodTrackingService.shared.logMood(mood)
+        MoodTrackingService.shared.logMood(moodEntry)
 
         // Update retention state
         appState.retentionState.lastEveningAnchor = todayStr

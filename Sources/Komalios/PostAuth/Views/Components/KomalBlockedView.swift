@@ -15,13 +15,14 @@ struct KomalBlockedView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showMessage = false
     
+    /// Curiosity-satisfying explanations — per spec: replace block screen with
+    /// age-appropriate educational framing and invite guided exploration.
     private var friendlyMessage: String {
-        let lang = LanguageManager.shared
         let messages = [
-            lang.localized("blocked.friendly_1"),
-            lang.localized("blocked.friendly_2"),
-            lang.localized("blocked.friendly_3"),
-            lang.localized("blocked.friendly_4")
+            "That's an interesting area to explore! Let's find a way to learn about it that's just right for you.",
+            "Some things are best explored with a guide. How about we discover something cool together?",
+            "Your curiosity is awesome! Let me help you find something amazing to check out.",
+            "The world is full of incredible things to discover. Want to explore a new topic?"
         ]
         return messages.randomElement() ?? messages[0]
     }

@@ -3,6 +3,7 @@ import Foundation
 import Combine
 import FirebaseAuth
 
+@MainActor
 final class SELAssessmentService: ObservableObject {
     static let shared = SELAssessmentService()
 

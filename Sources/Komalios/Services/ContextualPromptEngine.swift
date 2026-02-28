@@ -61,10 +61,12 @@ extension ContextualPromptTrigger: Hashable {}
 
 // MARK: - Engine
 
+@MainActor
 final class ContextualPromptEngine {
     static let shared = ContextualPromptEngine()
     private let maxPromptsPerSession = 5
     private let lastShownKey = "komal.contextualPrompt.lastShown"
+    private let trustScoreKey = "komal.avatarTrustScore"
 
     /// Cooldown tracking: templateId -> last shown date
     private var lastShown: [String: Date] = [:] {
@@ -75,11 +77,49 @@ final class ContextualPromptEngine {
         }
     }
 
+    /// Edge Case E: Avatar Trust Degradation tracking.
+    /// If child repeatedly dismisses interventions, reduce frequency and adjust tone.
+    private(set) var trustScore: AvatarTrustScore {
+        didSet {
+            if let data = try? JSONEncoder().encode(trustScore) {
+                UserDefaults.standard.set(data, forKey: trustScoreKey)
+            }
+        }
+    }
+
+    /// Rapid tab switch tracking for Edge Case A (bypass detection)
+    private var recentTabSwitches: [Date] = []
+    private let bypassTabThreshold = 5
+    private let bypassTabWindow: TimeInterval = 15.0
+
     private init() {
         if let data = UserDefaults.standard.data(forKey: lastShownKey),
            let decoded = try? JSONDecoder().decode([String: Date].self, from: data) {
             lastShown = decoded
         }
+        if let trustData = UserDefaults.standard.data(forKey: trustScoreKey),
+           let decoded = try? JSONDecoder().decode(AvatarTrustScore.self, from: trustData) {
+            trustScore = decoded
+        } else {
+            trustScore = AvatarTrustScore()
+        }
+    }
+
+    // MARK: - Trust Score Management (Edge Case E)
+
+    /// Record when a child dismisses a contextual prompt
+    func recordDismissal() {
+        trustScore.recordDismissal()
+    }
+
+    /// Record when a child engages with a contextual prompt action
+    func recordAcceptance() {
+        trustScore.recordAcceptance()
+    }
+
+    /// Weekly trust recovery (call from weekly maintenance)
+    func applyWeeklyTrustRecovery() {
+        trustScore.applyWeeklyRecovery()
     }
 
     // MARK: - Prompt Templates (20+)
@@ -308,6 +348,35 @@ final class ContextualPromptEngine {
     ) -> ContextualPrompt? {
         // Respect max prompts per session
         guard retentionState.promptsShownThisSession < maxPromptsPerSession else { return nil }
+
+        // Edge Case E: Apply trust score frequency multiplier.
+        // Lower trust = less frequent interventions (skip based on multiplier).
+        let multiplier = trustScore.interventionFrequencyMultiplier
+        if multiplier < 1.0 {
+            let skipChance = 1.0 - multiplier
+            if Double.random(in: 0..<1) < skipChance { return nil }
+        }
+
+        // Edge Case A: Bypass detection — track rapid tab switching
+        if trigger == .tabSwitch {
+            let now = Date()
+            recentTabSwitches.append(now)
+            recentTabSwitches = recentTabSwitches.filter { now.timeIntervalSince($0) < bypassTabWindow }
+
+            if recentTabSwitches.count >= bypassTabThreshold {
+                // Don't escalate visually — subtly introduce grounding avatar
+                recentTabSwitches.removeAll()
+                let lm = LanguageManager.shared
+                return ContextualPrompt(
+                    message: lm.localized("prompt.browsing_break"),
+                    characterId: 5, // Bunny — calm, grounding avatar
+                    characterName: "Bunny",
+                    characterImage: "animal5",
+                    action: .navigateToTab(.riki),
+                    actionLabel: lm.localized("prompt.action.lets_chat")
+                )
+            }
+        }
 
         // Determine mood filter from recent mood
         let currentMoodFilter = moodFilter(from: recentMood)

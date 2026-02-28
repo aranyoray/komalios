@@ -95,11 +95,13 @@ struct ReflectionTimeView: View {
     private func startTimer() {
         timerActive = true
         sessionTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
-            if timeRemaining > 0 {
-                timeRemaining -= 1
-            } else {
-                timer.invalidate()
-                showCompletion = true
+            Task { @MainActor in
+                if timeRemaining > 0 {
+                    timeRemaining -= 1
+                } else {
+                    timer.invalidate()
+                    showCompletion = true
+                }
             }
         }
     }
@@ -437,7 +439,7 @@ struct FreeChatSessionView: View {
         }
         .onReceive(speechRecognizer.$transcript) { newValue in
             if isRecording && !newValue.isEmpty {
-                inputText = BrowserState.censorText(newValue)
+                inputText = newValue
             }
         }
     }
@@ -465,7 +467,7 @@ struct FreeChatSessionView: View {
     private func stopSpeechToText() {
         speechRecognizer.stopRecording()
         if !speechRecognizer.transcript.isEmpty {
-            inputText = BrowserState.censorText(speechRecognizer.transcript)
+            inputText = speechRecognizer.transcript
         }
         isRecording = false
     }

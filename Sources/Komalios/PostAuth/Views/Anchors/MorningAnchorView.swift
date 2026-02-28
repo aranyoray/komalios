@@ -10,25 +10,8 @@ struct MorningAnchorView: View {
 
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
-    @State private var currentStep = 0
-    @State private var selectedEmotion: String? = nil
-    @State private var selectedEmoji: String = ""
     @State private var lookingForwardTo: String = ""
-
-    // (emoji, storageKey, localizedLabel, color)
-    private var emotions: [(String, String, String, Color)] {
-        let lang = LanguageManager.shared
-        return [
-            ("😊", "Happy", lang.localized("reflect.emotion.happy"), KomalColors.pearlAqua),
-            ("😢", "Sad", lang.localized("reflect.emotion.sad"), Color.blue),
-            ("😠", "Angry", lang.localized("reflect.emotion.angry"), Color.red),
-            ("😰", "Worried", lang.localized("reflect.emotion.worried"), Color.orange),
-            ("😴", "Tired", lang.localized("reflect.emotion.tired"), Color.gray),
-            ("🤩", "Excited", lang.localized("reflect.emotion.excited"), KomalColors.bubblegumPink),
-            ("😐", "Okay", lang.localized("reflect.emotion.okay"), Color.gray),
-            ("🤔", "Confused", lang.localized("reflect.emotion.confused"), KomalColors.lavenderPurple)
-        ]
-    }
+    @State private var selectedMood: String? = nil
 
     var body: some View {
         NavigationView {
@@ -48,11 +31,8 @@ struct MorningAnchorView: View {
                         // Character greeting
                         characterGreeting
 
-                        if currentStep == 0 {
-                            emotionPickerSection
-                        } else {
-                            lookingForwardSection
-                        }
+                        // Single-step conversational flow — no emoji picker, no sliders
+                        morningConversationSection
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
@@ -91,54 +71,35 @@ struct MorningAnchorView: View {
         }
     }
 
-    // MARK: - Emotion Picker
+    // MARK: - Morning Conversation (single step, no emoji picker or slider)
 
-    private var emotionPickerSection: some View {
+    private var morningConversationSection: some View {
         VStack(spacing: 20) {
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                ForEach(emotions, id: \.1) { emotion in
-                    EmotionButton(
-                        emoji: emotion.0,
-                        label: emotion.2,
-                        color: emotion.3,
-                        isSelected: selectedEmotion == emotion.1
-                    ) {
-                        withAnimation {
-                            selectedEmotion = emotion.1
-                            selectedEmoji = emotion.0
-                        }
+            // Quick mood bubbles — text-only, no emoji markers
+            Text(LanguageManager.shared.localized("anchor.morning.how_feeling"))
+                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .foregroundColor(KomalColors.textSecondary)
+
+            HStack(spacing: 10) {
+                ForEach(["Great", "Good", "Okay", "Not great"], id: \.self) { mood in
+                    Button(action: { withAnimation { selectedMood = mood } }) {
+                        Text(mood)
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(selectedMood == mood ? .white : KomalColors.textPrimary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule().fill(selectedMood == mood ? KomalColors.lavenderPurple : Color.white)
+                            )
+                            .overlay(
+                                Capsule().stroke(Color.black.opacity(0.08), lineWidth: 1)
+                            )
                     }
+                    .buttonStyle(.plain)
                 }
             }
 
-            if selectedEmotion != nil {
-                Button(action: { withAnimation { currentStep = 1 } }) {
-                    Text(LanguageManager.shared.localized("common.next"))
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(KomalColors.lavenderPurple)
-                        .cornerRadius(14)
-                }
-            }
-        }
-    }
-
-    // MARK: - Looking Forward To
-
-    private var lookingForwardSection: some View {
-        VStack(spacing: 20) {
-            Text(LanguageManager.shared.localized("anchor.morning.looking_forward"))
-                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                .foregroundColor(KomalColors.textPrimary)
-                .multilineTextAlignment(.center)
-
+            // Looking forward prompt
             TextField(LanguageManager.shared.localized("anchor.morning.looking_forward_placeholder"), text: $lookingForwardTo)
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .padding(16)
@@ -158,25 +119,26 @@ struct MorningAnchorView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(KomalColors.bubblegumPink)
+                    .background(selectedMood != nil ? KomalColors.bubblegumPink : KomalColors.bubblegumPink.opacity(0.5))
                     .cornerRadius(14)
             }
+            .disabled(selectedMood == nil)
         }
     }
 
     // MARK: - Save
 
     private func saveAndDismiss() {
-        guard let emotion = selectedEmotion else { return }
+        guard let mood = selectedMood else { return }
 
         let todayStr = Self.dayFormatter.string(from: Date())
 
-        // Save anchor
+        // Save anchor — using text-based mood instead of emoji
         let anchor = DailyAnchor(
             date: todayStr,
             anchorType: .morning,
-            emotion: emotion,
-            emoji: selectedEmoji,
+            emotion: mood,
+            emoji: "",
             intensity: 5,
             gratitudeItem: lookingForwardTo.isEmpty ? nil : lookingForwardTo
         )
@@ -184,14 +146,14 @@ struct MorningAnchorView: View {
         GrowthTrackingService.shared.recordActivity(type: .morningAnchor)
 
         // Save mood entry
-        let mood = MoodEntry(
-            emotion: emotion,
-            emoji: selectedEmoji,
+        let moodEntry = MoodEntry(
+            emotion: mood,
+            emoji: "",
             intensity: 5,
             context: .morningAnchor,
             note: lookingForwardTo.isEmpty ? nil : lookingForwardTo
         )
-        MoodTrackingService.shared.logMood(mood)
+        MoodTrackingService.shared.logMood(moodEntry)
 
         // Update retention state
         appState.retentionState.lastMorningAnchor = todayStr

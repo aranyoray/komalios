@@ -34,11 +34,11 @@ struct PlanSelectionView: View {
                                     .frame(width: 60, height: 60)
                             }
 
-                            Text("Choose Your Plan")
+                            Text(LanguageManager.shared.localized("plan.choose_title"))
                                 .font(.system(size: 26, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
 
-                            Text("Pick the right level of protection for your family")
+                            Text(LanguageManager.shared.localized("plan.choose_subtitle"))
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(KomalColors.textSecondary)
                                 .multilineTextAlignment(.center)
@@ -77,7 +77,7 @@ struct PlanSelectionView: View {
                                 ProgressView()
                                     .tint(.white)
                             } else {
-                                Text(selectedPlan == .essentials ? "Start with Essentials" : "Subscribe to \(selectedPlan.displayName)")
+                                Text(selectedPlan == .essentials ? LanguageManager.shared.localized("plan.start_essentials") : LanguageManager.shared.localized("plan.subscribe_to").replacingOccurrences(of: "%@", with: selectedPlan.displayName))
                                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                             }
                         }
@@ -99,7 +99,7 @@ struct PlanSelectionView: View {
                             }
                         }
                     }) {
-                        Text("Restore Purchases")
+                        Text(LanguageManager.shared.localized("plan.restore_purchases"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                             .padding(.vertical, 8)
@@ -119,7 +119,7 @@ struct PlanSelectionView: View {
         .toolbar {
             if allowDismiss {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button(LanguageManager.shared.localized("common.done")) { dismiss() }
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.lavenderPurple)
                 }
@@ -138,8 +138,8 @@ struct PlanSelectionView: View {
                 selectedPlan = existing
             }
         }
-        .alert("Purchase Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
+        .alert(LanguageManager.shared.localized("plan.purchase_error"), isPresented: $showError) {
+            Button(LanguageManager.shared.localized("common.ok"), role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
@@ -156,7 +156,7 @@ struct PlanSelectionView: View {
 
         guard let product = subscriptionService.product(for: selectedPlan) else {
             log.error("Product not found for \(self.selectedPlan.displayName) — cannot purchase")
-            errorMessage = "This plan is currently unavailable. Please try again later."
+            errorMessage = LanguageManager.shared.localized("plan.unavailable")
             showError = true
             return
         }
@@ -214,7 +214,7 @@ private struct PlanCard: View {
                                 .foregroundColor(KomalColors.textPrimary)
 
                             if isRecommended {
-                                Text("RECOMMENDED")
+                                Text(LanguageManager.shared.localized("plan.recommended"))
                                     .font(.system(size: 9, weight: .bold))
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 8)
@@ -226,15 +226,15 @@ private struct PlanCard: View {
 
                         // Price
                         if plan == .essentials {
-                            Text("Free")
+                            Text(LanguageManager.shared.localized("plan.free"))
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(cardColor)
                         } else if let price = priceString {
-                            Text("\(price)/month")
+                            Text(LanguageManager.shared.localized("plan.per_month").replacingOccurrences(of: "%@", with: price))
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(cardColor)
                         } else {
-                            Text("Loading...")
+                            Text(LanguageManager.shared.localized("plan.loading"))
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(KomalColors.textSecondary)
                         }
@@ -282,11 +282,11 @@ private struct PlanCard: View {
                         .font(.system(size: 12))
                         .foregroundColor(cardColor)
                     if let max = plan.maxChildProfiles {
-                        Text("Up to \(max) child profile\(max > 1 ? "s" : "")")
+                        Text(LanguageManager.shared.localized("plan.profiles_up_to").replacingOccurrences(of: "%d", with: "\(max)"))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(cardColor)
                     } else {
-                        Text("Unlimited child profiles")
+                        Text(LanguageManager.shared.localized("plan.profiles_unlimited"))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(cardColor)
                     }

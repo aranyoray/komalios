@@ -21,16 +21,20 @@ final class NotificationService {
     // MARK: - Morning Anchor
 
     func scheduleMorningAnchor(hour: Int = 8, minute: Int = 0) {
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-            self._scheduleMorningAnchor(hour: hour, minute: minute)
+        Task { @MainActor in
+            let title = LanguageManager.shared.localized("notification.morning.title")
+            let body = LanguageManager.shared.localized("notification.morning.body")
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                guard settings.authorizationStatus == .authorized else { return }
+                self._scheduleMorningAnchor(hour: hour, minute: minute, title: title, body: body)
+            }
         }
     }
 
-    private func _scheduleMorningAnchor(hour: Int, minute: Int) {
+    private func _scheduleMorningAnchor(hour: Int, minute: Int, title: String, body: String) {
         let content = UNMutableNotificationContent()
-        content.title = LanguageManager.shared.localized("notification.morning.title")
-        content.body = LanguageManager.shared.localized("notification.morning.body")
+        content.title = title
+        content.body = body
         content.sound = .default
         content.categoryIdentifier = "morningAnchor"
 
@@ -53,16 +57,20 @@ final class NotificationService {
     // MARK: - Evening Anchor
 
     func scheduleEveningAnchor(hour: Int = 19, minute: Int = 0) {
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-            self._scheduleEveningAnchor(hour: hour, minute: minute)
+        Task { @MainActor in
+            let title = LanguageManager.shared.localized("notification.evening.title")
+            let body = LanguageManager.shared.localized("notification.evening.body")
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                guard settings.authorizationStatus == .authorized else { return }
+                self._scheduleEveningAnchor(hour: hour, minute: minute, title: title, body: body)
+            }
         }
     }
 
-    private func _scheduleEveningAnchor(hour: Int, minute: Int) {
+    private func _scheduleEveningAnchor(hour: Int, minute: Int, title: String, body: String) {
         let content = UNMutableNotificationContent()
-        content.title = LanguageManager.shared.localized("notification.evening.title")
-        content.body = LanguageManager.shared.localized("notification.evening.body")
+        content.title = title
+        content.body = body
         content.sound = .default
         content.categoryIdentifier = "eveningAnchor"
 
@@ -85,16 +93,20 @@ final class NotificationService {
     // MARK: - Reconnection Reminder
 
     func scheduleReconnectionReminder(afterDays: Int = 3) {
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-            self._scheduleReconnectionReminder(afterDays: afterDays)
+        Task { @MainActor in
+            let title = LanguageManager.shared.localized("notification.reconnect.title")
+            let body = LanguageManager.shared.localized("notification.reconnect.body")
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                guard settings.authorizationStatus == .authorized else { return }
+                self._scheduleReconnectionReminder(afterDays: afterDays, title: title, body: body)
+            }
         }
     }
 
-    private func _scheduleReconnectionReminder(afterDays: Int) {
+    private func _scheduleReconnectionReminder(afterDays: Int, title: String, body: String) {
         let content = UNMutableNotificationContent()
-        content.title = LanguageManager.shared.localized("notification.reconnect.title")
-        content.body = LanguageManager.shared.localized("notification.reconnect.body")
+        content.title = title
+        content.body = body
         content.sound = .default
         content.categoryIdentifier = "reconnection"
 

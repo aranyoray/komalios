@@ -751,7 +751,7 @@ struct SettingsView: View {
                                 Text(appState.subscriptionState.currentPlan == .essentials ? "Upgrade Plan" : "Change Plan")
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text("View all plans and pricing")
+                                Text(LanguageManager.shared.localized("settings.view_plans"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -774,10 +774,10 @@ struct SettingsView: View {
                                 .foregroundColor(KomalColors.pearlAqua)
                                 .frame(width: 24)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Billing & Invoices")
+                                Text(LanguageManager.shared.localized("settings.billing_invoices"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text("View transaction history and receipts")
+                                Text(LanguageManager.shared.localized("settings.billing_desc"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -810,10 +810,10 @@ struct SettingsView: View {
                                 .foregroundColor(KomalColors.bubblegumPink)
                                 .frame(width: 24)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Manage in App Store")
+                                Text(LanguageManager.shared.localized("settings.manage_appstore"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text("Cancel, renew, or update payment method")
+                                Text(LanguageManager.shared.localized("settings.manage_appstore_desc"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -842,7 +842,7 @@ struct SettingsView: View {
                                 .font(.system(size: 20))
                                 .foregroundColor(KomalColors.textSecondary)
                                 .frame(width: 24)
-                            Text("Restore Purchases")
+                            Text(LanguageManager.shared.localized("plan.restore_purchases"))
                                 .font(.system(size: 16, weight: .semibold, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
                             Spacer()
@@ -1015,10 +1015,10 @@ struct SettingsView: View {
                                 .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Change PIN")
+                                Text(LanguageManager.shared.localized("settings.change_pin"))
                                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                                     .foregroundColor(KomalColors.textPrimary)
-                                Text("Set a new 4-digit parent PIN")
+                                Text(LanguageManager.shared.localized("settings.change_pin_desc"))
                                     .font(.caption)
                                     .foregroundColor(KomalColors.textSecondary)
                             }
@@ -1865,7 +1865,7 @@ struct BillingHistoryView: View {
                         VStack(spacing: 16) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Current Plan")
+                                    Text(LanguageManager.shared.localized("settings.current_plan"))
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
                                     Text(appState.subscriptionState.currentPlan.displayName)
@@ -1879,7 +1879,7 @@ struct BillingHistoryView: View {
                                             Text(price)
                                                 .font(.system(size: 20, weight: .bold, design: .rounded))
                                                 .foregroundColor(KomalColors.textPrimary)
-                                            Text("per month")
+                                            Text(LanguageManager.shared.localized("settings.per_month"))
                                                 .font(.system(size: 12, weight: .medium))
                                                 .foregroundColor(KomalColors.textSecondary)
                                         }
@@ -1893,7 +1893,7 @@ struct BillingHistoryView: View {
                                     Image(systemName: "calendar.badge.clock")
                                         .font(.system(size: 16))
                                         .foregroundColor(KomalColors.lavenderPurple)
-                                    Text("Next renewal: \(Self.shortDateFormatter.string(from: renewal))")
+                                    Text(LanguageManager.shared.localized("settings.next_renewal").replacingOccurrences(of: "%@", with: Self.shortDateFormatter.string(from: renewal)))
                                         .font(.system(size: 14, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
                                     Spacer()
@@ -1907,7 +1907,7 @@ struct BillingHistoryView: View {
 
                         // Transaction history
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Transaction History")
+                            Text(LanguageManager.shared.localized("settings.transaction_history"))
                                 .font(.system(size: 18, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
 
@@ -1923,10 +1923,10 @@ struct BillingHistoryView: View {
                                     Image(systemName: "doc.text")
                                         .font(.system(size: 36))
                                         .foregroundColor(KomalColors.textSecondary.opacity(0.5))
-                                    Text("No transactions yet")
+                                    Text(LanguageManager.shared.localized("settings.no_transactions"))
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
-                                    Text("Your purchase history will appear here")
+                                    Text(LanguageManager.shared.localized("settings.transactions_placeholder"))
                                         .font(.system(size: 13))
                                         .foregroundColor(KomalColors.textSecondary.opacity(0.7))
                                 }
@@ -1948,7 +1948,7 @@ struct BillingHistoryView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "info.circle")
                                     .font(.system(size: 13))
-                                Text("Subscriptions are managed through your Apple ID. To request a refund, visit reportaproblem.apple.com")
+                                Text(LanguageManager.shared.localized("settings.subscriptions_info"))
                                     .font(.system(size: 12, weight: .medium))
                             }
                             .foregroundColor(KomalColors.textSecondary)
@@ -2020,7 +2020,7 @@ private struct TransactionRow: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(transaction.planName) Monthly")
+                    Text(LanguageManager.shared.localized("settings.plan_monthly").replacingOccurrences(of: "%@", with: transaction.planName))
                         .font(.system(size: 15, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
                     Text(Self.dateFormatter.string(from: transaction.purchaseDate))
@@ -2162,7 +2162,7 @@ struct PinEntryView: View {
                     HStack(spacing: 6) {
                         Image(systemName: BiometricAuthService.biometricIcon)
                             .font(.system(size: 14))
-                        Text("Forgot PIN? Reset with \(BiometricAuthService.biometricName)")
+                        Text(LanguageManager.shared.localized("settings.forgot_pin").replacingOccurrences(of: "%@", with: BiometricAuthService.biometricName))
                             .font(.system(size: 13, weight: .medium, design: .rounded))
                     }
                     .foregroundColor(KomalColors.textSecondary)
@@ -2192,11 +2192,11 @@ struct PinResetView: View {
                         .font(.system(size: 56))
                         .foregroundColor(KomalColors.pearlAqua)
 
-                    Text("PIN Updated")
+                    Text(LanguageManager.shared.localized("settings.pin_updated"))
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 
-                    Text("Your new parent PIN has been saved.")
+                    Text(LanguageManager.shared.localized("settings.pin_saved_msg"))
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -2207,11 +2207,11 @@ struct PinResetView: View {
                         .font(.system(size: 40))
                         .foregroundColor(KomalColors.lavenderPurple)
 
-                    Text("Set New PIN")
+                    Text(LanguageManager.shared.localized("settings.set_new_pin"))
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 
-                    Text("Enter a new 4-digit parent PIN")
+                    Text(LanguageManager.shared.localized("settings.new_pin_desc"))
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(KomalColors.textSecondary)
                 }
@@ -2255,7 +2255,7 @@ struct PinResetView: View {
                         }
 
                     if mismatchError {
-                        Text("PINs don't match or are incomplete")
+                        Text(LanguageManager.shared.localized("settings.pin_mismatch"))
                             .font(.system(size: 12, weight: .medium, design: .rounded))
                             .foregroundColor(.red)
                     }
@@ -2274,7 +2274,7 @@ struct PinResetView: View {
                     }
 
                     Button(action: onSave) {
-                        Text("Save PIN")
+                        Text(LanguageManager.shared.localized("settings.save_pin"))
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)

@@ -47,8 +47,13 @@ final class AuthViewModel: ObservableObject {
                         try authService.signOut()
                         loginState = .notRunning
                     }
+                } catch let error as NSError where error.domain == NSURLErrorDomain {
+                    // Network error — keep session alive, don't sign out
+                    // Child safety protections remain active offline
+                    self.user = currentUser
+                    loginState = .success
                 } catch {
-                    // If validation fails, sign out for security
+                    // Genuine auth/validation failure — sign out for security
                     try? authService.signOut()
                     loginState = .notRunning
                 }

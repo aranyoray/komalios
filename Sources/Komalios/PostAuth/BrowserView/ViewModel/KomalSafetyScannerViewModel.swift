@@ -81,6 +81,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     var shouldShowTalkFeature: Bool { blockedEmojiPopupCount > 0 && blockedEmojiPopupCount % 4 == 0 }
 
     private var blockedPopupRecentlyDismissed = false
+    private var gateDismissTask: Task<Void, Never>?
 
     // MARK: Dependencies
 
@@ -275,8 +276,10 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         blockedPopupRecentlyDismissed = false
         lastSafeURL = url
         urlInput = url.host ?? url.absoluteString
-        Task { @MainActor [weak self] in
+        gateDismissTask?.cancel()
+        gateDismissTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
             self?.loading = true
             self?.currentURL = url
         }

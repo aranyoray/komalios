@@ -112,7 +112,7 @@ private struct KomalSafetyScannerContentView: View {
             .padding(.bottom, 70)
             .allowsHitTesting(!viewModel.showEmojiCheckIn)
 
-            // Emoji check-in overlay
+            // Conversational check-in overlay (replaces emoji grid per spec section 6)
             if viewModel.showEmojiCheckIn {
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
@@ -129,17 +129,25 @@ private struct KomalSafetyScannerContentView: View {
                             .shadow(color: KomalColors.bubblegumPink.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
 
-                    VStack(spacing: 6) {
-                        Text(LanguageManager.shared.localized("browser.quick_checkin"))
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundColor(KomalColors.textPrimary)
-                        Text(LanguageManager.shared.localized("checkin.how_are_you"))
-                            .font(.system(size: 15, weight: .medium, design: .rounded))
-                            .foregroundColor(KomalColors.textSecondary)
-                    }
+                    Text(LanguageManager.shared.localized("checkin.whats_on_your_mind"))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
 
-                    EmojiResponseView(subcategory: viewModel.currentSubcategory) { emoji in
-                        viewModel.handleEmojiResponse(emoji: emoji, forDocumentId: viewModel.lastLoggedDocumentId)
+                    HStack(spacing: 12) {
+                        ForEach(["Great!", "Okay", "Meh"], id: \.self) { response in
+                            Button(action: {
+                                viewModel.handleEmojiResponse(emoji: response, forDocumentId: viewModel.lastLoggedDocumentId)
+                            }) {
+                                Text(response)
+                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                    .foregroundColor(KomalColors.lavenderPurple)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .background(
+                                        Capsule().fill(KomalColors.lavenderPurple.opacity(0.12))
+                                    )
+                            }
+                        }
                     }
                 }
                 .padding(.vertical, 28)
@@ -167,18 +175,24 @@ private struct KomalSafetyScannerContentView: View {
                         .overlay(Circle().stroke(KomalColors.bubblegumPink, lineWidth: 3))
                 }
 
-                VStack(spacing: 6) {
-                    Text(LanguageManager.shared.localized("browser.before_you_go"))
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundColor(KomalColors.textPrimary)
-                    Text(LanguageManager.shared.localized("checkin.how_are_you"))
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                        .foregroundColor(KomalColors.textSecondary)
-                }
+                Text(LanguageManager.shared.localized("checkin.whats_on_your_mind"))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(KomalColors.textPrimary)
 
-                EmojiResponseView(subcategory: viewModel.currentSubcategory) { emoji in
-                    viewModel.handleEmojiResponse(emoji: emoji, forDocumentId: viewModel.lastLoggedDocumentId)
-                    viewModel.showGate = false
+                HStack(spacing: 12) {
+                    ForEach(["Great!", "Okay", "Meh"], id: \.self) { response in
+                        Button(action: {
+                            viewModel.handleEmojiResponse(emoji: response, forDocumentId: viewModel.lastLoggedDocumentId)
+                            viewModel.showGate = false
+                        }) {
+                            Text(response)
+                                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                .foregroundColor(KomalColors.lavenderPurple)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(Capsule().fill(KomalColors.lavenderPurple.opacity(0.12)))
+                        }
+                    }
                 }
 
                 Spacer()

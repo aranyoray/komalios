@@ -16,6 +16,7 @@ enum Routes: Hashable {
     
 }
 
+@MainActor
 class PathManager: ObservableObject {
     @Published var path = NavigationPath()
     private var elements: [AnyHashable] = []

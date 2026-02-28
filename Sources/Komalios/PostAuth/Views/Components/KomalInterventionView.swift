@@ -262,46 +262,44 @@ struct KomalInterventionView: View {
         }
     }
     
-    // MARK: - Dynamic Text (More Concise)
+    // MARK: - Dynamic Text (Guide > Block, per spec)
+    // Per spec: "No rigid restriction language. Replace with curiosity-satisfying explanation."
     private var mainMessage: String {
-        let lang = LanguageManager.shared
         switch trigger {
         case .searchQuery:
-            return lang.localized("intervention.main.search")
+            return "I noticed you're curious about something!"
         case .urlKeyword:
-            return lang.localized("intervention.main.url")
+            return "Let's explore a different path together."
         case .imageContent:
-            return lang.localized("intervention.main.image")
+            return "I've got something better to show you."
         case .pageContent:
-            return lang.localized("intervention.main.page")
+            return "Hey, I found something interesting for you!"
         }
     }
 
     private var subMessage: String {
-        let lang = LanguageManager.shared
         switch trigger {
         case .searchQuery:
-            return lang.localized("intervention.sub.search")
+            return "Your curiosity is awesome. Let me help you find the best way to learn about this."
         case .urlKeyword:
-            return lang.localized("intervention.sub.url")
+            return "Some paths lead to better discoveries. Want to explore together?"
         case .imageContent:
-            return lang.localized("intervention.sub.image")
+            return "There are so many amazing things to see. Let's find the coolest ones!"
         case .pageContent:
-            return lang.localized("intervention.sub.page")
+            return "There's a world of interesting stuff out there. Let me help you explore!"
         }
     }
 
     private var reflectionPrompt: String {
-        let lang = LanguageManager.shared
         switch trigger {
         case .searchQuery:
-            return lang.localized("intervention.reflect.search")
+            return "What were you curious about? Sometimes the best answers come from asking the right questions."
         case .urlKeyword:
-            return lang.localized("intervention.reflect.url")
+            return "What were you hoping to find? Maybe we can discover it together in a different way."
         case .imageContent:
-            return lang.localized("intervention.reflect.image")
+            return "What caught your eye? There might be an even cooler way to explore that interest."
         case .pageContent:
-            return lang.localized("intervention.reflect.page")
+            return "What were you reading about? I'd love to help you learn more about it."
         }
     }
 }

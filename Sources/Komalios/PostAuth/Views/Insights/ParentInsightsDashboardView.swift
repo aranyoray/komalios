@@ -7,7 +7,7 @@ struct ParentInsightsDashboardView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject private var moodService = MoodTrackingService.shared
     @ObservedObject private var growthService = GrowthTrackingService.shared
-    @State private var geminiService = GeminiChatService()
+    private let geminiService = GeminiChatService()
 
     private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -17,8 +17,10 @@ struct ParentInsightsDashboardView: View {
 
     @State private var conversationStarter: String? = nil
     @State private var dailyInsight: String? = nil
+    @State private var valueAlignmentPrompt: String? = nil
     @State private var isLoadingStarter = false
     @State private var isLoadingInsight = false
+    @State private var isLoadingValuePrompt = false
     @State private var aiTasks: [Task<Void, Never>] = []
 
     var body: some View {
@@ -34,6 +36,9 @@ struct ParentInsightsDashboardView: View {
 
                         // Conversation Starter
                         conversationStarterSection
+
+                        // Value Alignment Prompts (per spec section 9)
+                        valueAlignmentSection
 
                         // Daily Insight
                         dailyInsightSection
@@ -79,6 +84,7 @@ struct ParentInsightsDashboardView: View {
                 // Load AI-generated content
                 loadConversationStarter()
                 loadDailyInsight()
+                loadValueAlignmentPrompt()
             }
             .onDisappear {
                 aiTasks.forEach { $0.cancel() }
@@ -130,6 +136,40 @@ struct ParentInsightsDashboardView: View {
                     Text(LanguageManager.shared.localized("insights.dashboard.starter_placeholder"))
                         .font(.system(size: 14, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
+                }
+            }
+        }
+    }
+
+    // MARK: - Value Alignment Prompts (Section 9)
+
+    private var valueAlignmentSection: some View {
+        SettingsCard {
+            VStack(alignment: .leading, spacing: 12) {
+                CardHeader(icon: "sparkles", title: LanguageManager.shared.localized("insights.dashboard.value_alignment"), color: KomalColors.pearlAqua)
+
+                Text(LanguageManager.shared.localized("insights.dashboard.value_alignment_desc"))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(KomalColors.textSecondary)
+
+                if isLoadingValuePrompt {
+                    HStack(spacing: 8) {
+                        ProgressView().scaleEffect(0.8)
+                        Text(LanguageManager.shared.localized("insights.dashboard.generating_prompt"))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(KomalColors.textSecondary)
+                    }
+                } else if let prompt = valueAlignmentPrompt {
+                    Text(prompt)
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
+                        .lineSpacing(4)
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ValueAlignmentRow(icon: "heart.fill", text: LanguageManager.shared.localized("insights.dashboard.value_kindness"), color: KomalColors.bubblegumPink)
+                        ValueAlignmentRow(icon: "person.2.fill", text: LanguageManager.shared.localized("insights.dashboard.value_fairness"), color: KomalColors.lavenderPurple)
+                        ValueAlignmentRow(icon: "hand.raised.fill", text: LanguageManager.shared.localized("insights.dashboard.value_helping"), color: KomalColors.pearlAqua)
+                    }
                 }
             }
         }
@@ -508,6 +548,43 @@ struct ParentInsightsDashboardView: View {
     }
 
     @MainActor
+    private func loadValueAlignmentPrompt() {
+        let topics = ConversationMemoryService.shared.getRecentTopics(days: 7)
+        guard !topics.isEmpty else { return }
+
+        isLoadingValuePrompt = true
+        let service = geminiService
+
+        let task = Task {
+            do {
+                let prompt = """
+                Generate ONE value-alignment conversation prompt for a parent to discuss with their child.
+                Based on these topics the child explored this week: \(topics.prefix(5).joined(separator: ", "))
+
+                The prompt should:
+                - Connect to a core value (kindness, honesty, fairness, empathy, responsibility, courage)
+                - Reference the child's actual interests/topics naturally
+                - Be warm and open-ended, not preachy
+                - Be 1-2 sentences max
+                - Start with something like "Ask your child:" or "Try asking:"
+
+                Return ONLY the prompt text.
+                """
+                let result = try await service.sendSimplePrompt(prompt, systemPrompt: "You are a parenting advisor. Generate warm, natural value-alignment conversation prompts. Return only the prompt text.")
+                await MainActor.run {
+                    isLoadingValuePrompt = false
+                    valueAlignmentPrompt = result
+                }
+            } catch {
+                await MainActor.run {
+                    isLoadingValuePrompt = false
+                }
+            }
+        }
+        aiTasks.append(task)
+    }
+
+    @MainActor
     private func loadDailyInsight() {
         let delta = growthService.getWeekOverWeekDelta()
         let weeklyData = "Chats: \(delta.chatDelta >= 0 ? "+\(delta.chatDelta)" : "\(delta.chatDelta)"), Reflections: \(delta.reflectionDelta >= 0 ? "+\(delta.reflectionDelta)" : "\(delta.reflectionDelta)"), Active days: \(delta.activeDaysDelta >= 0 ? "+\(delta.activeDaysDelta)" : "\(delta.activeDaysDelta)")"
@@ -563,6 +640,28 @@ struct DeltaStatView: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Value Alignment Row
+
+struct ValueAlignmentRow: View {
+    let icon: String
+    let text: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(color)
+                .frame(width: 24)
+
+            Text(text)
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(KomalColors.textPrimary)
+                .lineLimit(2)
+        }
     }
 }
 #endif

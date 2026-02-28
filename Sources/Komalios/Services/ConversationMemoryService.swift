@@ -3,6 +3,7 @@ import Foundation
 import Combine
 import FirebaseAuth
 
+@MainActor
 final class ConversationMemoryService: ObservableObject {
     static let shared = ConversationMemoryService()
 
@@ -64,7 +65,8 @@ final class ConversationMemoryService: ObservableObject {
     /// Save a single message to the current session
     func saveMessage(_ message: PersistedChatMessage) {
         if currentSession == nil {
-            return
+            print("⚠️ ConversationMemoryService: No active session — starting fallback session for message")
+            startSession(characterId: message.characterId, characterName: "Unknown")
         }
         currentSession?.messages.append(message)
         saveData()
@@ -316,10 +318,11 @@ final class ConversationMemoryService: ObservableObject {
         var summarizationsThisCycle = 0
         let maxSummarizations = 5
 
-        let sessionCount = memoryData.sessions.count
-        for i in 0..<sessionCount {
-            guard i < memoryData.sessions.count else { break }
-            let session = memoryData.sessions[i]
+        // Collect session IDs to process (iterate by ID to survive concurrent mutations)
+        let sessionIDs = memoryData.sessions.map { $0.id }
+        for sessionID in sessionIDs {
+            guard let idx = memoryData.sessions.firstIndex(where: { $0.id == sessionID }) else { continue }
+            let session = memoryData.sessions[idx]
             guard let endTime = session.endTime else { continue }
             let hoursOld = now.timeIntervalSince(endTime) / 3600.0
 
@@ -328,13 +331,14 @@ final class ConversationMemoryService: ObservableObject {
                 guard summarizationsThisCycle < maxSummarizations else { continue }
 
                 if let summary = await summarizeSessionAsync(session) {
-                    guard i < memoryData.sessions.count else { break }
-                    memoryData.sessions[i].summary = summary
-                    memoryData.sessions[i].messages = [] // Delete raw messages
-                    memoryData.sessions[i].memoryTier = .summarized
-                    memoryData.sessions[i].tierTransitionDate = now
+                    // Re-lookup index after await — array may have changed
+                    guard let idx = memoryData.sessions.firstIndex(where: { $0.id == sessionID }) else { continue }
+                    memoryData.sessions[idx].summary = summary
+                    memoryData.sessions[idx].messages = [] // Delete raw messages
+                    memoryData.sessions[idx].memoryTier = .summarized
+                    memoryData.sessions[idx].tierTransitionDate = now
                     summarizationsThisCycle += 1
-                    print("💬 Tier transition: session \(session.id) -> summarized")
+                    print("💬 Tier transition: session \(sessionID) -> summarized")
                 }
             }
 
@@ -343,17 +347,18 @@ final class ConversationMemoryService: ObservableObject {
                 guard summarizationsThisCycle < maxSummarizations else { continue }
 
                 let signals = await extractDevelopmentalSignals(from: session)
-                guard i < memoryData.sessions.count else { break }
-                memoryData.sessions[i].developmentalSignals = signals
-                memoryData.sessions[i].summary = nil
-                memoryData.sessions[i].memoryTier = .signalsOnly
-                memoryData.sessions[i].tierTransitionDate = now
+                // Re-lookup index after await — array may have changed
+                guard let idx = memoryData.sessions.firstIndex(where: { $0.id == sessionID }) else { continue }
+                memoryData.sessions[idx].developmentalSignals = signals
+                memoryData.sessions[idx].summary = nil
+                memoryData.sessions[idx].memoryTier = .signalsOnly
+                memoryData.sessions[idx].tierTransitionDate = now
 
                 // Also store signals at the top-level
                 memoryData.developmentalSignals.append(contentsOf: signals)
 
                 summarizationsThisCycle += 1
-                print("💬 Tier transition: session \(session.id) -> signalsOnly")
+                print("💬 Tier transition: session \(sessionID) -> signalsOnly")
             }
         }
 

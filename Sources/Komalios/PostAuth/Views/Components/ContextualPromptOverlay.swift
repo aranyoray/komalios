@@ -8,6 +8,8 @@ struct ContextualPromptOverlay: View {
 
     @EnvironmentObject private var appState: AppState
     @State private var isVisible = false
+    @State private var isDismissed = false
+    @State private var autoDismissTask: Task<Void, Never>?
 
     private var isYoungerChild: Bool {
         appState.activeProfile.ageGroup == .under10
@@ -58,7 +60,13 @@ struct ContextualPromptOverlay: View {
                 Spacer(minLength: 0)
 
                 // Dismiss
-                Button(action: onDismiss) {
+                Button(action: {
+                    guard !isDismissed else { return }
+                    isDismissed = true
+                    autoDismissTask?.cancel()
+                    withAnimation(.spring(response: 0.3)) { isVisible = false }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { onDismiss() }
+                }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(KomalColors.textSecondary)
@@ -69,7 +77,12 @@ struct ContextualPromptOverlay: View {
 
             // Action button
             if let actionLabel = prompt.actionLabel, let action = prompt.action {
-                Button(action: { onAction(action) }) {
+                Button(action: {
+                    guard !isDismissed else { return }
+                    isDismissed = true
+                    autoDismissTask?.cancel()
+                    onAction(action)
+                }) {
                     Text(actionLabel)
                         .font(.system(size: isYoungerChild ? 16 : 14, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
@@ -95,14 +108,17 @@ struct ContextualPromptOverlay: View {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                 isVisible = true
             }
-            // Auto-dismiss after 8 seconds
-            DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+            // Auto-dismiss after 8 seconds (cancellable)
+            autoDismissTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 8_000_000_000)
+                guard !Task.isCancelled, !isDismissed else { return }
+                isDismissed = true
                 withAnimation(.spring(response: 0.3)) {
                     isVisible = false
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    onDismiss()
-                }
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                guard !Task.isCancelled else { return }
+                onDismiss()
             }
         }
     }

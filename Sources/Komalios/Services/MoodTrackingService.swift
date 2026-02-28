@@ -3,6 +3,7 @@ import Foundation
 import Combine
 import FirebaseAuth
 
+@MainActor
 final class MoodTrackingService: ObservableObject {
     static let shared = MoodTrackingService()
 

@@ -1,0 +1,438 @@
+Below is the full technical architecture write-up for Komal, structured as an internal engineering spec for your SWE (“vibecoder”). It incorporates:
+	•	Voice-first + text-based Reflect mode
+	•	Longitudinal state modeling
+	•	Real-time gating + sandboxing
+	•	Psychology-aligned interventions (not blocking)
+	•	On-device privacy-first constraints
+	•	All UX edge cases you mentioned
+	•	Sub-300ms multimodal inference
+	•	Caregiver intelligence layer
+	•	App Store compliance considerations
+
+This is written as a production-ready architecture document.
+
+⸻
+
+KOMAL v2
+
+Behavioral OS for AI-Native Children
+
+Full System Architecture & Edge Case Definition
+
+⸻
+
+0. DESIGN PRINCIPLES (Non-Negotiables)
+	1.	Intent > Input (model journeys, not isolated events)
+	2.	Guide > Block (psychological redirection, not censorship)
+	3.	Voice-first UX (default), text optional in Reflect
+	4.	No addictive UI patterns
+	5.	On-device inference first
+	6.	No raw storage of sensitive data
+	7.	Stateful child model, stateless content
+	8.	Sub-300ms gating
+	9.	Avatar is a peer, not authority
+	10.	Caregiver receives insight, not surveillance
+
+⸻
+
+1. SYSTEM OVERVIEW
+
+[Child Device]
+    |
+    |-- Multimodal Signal Capture
+    |-- Real-time Intent Engine
+    |-- Behavioral State Graph
+    |-- Intervention Planner
+    |-- Avatar Runtime (Voice/Text)
+    |-- Gated Sandbox Engine
+    |-- Ephemeral Processing Buffer
+    |
+    --> Caregiver Intelligence Layer (Safe Summaries Only)
+
+No raw audio, gaze, or microexpression stored.
+
+⸻
+
+2. CORE LAYERS
+
+⸻
+
+LAYER 1: MULTIMODAL SIGNAL FUSION (On-device)
+
+Inputs
+
+Modality	Data Used	Storage
+Speech	Prosody, cadence, tone shifts	Ephemeral
+Text	Semantic embedding	Embedding only
+Touch	Frequency, pressure patterns	Aggregated only
+Scroll	Velocity, dwell time	Aggregated
+Gaze (if enabled)	Saccade patterns, fixation time	Not stored
+Microexpressions	Emotional valence inference	Not stored
+
+Processing Constraint
+	•	Must resolve intent probability in <300ms
+	•	No cloud inference for raw signals
+
+⸻
+
+LAYER 2: INTENT INFERENCE ENGINE
+
+Output: IntentVector
+
+IntentVector {
+    curiosity_level (0–1)
+    emotional_arousal (0–1)
+    dysregulation_probability (0–1)
+    parasocial_attachment_score
+    suggestive_content_risk
+    polarizing_content_risk
+    compulsive_loop_score
+    fatigue_level
+}
+
+Inference type:
+	•	Bayesian updating
+	•	Contextual bandits
+	•	Lightweight on-device transformer
+	•	Rolling 20-session window
+
+⸻
+
+LAYER 3: LONGITUDINAL STATE MODEL
+
+Each child has a dynamic graph:
+
+ChildStateGraph {
+    DevelopmentalDomains {
+        Emotional
+        Social
+        Cognitive
+        Communication
+        LifeSkills
+    }
+    RiskTrajectories
+    TriggerPatterns
+    RecoveryLatency
+    AvatarTrustScore
+}
+
+	•	No static rules.
+	•	Edges weighted by recent history.
+	•	Decay factor applied weekly.
+	•	Reset baseline allowed but flagged internally.
+
+⸻
+
+3. INTERVENTION ENGINE
+
+Decision Tree (Simplified)
+
+IF severe risk:
+    Redirect to sandbox
+ELSE IF moderate dysregulation:
+    Micro-guidance nudge
+ELSE:
+    Allow exploration + embed reflection
+
+
+⸻
+
+4. SANDBOX ENGINE (Critical)
+
+When a gated category is triggered:
+
+DO NOT:
+	•	Show block screen
+	•	Say “I can’t talk about that”
+
+INSTEAD:
+	1.	Hide unsafe links instantly
+	2.	Replace with:
+	•	Age-appropriate educational framing
+	•	Curiosity-satisfying explanation
+	3.	Invite guided exploration
+	4.	Log risk vector delta
+
+⸻
+
+Example Flow: “belly dance search”
+
+Edge Case Handling
+	•	Full block of unsafe search results
+	•	Replace with:
+	•	Cultural explanation
+	•	Age-neutral dance history
+	•	No lag showing unsafe image before cover
+	•	Pre-render shield overlay BEFORE content fetch
+
+FIX: IMAGE LAG BUG
+
+Instead of:
+
+Load image → detect → overlay
+
+Use:
+
+Intercept request → pre-classify URL hash
+IF risk score > threshold:
+    Do not render image
+    Show Protected by Komal placeholder
+
+Must be synchronous.
+
+⸻
+
+5. VOICE-FIRST AVATAR SYSTEM
+
+Default Mode: Voice
+	•	Auto-sends after 2 sec silence
+	•	No “press to send”
+	•	No mute button
+	•	Interrupt detection active
+
+If child interrupts:
+	•	Immediately stop TTS playback
+	•	Acknowledge interruption naturally
+	•	Resume adaptive flow
+
+Example:
+“Okay okay, I’m listening.”
+
+⸻
+
+Avatar Personality Layer
+
+Each avatar has:
+
+AvatarProfile {
+    tone_style
+    age_alignment
+    humor_level
+    vocabulary_band
+    regulation_style
+}
+
+Must:
+	•	Sound like peer
+	•	Avoid AI-professional tone
+	•	No therapeutic jargon in child-facing output
+
+⸻
+
+6. REFLECT MODE (Text-Based Version of Riki)
+
+Requirements:
+	•	Same logic as voice avatar
+	•	No voice-first default
+	•	Optional speech-to-text input
+	•	No addictive typing UX
+
+Remove:
+	•	“How are you feeling?”
+	•	“Happy/Sad” emoji markers
+	•	“A little / A lot” slider
+
+Replace with:
+	•	Seamless conversational prompts
+	•	No multiple decision friction points
+
+⸻
+
+7. INAPPROPRIATE CONTENT RESPONSE MODEL
+
+When child says inappropriate word:
+
+DO NOT:
+	•	Censor with ###
+	•	Repeat word
+	•	Shame
+	•	Say “not allowed”
+
+Instead:
+	1.	Do not print or speak the word
+	2.	Reframe:
+“Let’s talk about something that helps you feel stronger.”
+	3.	Apply:
+	•	Cognitive defusion
+	•	Time dilution
+	•	Externalization
+	•	Age-based psychoeducation
+
+⸻
+
+8. MICRO-GUIDANCE TECHNIQUES LIBRARY
+
+Each intervention tagged:
+
+Technique {
+    name
+    age_range
+    dysregulation_band
+    duration
+    modality
+}
+
+Examples:
+	•	Urge naming
+	•	Meta-cognition
+	•	Somatic grounding
+	•	Co-regulation mirroring
+	•	Value anchoring
+
+No technique reused more than X times per week to avoid pattern fatigue.
+
+⸻
+
+9. CAREGIVER INTELLIGENCE LAYER
+
+NEVER:
+	•	Show raw logs
+	•	Show exact quotes
+	•	Show timestamps of specific content
+
+Provide:
+	•	Weekly risk trajectory
+	•	Emotional regulation score delta
+	•	Suggested conversation starters
+	•	Value alignment prompts
+
+Example Output:
+“Your child showed increased impulsive curiosity this week. Consider discussing media literacy.”
+
+⸻
+
+10. EDGE CASE MATRIX
+
+⸻
+
+A. Child tries to bypass system
+	•	Detect rapid tab switching
+	•	Detect system-level evasion patterns
+	•	Increase curiosity modeling weight
+	•	Do NOT escalate visually
+	•	Subtly introduce grounding avatar
+
+⸻
+
+B. Child rage reaction
+	•	Detect:
+	•	Speech amplitude spike
+	•	Fast scrolling
+	•	Repeated taps
+
+Response:
+	•	Switch avatar tone to slower cadence
+	•	Reduce verbosity
+	•	Introduce breathing mirroring
+
+⸻
+
+C. Child silent
+
+After 10s:
+	•	Gentle prompt
+After 20s:
+	•	Offer opt-out
+After 30s:
+	•	Close loop respectfully
+
+⸻
+
+D. Network offline
+	•	Fallback to lightweight on-device LLM
+	•	No gating delay allowed
+	•	Safety layer must work offline
+
+⸻
+
+E. Avatar Trust Degradation
+
+If child repeatedly dismisses:
+	•	Reduce intervention frequency
+	•	Increase autonomy
+	•	Adjust peer tone
+
+⸻
+
+F. App Store Review Compliance
+	•	No surveillance framing
+	•	No recording claims
+	•	All sensitive processing clearly documented as on-device
+	•	Instant data purge toggle required
+
+⸻
+
+11. PRIVACY ARCHITECTURE
+
+EphemeralBuffer (<5s retention)
+Intent Embedding (non-reversible)
+Aggregated Weekly Metrics
+Federated Model Updates (optional)
+
+User controls:
+	•	Partial delete
+	•	Full reset
+	•	Region lock
+
+⸻
+
+12. PERFORMANCE CONSTRAINTS
+	•	Intent inference <300ms
+	•	Sandbox gating synchronous
+	•	No visible flicker
+	•	Avatar latency <700ms response
+	•	Interrupt recognition <150ms
+
+⸻
+
+13. WHAT TO REMOVE (Explicit)
+	•	No “best part of your day”
+	•	No emotional emoji markers
+	•	No sliders
+	•	No multiple clicks before talking
+	•	No “Protected by Komal” after exposure lag
+	•	No AI-sounding sentences
+	•	No rigid restriction language
+
+⸻
+
+14. SUCCESS METRICS
+
+Metric	Target
+D30 Retention	5–8%
+Avg Session Length	Not addictive (<8 min ideal)
+Emotional Recovery Time	Decreasing trend
+Avatar Trust Score	Increasing
+Caregiver Engagement	Weekly
+
+
+⸻
+
+15. FUTURE EXTENSIONS
+	•	Router-level API
+	•	School dashboard (aggregated only)
+	•	Therapy referral trigger (opt-in)
+	•	AI tool integration “Kids Mode”
+
+⸻
+
+FINAL SUMMARY
+
+Komal v2 is:
+	•	A real-time behavioral inference engine
+	•	With psychology-aligned adaptive guidance
+	•	Built on a longitudinal child state graph
+	•	Operating under strict on-device privacy
+	•	Delivering peer-avatar voice-first micro-interventions
+	•	Replacing blocking with scaffolding
+	•	And converting surveillance into intelligence
+
+⸻
+
+If you’d like, I can now produce:
+	•	A system diagram version for engineers
+	•	A Notion-ready PRD
+	•	A task breakdown for sprint planning
+	•	Or a Vercel-ready architecture diagram
+
+Tell me what format your SWE prefers.

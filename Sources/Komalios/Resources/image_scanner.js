@@ -9,7 +9,7 @@
     }
 
     // Trusted domains — skip pre-hiding but still scan images
-    var TRUSTED_DOMAINS = TRUSTED_DOMAINS_PLACEHOLDER;
+    var TRUSTED_DOMAINS = (typeof TRUSTED_DOMAINS_PLACEHOLDER !== 'undefined') ? TRUSTED_DOMAINS_PLACEHOLDER : [];
     var currentHost = (window.location.hostname || '').toLowerCase();
     var isTrustedDomain = TRUSTED_DOMAINS.some(function(d) { return currentHost === d || currentHost === 'www.' + d || currentHost.endsWith('.' + d); });
 
@@ -345,7 +345,7 @@
             ctx.textBaseline = 'middle';
             ctx.fillText('🛡️', w / 2, h / 2 - 10);
             ctx.font = Math.max(10, Math.min(w, h) / 12) + 'px sans-serif';
-            ctx.fillText('Protected by Komal', w / 2, h / 2 + 15);
+            ctx.fillText('Komal', w / 2, h / 2 + 15);
             return canvas.toDataURL('image/png');
         },
 

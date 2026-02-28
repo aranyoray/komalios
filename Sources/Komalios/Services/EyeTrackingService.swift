@@ -340,8 +340,11 @@ final class EyeTrackingService: NSObject, ObservableObject {
     // MARK: - Persistence (on-device JSON with file protection)
 
     private lazy var cachedStorageURL: URL = {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("EyeTracking", isDirectory: true)
+        guard let appSupportDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            // Fallback to temporary directory if Application Support is unavailable
+            return FileManager.default.temporaryDirectory.appendingPathComponent(Self.storageFileName)
+        }
+        let dir = appSupportDir.appendingPathComponent("EyeTracking", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent(Self.storageFileName)
     }()

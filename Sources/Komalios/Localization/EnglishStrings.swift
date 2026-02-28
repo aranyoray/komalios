@@ -264,6 +264,21 @@ enum EnglishStrings {
         d["menu.reflect"] = "Reflect"
         d["menu.settings"] = "Settings"
 
+        // MARK: - Plan Selection
+        d["plan.choose_title"] = "Choose Your Plan"
+        d["plan.choose_subtitle"] = "Pick the right level of protection for your family"
+        d["plan.start_essentials"] = "Start with Essentials"
+        d["plan.subscribe_to"] = "Subscribe to %@"
+        d["plan.restore_purchases"] = "Restore Purchases"
+        d["plan.purchase_error"] = "Purchase Error"
+        d["plan.unavailable"] = "This plan is currently unavailable. Please try again later."
+        d["plan.recommended"] = "RECOMMENDED"
+        d["plan.free"] = "Free"
+        d["plan.per_month"] = "%@/month"
+        d["plan.loading"] = "Loading..."
+        d["plan.profiles_up_to"] = "Up to %d child profiles"
+        d["plan.profiles_unlimited"] = "Unlimited child profiles"
+
         // MARK: - Settings
         d["settings.title"] = "Settings"
         d["settings.language"] = "Language"
@@ -343,6 +358,32 @@ enum EnglishStrings {
         d["settings.pin.placeholder"] = "PIN"
         d["settings.pin.error"] = "Incorrect PIN. Try again."
         d["settings.pin.biometric"] = "Use %@"
+
+        // Settings - Subscription & Billing
+        d["settings.view_plans"] = "View all plans and pricing"
+        d["settings.billing_invoices"] = "Billing & Invoices"
+        d["settings.billing_desc"] = "View transaction history and receipts"
+        d["settings.manage_appstore"] = "Manage in App Store"
+        d["settings.manage_appstore_desc"] = "Cancel, renew, or update payment method"
+        d["settings.current_plan"] = "Current Plan"
+        d["settings.per_month"] = "per month"
+        d["settings.next_renewal"] = "Next renewal: %@"
+        d["settings.transaction_history"] = "Transaction History"
+        d["settings.no_transactions"] = "No transactions yet"
+        d["settings.transactions_placeholder"] = "Your purchase history will appear here"
+        d["settings.subscriptions_info"] = "Subscriptions are managed through your Apple ID. To request a refund, visit reportaproblem.apple.com"
+        d["settings.plan_monthly"] = "%@ Monthly"
+
+        // Settings - PIN Management
+        d["settings.change_pin"] = "Change PIN"
+        d["settings.change_pin_desc"] = "Set a new 4-digit parent PIN"
+        d["settings.forgot_pin"] = "Forgot PIN? Reset with %@"
+        d["settings.pin_updated"] = "PIN Updated"
+        d["settings.pin_saved_msg"] = "Your new parent PIN has been saved."
+        d["settings.set_new_pin"] = "Set New PIN"
+        d["settings.new_pin_desc"] = "Enter a new 4-digit parent PIN"
+        d["settings.pin_mismatch"] = "PINs don't match or are incomplete"
+        d["settings.save_pin"] = "Save PIN"
 
         // Settings - Localized UI Strings
         d["settings.logout_confirm"] = "Do you want to logout?"
@@ -538,8 +579,12 @@ enum EnglishStrings {
         d["browser.before_you_go"] = "Before You Go"
         d["browser.content_filtered"] = "This content has been filtered for your safety."
         d["browser.content_unverified"] = "This content could not be verified as safe."
-        d["blocked.hi_there"] = "Hi there! 👋"
+        d["blocked.hi_there"] = "Hey there!"
         d["blocked.find_something_else"] = "Let's find something else!"
+        d["blocked.educational.1"] = "That page isn't quite right for exploring right now. How about we find something amazing together?"
+        d["blocked.educational.2"] = "Some corners of the internet need a grown-up guide. Let's discover something cool instead!"
+        d["blocked.educational.3"] = "There's so much to explore! Let's find a path that leads to something awesome."
+        d["blocked.educational.4"] = "Not every door needs opening today. Let's find one that leads somewhere great!"
         d["blocked.friendly_1"] = "I'm sorry, but this content isn't available right now. Let's find something else fun to explore together! 🌟"
         d["blocked.friendly_2"] = "This isn't quite right for us right now. How about we look for something else that's awesome? 💙"
         d["blocked.friendly_3"] = "Let's skip this one and find something even better! I'm here to help you discover great things! 🎈"
@@ -561,6 +606,7 @@ enum EnglishStrings {
         // MARK: - Emoji Check-in
         d["checkin.how_feeling"] = "How're you feeling exploring this?"
         d["checkin.how_are_you"] = "How are you feeling today?"
+        d["checkin.whats_on_your_mind"] = "What's on your mind?"
         d["checkin.hi_there"] = "Hi there! 👋"
         d["checkin.intro_message"] = "I'm Komal, and I'm here surfing the internet with you! How are you feeling right now?"
         d["checkin.thanks_komal"] = "Thanks, Komal! 😊"
@@ -1077,7 +1123,6 @@ enum EnglishStrings {
         d["anchor.evening.subtitle"] = "How was your day?"
         d["anchor.evening.wind_down"] = "Let's wind down together"
         d["anchor.evening.how_feeling"] = "How are you feeling tonight?"
-        d["anchor.evening.best_part"] = "What was the best part of your day?"
         d["anchor.evening.best_placeholder"] = "The best part was..."
         d["anchor.evening.best_part_placeholder"] = "Tell me about it..."
         d["anchor.evening.anything_bothering"] = "Anything bothering you?"
@@ -1189,6 +1234,12 @@ enum EnglishStrings {
         d["insights.dashboard.evening"] = "Evening"
         d["insights.dashboard.wellness_alert"] = "Wellness Alert"
         d["insights.dashboard.wellness_alert_message"] = "Your child has reported feeling sad for 3 or more consecutive check-ins. Consider having a gentle conversation about how they're feeling."
+        d["insights.dashboard.value_alignment"] = "Value Alignment"
+        d["insights.dashboard.value_alignment_desc"] = "Discuss values your child explored online this week:"
+        d["insights.dashboard.generating_prompt"] = "Generating prompt..."
+        d["insights.dashboard.value_kindness"] = "What did you learn about kindness today?"
+        d["insights.dashboard.value_fairness"] = "Tell me about a time someone was fair to you this week."
+        d["insights.dashboard.value_helping"] = "How did you help someone today?"
 
         // MARK: - Browsing History
         d["history.title"] = "Browsing History"

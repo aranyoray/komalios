@@ -10,7 +10,7 @@
 
     // Skip on trusted domains — native handler ignores these anyway
     var _host = (window.location.hostname || '').toLowerCase();
-    var _trusted = TRUSTED_DOMAINS_PLACEHOLDER;
+    var _trusted = (typeof TRUSTED_DOMAINS_PLACEHOLDER !== 'undefined') ? TRUSTED_DOMAINS_PLACEHOLDER : [];
     if (_trusted.some(function(d) { return _host === d || _host === 'www.' + d || _host.endsWith('.' + d); })) {
         window.komalViewportTracker = { sendSnapshot: function(){}, getStats: function(){ return {}; } };
         return;

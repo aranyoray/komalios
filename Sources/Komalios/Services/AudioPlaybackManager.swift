@@ -5,7 +5,6 @@ import AVFoundation
 @MainActor
 class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var isPlaying = false
-    @Published var isMuted = false
     @Published var wasInterrupted = false
 
     private var audioPlayer: AVAudioPlayer?
@@ -29,21 +28,18 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     func speak(text: String, characterName: String) async {
-        guard !isMuted else { return }
         stop()
 
         // Reconfigure audio session for playback before each speak call,
         // since SpeechRecognizer may have switched it to .record mode.
         configureAudioSession()
 
-        // Censor inappropriate words before sending to TTS
-        let cleanText = BrowserState.censorText(text)
-        guard !cleanText.isEmpty else { return }
+        // Per spec: no censoring with ### or asterisks — AI redirects naturally via system prompt.
+        // TTS speaks the AI's response as-is since it's already child-safe.
+        guard !text.isEmpty else { return }
 
         do {
-            let audioData = try await ttsService.synthesize(text: cleanText, characterName: characterName)
-            // Re-check muted state after async call returns
-            guard !isMuted else { return }
+            let audioData = try await ttsService.synthesize(text: text, characterName: characterName)
             audioPlayer = try AVAudioPlayer(data: audioData)
             audioPlayer?.delegate = self
             audioPlayer?.prepareToPlay()

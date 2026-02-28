@@ -939,11 +939,12 @@ struct FlaggedContentAlert: View {
                     .foregroundColor(.orange)
             }
             
+            // Per spec section 9: Never show exact flagged keywords to parents.
+            // Show only the count of flagged categories.
             if !keywords.isEmpty {
-                Text(LanguageManager.shared.localized("insights.keywords", keywords.prefix(5).joined(separator: ", ")))
+                Text("\(keywords.count) content categories flagged")
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundColor(KomalColors.textSecondary)
-                    .lineLimit(2)
             }
             
             Text(LanguageManager.shared.localized("insights.found_on_pages", pagesAffected))
@@ -1026,36 +1027,26 @@ struct PageSummaryRow: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Divider()
                     
-                    if let title = page.pageTitle {
-                        Text(title)
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
-                            .foregroundColor(KomalColors.textPrimary)
-                            .lineLimit(2)
-                            .padding(.horizontal, 12)
-                    }
-                    
+                    // Per spec section 9: Never show raw page titles, exact quotes, or timestamps.
+                    // Show only aggregated topic categories and risk level.
                     if !page.headingsViewed.isEmpty {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(LanguageManager.shared.localized("insights.topics_viewed"))
-                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        HStack(spacing: 6) {
+                            Image(systemName: "text.book.closed.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(KomalColors.lavenderPurple)
+                            Text("\(page.headingsViewed.count) topics explored")
+                                .font(.system(size: 11, weight: .medium, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
-                            
-                            ForEach(page.headingsViewed.prefix(5), id: \.self) { heading in
-                                Text("• \(heading)")
-                                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                                    .foregroundColor(KomalColors.textPrimary)
-                                    .lineLimit(1)
-                            }
                         }
                         .padding(.horizontal, 12)
                     }
-                    
+
                     if !page.flaggedContent.isEmpty {
                         HStack {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 10))
                                 .foregroundColor(.orange)
-                            Text(LanguageManager.shared.localized("insights.flagged", page.flaggedContent.joined(separator: ", ")))
+                            Text("\(page.flaggedContent.count) content flag(s) detected")
                                 .font(.system(size: 10, weight: .medium, design: .rounded))
                                 .foregroundColor(.orange)
                         }

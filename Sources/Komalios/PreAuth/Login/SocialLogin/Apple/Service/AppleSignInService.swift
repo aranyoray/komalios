@@ -22,9 +22,14 @@ final class AppleSignInService: NSObject {
         request.requestedScopes = [.fullName, .email]
 
         if useNonce {
-            let nonce = Nonce.randomString()
-            currentNonce = nonce
-            request.nonce = Nonce.sha256(nonce) // Apple expects hashed nonce
+            do {
+                let nonce = try Nonce.randomString()
+                currentNonce = nonce
+                request.nonce = Nonce.sha256(nonce) // Apple expects hashed nonce
+            } catch {
+                completion?(.failure(error))
+                return
+            }
         } else {
             currentNonce = nil
         }

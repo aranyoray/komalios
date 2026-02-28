@@ -67,7 +67,7 @@ enum ImageContentCategory: String, Codable, CaseIterable {
         case .violence: return "bolt.fill"
         case .gore: return "drop.fill"
         case .drugs: return "pills.fill"
-        case .weapons: return "shield.slash.fill"
+        case .weapons: return "exclamationmark.shield.fill"
         case .safe: return "checkmark.shield.fill"
         case .neutral: return "questionmark.circle"
         }
