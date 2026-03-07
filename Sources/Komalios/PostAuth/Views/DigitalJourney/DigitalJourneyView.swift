@@ -369,16 +369,18 @@ struct HistoryItemRow: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    // Page title or URL
-                    Text(item.pageTitle ?? shortenURL(item.url))
+                    // Category label (privacy: no raw page titles)
+                    Text(item.category ?? "Browsing")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
                         .lineLimit(1)
 
-                    Text(shortenURL(item.url))
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(KomalColors.textSecondary)
-                        .lineLimit(1)
+                    if let domain = URL(string: item.url)?.host {
+                        Text(domain)
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(KomalColors.textSecondary)
+                            .lineLimit(1)
+                    }
                 }
 
                 Spacer()

@@ -22,10 +22,10 @@
 		6B3BDF971CF675F2CED16D0FC97BC896 /* ScanNetworkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B3BDF9724FD82DABA1EADE0 /* ScanNetworkService.swift */; };
 		6F7C5C4B78B57268398A2B67 /* RetentionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A48893D4C4FEBE405B61463 /* RetentionState.swift */; };
 		70C1B9B70632463291F51EC9 /* DigitalJourney/DigitalJourneyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32AC2F65BBC94205AC5AC06C /* DigitalJourney/DigitalJourneyViewModel.swift */; };
-		7D7A1A18BD08C1F22F584109 /* EveningAnchorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AE2933A286161167C7F0601 /* EveningAnchorView.swift */; };
-		86AB4D94B5A5170F408CAE3D /* MorningAnchorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 346CE9722B4BFC1E2AEBCABA /* MorningAnchorView.swift */; };
 		8A257C17055F1BAF83184A0D /* ConversationMemoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2E5BB2F47FF81E6E8FBF8AC /* ConversationMemoryService.swift */; };
 		8A74B3F60182EDE24D5658FA /* WeeklySnapshotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBEE3F3358E62BEE88404ABB /* WeeklySnapshotView.swift */; };
+		V2INT001201D0001 /* IntentInferenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = V2INT001101D0001 /* IntentInferenceService.swift */; };
+		V2MGL001201D0001 /* MicroGuidanceLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = V2MGL001101D0001 /* MicroGuidanceLibrary.swift */; };
 		91CB05C37C0D29ECFEAB0DFFCA8232D3 /* KomalSafetyScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91CB05C3A4807C7785E182F1 /* KomalSafetyScannerViewModel.swift */; };
 		920509C1D5AAC5165A105EAD /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FF82B34A2C7C8C70BDB9E0E /* NotificationService.swift */; };
 		97A9A8C046E1F8DA0F94715A /* MoodTrackingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BD3B8B98B2CD21F3C6AD2E /* MoodTrackingService.swift */; };
@@ -117,6 +117,7 @@
 		FRESTR001201D0001 /* FrenchStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FRESTR001101D0001 /* FrenchStrings.swift */; };
 		GEMINI001201D0001 /* GeminiChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = GEMINI001101D0001 /* GeminiChatService.swift */; };
 		IMGFILT001201D0001 /* ImageFilterEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = IMGFILT001101D0001 /* ImageFilterEvent.swift */; };
+		BEHMOD001201D0001 /* BehavioralModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEHMOD001101D0001 /* BehavioralModels.swift */; };
 		IMGFSVC001201D0001 /* ImageFilterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = IMGFSVC001101D0001 /* ImageFilterService.swift */; };
 		IMGSCJS001201D0001 /* image_scanner.js in Resources */ = {isa = PBXBuildFile; fileRef = IMGSCJS001101D0001 /* image_scanner.js */; };
 		INSIGHTS001201D0001 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = INSIGHTS001101D0001 /* InsightsView.swift */; };
@@ -125,29 +126,32 @@
 		LNGSEL001201D0001 /* LanguageSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LNGSEL001101D0001 /* LanguageSelectorView.swift */; };
 		PAGEENG001201D0001 /* PageEngagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = PAGEENG001101D0001 /* PageEngagement.swift */; };
 		PORSTR001201D0001 /* PortugueseStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = PORSTR001101D0001 /* PortugueseStrings.swift */; };
+		NTWMON001201D0001 /* NetworkMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NTWMON001101D0001 /* NetworkMonitorService.swift */; };
 		PRSOCL001201D0001 /* ParasocialDetectorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRSOCL001101D0001 /* ParasocialDetectorService.swift */; };
+		RAGEDT001201D0001 /* RageDetectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = RAGEDT001101D0001 /* RageDetectionService.swift */; };
 		RVLCLS001201D0001 /* RevealingLevelClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = RVLCLS001101D0001 /* RevealingLevelClassifier.swift */; };
 		EYETRK001201D0001 /* EyeTrackingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EYETRK001101D0001 /* EyeTrackingModels.swift */; };
 		EYETRK001201D0002 /* EyeTrackingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EYETRK001101D0002 /* EyeTrackingService.swift */; };
 		EYETRK001201D0003 /* EyeTrackingReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EYETRK001101D0003 /* EyeTrackingReportView.swift */; };
 		SEL00001201D0001 /* SELModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SEL00001101D0001 /* SELModels.swift */; };
+		SEL00001201D0006 /* SELCurriculum.swift in Sources */ = {isa = PBXBuildFile; fileRef = SEL00001101D0006 /* SELCurriculum.swift */; };
 		SEL00001201D0002 /* SELAssessmentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = SEL00001101D0002 /* SELAssessmentService.swift */; };
-		SEL00001201D0003 /* SELDailySessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SEL00001101D0003 /* SELDailySessionView.swift */; };
 		SEL00001201D0004 /* SELJourneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SEL00001101D0004 /* SELJourneyView.swift */; };
+		SEL00001201D0005 /* SELDailySessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SEL00001101D0005 /* SELDailySessionView.swift */; };
 		SPASTR001201D0001 /* SpanishStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPASTR001101D0001 /* SpanishStrings.swift */; };
 		SPEECH001201D0001 /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPEECH001101D0001 /* SpeechRecognizer.swift */; };
 		UNIFIED001201D0001 /* UnifiedDecisionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = UNIFIED001101D0001 /* UnifiedDecisionModels.swift */; };
 		VIEWCNT001201D0001 /* ViewportContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = VIEWCNT001101D0001 /* ViewportContent.swift */; };
 		VPTRKJS001201D0001 /* viewport_tracker.js in Resources */ = {isa = PBXBuildFile; fileRef = VPTRKJS001101D0001 /* viewport_tracker.js */; };
+		YTSCJS001201D0001 /* youtube_scanner.js in Resources */ = {isa = PBXBuildFile; fileRef = YTSCJS001101D0001 /* youtube_scanner.js */; };
+		YTANLZ001201D0001 /* YouTubeContentAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = YTANLZ001101D0001 /* YouTubeContentAnalyzer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		075A06E711596DA89F25C741 /* ConversationMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationMemory.swift; sourceTree = "<group>"; };
 		20F791F76FA62C8A947A9525 /* ParentInsightsDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentInsightsDashboardView.swift; sourceTree = "<group>"; };
 		273666D3212249818E0A4B5A /* AudioPlaybackManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackManager.swift; sourceTree = "<group>"; };
-		2AE2933A286161167C7F0601 /* EveningAnchorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EveningAnchorView.swift; sourceTree = "<group>"; };
 		32AC2F65BBC94205AC5AC06C /* DigitalJourney/DigitalJourneyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalJourney/DigitalJourneyViewModel.swift; sourceTree = "<group>"; };
-		346CE9722B4BFC1E2AEBCABA /* MorningAnchorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningAnchorView.swift; sourceTree = "<group>"; };
 		3A48893D4C4FEBE405B61463 /* RetentionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetentionState.swift; sourceTree = "<group>"; };
 		3CAC12E67DDB9C08F93E12D3 /* ContextualPromptEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextualPromptEngine.swift; sourceTree = "<group>"; };
 		3F1144B541EB460ABCDEEA7E /* TextToSpeechService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeechService.swift; sourceTree = "<group>"; };
@@ -250,6 +254,7 @@
 		FRESTR001101D0001 /* FrenchStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrenchStrings.swift; sourceTree = "<group>"; };
 		GEMINI001101D0001 /* GeminiChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiChatService.swift; sourceTree = "<group>"; };
 		IMGFILT001101D0001 /* ImageFilterEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFilterEvent.swift; sourceTree = "<group>"; };
+		BEHMOD001101D0001 /* BehavioralModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehavioralModels.swift; sourceTree = "<group>"; };
 		IMGFSVC001101D0001 /* ImageFilterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFilterService.swift; sourceTree = "<group>"; };
 		IMGSCJS001101D0001 /* image_scanner.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = image_scanner.js; sourceTree = "<group>"; };
 		INSIGHTS001101D0001 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
@@ -258,21 +263,28 @@
 		LNGSEL001101D0001 /* LanguageSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSelectorView.swift; sourceTree = "<group>"; };
 		PAGEENG001101D0001 /* PageEngagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageEngagement.swift; sourceTree = "<group>"; };
 		PORSTR001101D0001 /* PortugueseStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortugueseStrings.swift; sourceTree = "<group>"; };
+		NTWMON001101D0001 /* NetworkMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitorService.swift; sourceTree = "<group>"; };
 		PRSOCL001101D0001 /* ParasocialDetectorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParasocialDetectorService.swift; sourceTree = "<group>"; };
+		RAGEDT001101D0001 /* RageDetectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RageDetectionService.swift; sourceTree = "<group>"; };
 		RVLCLS001101D0001 /* RevealingLevelClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealingLevelClassifier.swift; sourceTree = "<group>"; };
 		EYETRK001101D0001 /* EyeTrackingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeTrackingModels.swift; sourceTree = "<group>"; };
 		EYETRK001101D0002 /* EyeTrackingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeTrackingService.swift; sourceTree = "<group>"; };
+		V2INT001101D0001 /* IntentInferenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentInferenceService.swift; sourceTree = "<group>"; };
+		V2MGL001101D0001 /* MicroGuidanceLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicroGuidanceLibrary.swift; sourceTree = "<group>"; };
 		EYETRK001101D0003 /* EyeTrackingReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeTrackingReportView.swift; sourceTree = "<group>"; };
 		SECRETS001101D0001 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		SEL00001101D0001 /* SELModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SELModels.swift; sourceTree = "<group>"; };
+		SEL00001101D0006 /* SELCurriculum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SELCurriculum.swift; sourceTree = "<group>"; };
 		SEL00001101D0002 /* SELAssessmentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SELAssessmentService.swift; sourceTree = "<group>"; };
-		SEL00001101D0003 /* SELDailySessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SELDailySessionView.swift; sourceTree = "<group>"; };
 		SEL00001101D0004 /* SELJourneyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SELJourneyView.swift; sourceTree = "<group>"; };
+		SEL00001101D0005 /* SELDailySessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SELDailySessionView.swift; sourceTree = "<group>"; };
 		SPASTR001101D0001 /* SpanishStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanishStrings.swift; sourceTree = "<group>"; };
 		SPEECH001101D0001 /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
 		UNIFIED001101D0001 /* UnifiedDecisionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedDecisionModels.swift; sourceTree = "<group>"; };
 		VIEWCNT001101D0001 /* ViewportContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportContent.swift; sourceTree = "<group>"; };
 		VPTRKJS001101D0001 /* viewport_tracker.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = viewport_tracker.js; sourceTree = "<group>"; };
+		YTSCJS001101D0001 /* youtube_scanner.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = youtube_scanner.js; sourceTree = "<group>"; };
+		YTANLZ001101D0001 /* YouTubeContentAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouTubeContentAnalyzer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -302,8 +314,6 @@
 		68AFAF72152E5BE3033BE064 /* Anchors */ = {
 			isa = PBXGroup;
 			children = (
-				346CE9722B4BFC1E2AEBCABA /* MorningAnchorView.swift */,
-				2AE2933A286161167C7F0601 /* EveningAnchorView.swift */,
 			);
 			path = Anchors;
 			sourceTree = "<group>";
@@ -397,8 +407,10 @@
 				A0AEE647B61568760CEEA13A /* GrowthModels.swift */,
 				3A48893D4C4FEBE405B61463 /* RetentionState.swift */,
 				SEL00001101D0001 /* SELModels.swift */,
+				SEL00001101D0006 /* SELCurriculum.swift */,
 				A1B2C3D400000001AABB0001 /* SubscriptionModels.swift */,
 				EYETRK001101D0001 /* EyeTrackingModels.swift */,
+				BEHMOD001101D0001 /* BehavioralModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -432,9 +444,14 @@
 				3CAC12E67DDB9C08F93E12D3 /* ContextualPromptEngine.swift */,
 				4FF82B34A2C7C8C70BDB9E0E /* NotificationService.swift */,
 				LNGMGR001101D0001 /* LanguageManager.swift */,
+				NTWMON001101D0001 /* NetworkMonitorService.swift */,
 				PRSOCL001101D0001 /* ParasocialDetectorService.swift */,
+				RAGEDT001101D0001 /* RageDetectionService.swift */,
 				A1B2C3D400000001AABB0002 /* SubscriptionService.swift */,
 				EYETRK001101D0002 /* EyeTrackingService.swift */,
+				V2INT001101D0001 /* IntentInferenceService.swift */,
+				V2MGL001101D0001 /* MicroGuidanceLibrary.swift */,
+				YTANLZ001101D0001 /* YouTubeContentAnalyzer.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -448,6 +465,7 @@
 				ENGTRJS001101D0001 /* engagement_tracker.js */,
 				IMGSCJS001101D0001 /* image_scanner.js */,
 				VPTRKJS001101D0001 /* viewport_tracker.js */,
+				YTSCJS001101D0001 /* youtube_scanner.js */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -749,8 +767,8 @@
 		SEL00001401D0001 /* SEL */ = {
 			isa = PBXGroup;
 			children = (
-				SEL00001101D0003 /* SELDailySessionView.swift */,
 				SEL00001101D0004 /* SELJourneyView.swift */,
+				SEL00001101D0005 /* SELDailySessionView.swift */,
 				EYETRK001101D0003 /* EyeTrackingReportView.swift */,
 			);
 			path = SEL;
@@ -840,6 +858,7 @@
 				ENGTRJS001201D0001 /* engagement_tracker.js in Resources */,
 				IMGSCJS001201D0001 /* image_scanner.js in Resources */,
 				VPTRKJS001201D0001 /* viewport_tracker.js in Resources */,
+				YTSCJS001201D0001 /* youtube_scanner.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -906,7 +925,10 @@
 				PAGEENG001201D0001 /* PageEngagement.swift in Sources */,
 				VIEWCNT001201D0001 /* ViewportContent.swift in Sources */,
 				IMGFSVC001201D0001 /* ImageFilterService.swift in Sources */,
+				BEHMOD001201D0001 /* BehavioralModels.swift in Sources */,
+				NTWMON001201D0001 /* NetworkMonitorService.swift in Sources */,
 				PRSOCL001201D0001 /* ParasocialDetectorService.swift in Sources */,
+				RAGEDT001201D0001 /* RageDetectionService.swift in Sources */,
 				RVLCLS001201D0001 /* RevealingLevelClassifier.swift in Sources */,
 				ENGTRCK001201D0001 /* EngagementTracker.swift in Sources */,
 				CNTANLZ001201D0001 /* ContentAnalyzerService.swift in Sources */,
@@ -938,8 +960,6 @@
 				16C02EA8DEDDBDEE278C82C2 /* GrowthTrackingService.swift in Sources */,
 				0E383944D0CE01913ED65606 /* ContextualPromptEngine.swift in Sources */,
 				920509C1D5AAC5165A105EAD /* NotificationService.swift in Sources */,
-				86AB4D94B5A5170F408CAE3D /* MorningAnchorView.swift in Sources */,
-				7D7A1A18BD08C1F22F584109 /* EveningAnchorView.swift in Sources */,
 				EF0FBA5E4A69B6114E3D5C82 /* GrowthJourneyView.swift in Sources */,
 				8A74B3F60182EDE24D5658FA /* WeeklySnapshotView.swift in Sources */,
 				EC2F5751CBA0A6BD755883FE /* ReconnectionView.swift in Sources */,
@@ -953,15 +973,19 @@
 				SPASTR001201D0001 /* SpanishStrings.swift in Sources */,
 				PORSTR001201D0001 /* PortugueseStrings.swift in Sources */,
 				SEL00001201D0001 /* SELModels.swift in Sources */,
+				SEL00001201D0006 /* SELCurriculum.swift in Sources */,
 				SEL00001201D0002 /* SELAssessmentService.swift in Sources */,
-				SEL00001201D0003 /* SELDailySessionView.swift in Sources */,
 				SEL00001201D0004 /* SELJourneyView.swift in Sources */,
+				SEL00001201D0005 /* SELDailySessionView.swift in Sources */,
 				EYETRK001201D0001 /* EyeTrackingModels.swift in Sources */,
 				EYETRK001201D0002 /* EyeTrackingService.swift in Sources */,
 				EYETRK001201D0003 /* EyeTrackingReportView.swift in Sources */,
 				A1B2C3D400000001AABB0004 /* SubscriptionModels.swift in Sources */,
 				A1B2C3D400000001AABB0005 /* SubscriptionService.swift in Sources */,
 				A1B2C3D400000001AABB0006 /* PlanSelectionView.swift in Sources */,
+				V2INT001201D0001 /* IntentInferenceService.swift in Sources */,
+				V2MGL001201D0001 /* MicroGuidanceLibrary.swift in Sources */,
+				YTANLZ001201D0001 /* YouTubeContentAnalyzer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

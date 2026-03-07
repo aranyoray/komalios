@@ -55,9 +55,6 @@ struct ParentInsightsDashboardView: View {
                         // Retention Metrics
                         retentionMetricsSection
 
-                        // Anchor Compliance
-                        anchorComplianceSection
-
                         // Alerts
                         alertsSection
 
@@ -222,8 +219,12 @@ struct ParentInsightsDashboardView: View {
                         HStack(spacing: 8) {
                             ForEach(trend, id: \.date) { entry in
                                 VStack(spacing: 4) {
-                                    Text(entry.emoji)
-                                        .font(.system(size: 24))
+                                    Text(entry.emotion.prefix(1).uppercased())
+                                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                                        .foregroundColor(KomalColors.lavenderPurple)
+                                        .frame(width: 32, height: 32)
+                                        .background(KomalColors.lavenderPurple.opacity(0.15))
+                                        .clipShape(Circle())
                                     Text(String(entry.date.suffix(5)))
                                         .font(.system(size: 9, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
@@ -437,60 +438,6 @@ struct ParentInsightsDashboardView: View {
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(KomalColors.textSecondary)
                     .lineSpacing(2)
-            }
-        }
-    }
-
-    // MARK: - Anchor Compliance
-
-    private var anchorComplianceSection: some View {
-        SettingsCard {
-            VStack(alignment: .leading, spacing: 16) {
-                CardHeader(icon: "clock.fill", title: LanguageManager.localized("insights.dashboard.daily_checkins"), color: KomalColors.pearlAqua)
-
-                let compliance = growthService.getAnchorComplianceRate()
-
-                HStack(spacing: 24) {
-                    VStack(spacing: 8) {
-                        ZStack {
-                            Circle()
-                                .stroke(Color.gray.opacity(0.1), lineWidth: 6)
-                                .frame(width: 60, height: 60)
-                            Circle()
-                                .trim(from: 0, to: compliance.morning)
-                                .stroke(KomalColors.bubblegumPink, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                                .frame(width: 60, height: 60)
-                                .rotationEffect(.degrees(-90))
-                            Text("\(Int(compliance.morning * 100))%")
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(KomalColors.textPrimary)
-                        }
-                        Text(LanguageManager.localized("insights.dashboard.morning"))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(KomalColors.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity)
-
-                    VStack(spacing: 8) {
-                        ZStack {
-                            Circle()
-                                .stroke(Color.gray.opacity(0.1), lineWidth: 6)
-                                .frame(width: 60, height: 60)
-                            Circle()
-                                .trim(from: 0, to: compliance.evening)
-                                .stroke(KomalColors.lavenderPurple, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                                .frame(width: 60, height: 60)
-                                .rotationEffect(.degrees(-90))
-                            Text("\(Int(compliance.evening * 100))%")
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(KomalColors.textPrimary)
-                        }
-                        Text(LanguageManager.localized("insights.dashboard.evening"))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(KomalColors.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
             }
         }
     }

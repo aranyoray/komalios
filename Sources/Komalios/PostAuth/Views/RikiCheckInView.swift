@@ -186,6 +186,7 @@ struct FocusedChatView: View {
     @State private var displayTranscript: String = ""
     @State private var activeEmojis: [String] = []
     @State private var showEmojis: Bool = false
+    @State private var idleRestartTask: Task<Void, Never>?
 
     // Silence tier tracking — per spec edge case C:
     // After 10s: gentle prompt, After 20s: offer opt-out, After 30s: close loop
@@ -200,9 +201,9 @@ struct FocusedChatView: View {
     private let geminiService = GeminiChatService()
     private let memoryService = ConversationMemoryService.shared
 
-    /// Last 4 messages for display
+    /// Last 3 messages for display (fewer = less clutter during active chat)
     private var recentMessages: [RikiChatMessage] {
-        Array(messages.suffix(4))
+        Array(messages.suffix(3))
     }
 
     /// Glow color changes based on state
@@ -228,154 +229,61 @@ struct FocusedChatView: View {
         return nil
     }
 
+    private let tabBarClearance: CGFloat = 80
+
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer().frame(height: 12)
+        GeometryReader { geo in
+            let usableHeight = geo.size.height - geo.safeAreaInsets.top - tabBarClearance
+            let avatarZoneHeight = min(220, usableHeight * 0.30)
+            let avatarSize = avatarZoneHeight * 0.5
+            let messagesMaxHeight = min(200, max(100, usableHeight * 0.22))
 
-            // Character name header
-            HStack(spacing: 8) {
-                if let uiImage = UIImage(named: character.imageName) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 28, height: 28)
-                        .clipShape(Circle())
-                }
-                Text(LanguageManager.localized("riki.friend_title", character.name))
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+            VStack(spacing: 0) {
+                Spacer().frame(height: 12)
+
+                // Character name header
+                Text(character.name)
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
-            }
 
-            Spacer().frame(height: 12)
+                Spacer().frame(height: 8)
 
-            // Large avatar with radiating glow
-            ZStack {
-                Circle()
-                    .fill(glowColor.opacity(0.08))
-                    .frame(width: 200, height: 200)
+                // Large avatar with radiating glow — shrink when listening to make room
+                avatarSection(
+                    avatarSize: isListening ? avatarSize * 0.75 : avatarSize,
+                    avatarZoneHeight: isListening ? avatarZoneHeight * 0.75 : avatarZoneHeight
+                )
+                .animation(.easeInOut(duration: 0.3), value: isListening)
 
-                Circle()
-                    .fill(glowColor.opacity(0.15))
-                    .frame(width: 160, height: 160)
+                // Status indicator
+                statusBadge
+                    .padding(.top, 4)
 
-                Circle()
-                    .fill(glowColor.opacity(0.25))
-                    .frame(width: 120, height: 120)
+                Spacer().frame(height: 4)
 
-                if let uiImage = UIImage(named: character.imageName) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(glowColor.opacity(0.5), lineWidth: 3)
-                        )
-                }
+                // Recent messages in a ScrollView
+                messagesSection(maxHeight: messagesMaxHeight)
 
-            }
-            .animation(.easeInOut(duration: 0.6), value: glowColor)
-            .overlay(alignment: .trailing) {
-                if !activeEmojis.isEmpty {
-                    VStack(spacing: 6) {
-                        ForEach(Array(activeEmojis.prefix(3).enumerated()), id: \.offset) { index, emoji in
-                            FloatingSingleEmoji(emoji: emoji, isVisible: showEmojis, driftPhase: index)
-                        }
-                    }
-                    .offset(x: 15)
-                    .allowsHitTesting(false)
-                }
-            }
-            .contentShape(Circle())
-            .onTapGesture {
-                if audioPlayback.isPlaying {
-                    // Interrupt TTS and start listening
-                    conversationInterruptionNote = "[The child interrupted while you were speaking. Acknowledge naturally — say something like 'Okay, I'm listening' and pick up from what they say next.]"
-                    audioPlayback.interruptForChildSpeech()
-                    startListening()
-                    startSilenceTierMonitoring()
-                } else if !isListening && !isLoading && !isPaused {
-                    // Tap to manually start listening when idle
-                    startListening()
-                    startSilenceTierMonitoring()
-                }
-            }
-
-            Spacer().frame(height: 8)
-
-            // Status indicator
-            if let status = statusText {
-                Text(status)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundColor(glowColor)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(glowColor.opacity(0.12))
+                // Siri-like transcript display — replaces messages space when active
+                if isListening {
+                    SiriTranscriptView(
+                        isListening: isListening,
+                        transcript: displayTranscript,
+                        glowColor: glowColor
                     )
+                    .padding(.horizontal, 24)
+                    .padding(.top, 4)
                     .transition(.opacity)
-            }
-
-            Spacer().frame(height: 8)
-
-            // Recent messages (last 3-4, fading toward top)
-            VStack(spacing: 6) {
-                ForEach(Array(recentMessages.enumerated()), id: \.element.id) { index, message in
-                    let totalCount = recentMessages.count
-                    let fadeOpacity = totalCount <= 1 ? 1.0 : (0.3 + 0.7 * Double(index) / Double(totalCount - 1))
-
-                    HStack {
-                        if message.isFromUser { Spacer(minLength: 60) }
-
-                        Text(message.text)
-                            .font(.system(size: message.isFromUser ? 14 : 15, weight: .medium, design: .rounded))
-                            .foregroundColor(message.isFromUser ? .white : KomalColors.textPrimary)
-                            .multilineTextAlignment(message.isFromUser ? .trailing : .leading)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(message.isFromUser
-                                        ? KomalColors.lavenderPurple
-                                        : glowColor.opacity(0.12))
-                            )
-                            .lineLimit(message.id == recentMessages.last?.id ? nil : 2)
-
-                        if !message.isFromUser { Spacer(minLength: 60) }
-                    }
-                    .opacity(fadeOpacity)
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
-            }
-            .padding(.horizontal, 20)
-            .frame(maxHeight: 200)
-            .animation(.easeInOut(duration: 0.3), value: messages.count)
 
-            // Listening transcript preview — inappropriate words censored for display
-            if isListening && !displayTranscript.isEmpty {
-                Text(displayTranscript)
-                    .font(.system(size: 14, weight: .regular, design: .rounded))
-                    .foregroundColor(KomalColors.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .padding(.horizontal, 32)
-                    .padding(.top, 6)
-            }
+                Spacer()
 
-            Spacer()
-
-            // Pause/Resume control
-            Button(action: togglePause) {
-                Image(systemName: isPaused ? "play.fill" : "pause.fill")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(isPaused ? KomalColors.pearlAqua : KomalColors.textSecondary)
-                    .frame(width: 48, height: 48)
-                    .background(Circle().fill(.ultraThinMaterial))
+                // Pause/Resume control
+                pauseButton
             }
-            .padding(.bottom, 64)
+            .animation(.easeInOut(duration: 0.2), value: isListening)
         }
+        .ignoresSafeArea(.keyboard)
         .onAppear {
             memoryService.startSession(characterId: character.id, characterName: character.name)
             conversationContext = memoryService.buildContextSummary(characterId: character.id)
@@ -406,12 +314,14 @@ struct FocusedChatView: View {
             silenceTimer = nil
             silenceTierTimer?.invalidate()
             silenceTierTimer = nil
+            idleRestartTask?.cancel()
+            idleRestartTask = nil
             memoryService.endCurrentSession(characterId: character.id)
             rageDetector.reset()
         }
         .onReceive(speechRecognizer.$transcript) { newValue in
             if !newValue.isEmpty {
-                inputText = newValue
+                inputText = String(newValue.prefix(2000))
                 displayTranscript = BrowserState.censorForDisplay(newValue)
                 // Reset silence tiers when child starts speaking
                 resetSilenceTiers()
@@ -453,7 +363,135 @@ struct FocusedChatView: View {
                     }
                 }
             }
+            // Fallback idle restart: if somehow idle for 2s, auto-start listening
+            scheduleIdleRestart()
         }
+    }
+
+    // MARK: - Sub-Views
+
+    @ViewBuilder
+    private func avatarSection(avatarSize: CGFloat, avatarZoneHeight: CGFloat) -> some View {
+        ZStack {
+            Circle()
+                .fill(glowColor.opacity(0.08))
+                .frame(width: avatarZoneHeight, height: avatarZoneHeight)
+
+            Circle()
+                .fill(glowColor.opacity(0.15))
+                .frame(width: avatarZoneHeight * 0.8, height: avatarZoneHeight * 0.8)
+
+            Circle()
+                .fill(glowColor.opacity(0.25))
+                .frame(width: avatarZoneHeight * 0.6, height: avatarZoneHeight * 0.6)
+
+            if let uiImage = UIImage(named: character.imageName) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: avatarSize, height: avatarSize)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(glowColor.opacity(0.5), lineWidth: 3)
+                    )
+            }
+        }
+        .animation(.easeInOut(duration: 0.6), value: glowColor)
+        .overlay(alignment: .trailing) {
+            if !activeEmojis.isEmpty {
+                VStack(spacing: 6) {
+                    ForEach(Array(activeEmojis.prefix(3).enumerated()), id: \.offset) { index, emoji in
+                        FloatingSingleEmoji(emoji: emoji, isVisible: showEmojis, driftPhase: index)
+                    }
+                }
+                .offset(x: 15)
+                .allowsHitTesting(false)
+            }
+        }
+        .contentShape(Circle())
+        .onTapGesture {
+            if audioPlayback.isPlaying {
+                conversationInterruptionNote = "[The child interrupted while you were speaking. Acknowledge naturally — say something like 'Okay, I'm listening' and pick up from what they say next.]"
+                audioPlayback.interruptForChildSpeech()
+                startListening()
+                startSilenceTierMonitoring()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var statusBadge: some View {
+        if let status = statusText {
+            Text(status)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundColor(glowColor)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(glowColor.opacity(0.12))
+                )
+                .transition(.opacity)
+        }
+    }
+
+    @ViewBuilder
+    private func messagesSection(maxHeight: CGFloat) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 6) {
+                    ForEach(Array(recentMessages.enumerated()), id: \.element.id) { index, message in
+                        let totalCount = recentMessages.count
+                        let fadeOpacity = totalCount <= 1 ? 1.0 : (0.4 + 0.6 * Double(index) / Double(totalCount - 1))
+
+                        HStack {
+                            if message.isFromUser { Spacer(minLength: 60) }
+
+                            Text(message.text)
+                                .font(.system(size: message.isFromUser ? 14 : 15, weight: .medium, design: .rounded))
+                                .foregroundColor(message.isFromUser ? .white : KomalColors.textPrimary)
+                                .multilineTextAlignment(message.isFromUser ? .trailing : .leading)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(message.isFromUser
+                                            ? KomalColors.lavenderPurple
+                                            : glowColor.opacity(0.12))
+                                )
+                                .lineLimit(message.id == recentMessages.last?.id ? 4 : 2)
+
+                            if !message.isFromUser { Spacer(minLength: 60) }
+                        }
+                        .opacity(fadeOpacity)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        .id(message.id)
+                    }
+                }
+            }
+            .onChange(of: messages.count) {
+                if let lastId = recentMessages.last?.id {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo(lastId, anchor: .bottom)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .frame(maxHeight: maxHeight)
+        .animation(.easeInOut(duration: 0.3), value: messages.count)
+    }
+
+    private var pauseButton: some View {
+        Button(action: togglePause) {
+            Image(systemName: isPaused ? "play.fill" : "pause.fill")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(isPaused ? KomalColors.pearlAqua : KomalColors.textSecondary.opacity(0.6))
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(.ultraThinMaterial))
+        }
+        .padding(.bottom, tabBarClearance)
     }
 
     // MARK: - Actions
@@ -464,6 +502,8 @@ struct FocusedChatView: View {
             // Pause everything
             silenceTimer?.invalidate()
             silenceTimer = nil
+            idleRestartTask?.cancel()
+            idleRestartTask = nil
             if isListening { stopListening() }
             audioPlayback.stop()
             showEmojis = false
@@ -483,25 +523,25 @@ struct FocusedChatView: View {
                 "Let's talk about something really cool instead! What animals do you like?",
                 "Ooh I have a great idea — can you tell me about your favorite cartoon?",
                 "Let's do something fun together! What game are you playing lately?"
-            ].randomElement()!
+            ].randomElement() ?? "Let's talk about something else!"
         case .tenToThirteen:
             return [
                 "Let's switch to something way more interesting — what've you been into lately?",
                 "Ok different topic — what's something cool that happened this week?",
                 "Hey — tell me something awesome you discovered recently."
-            ].randomElement()!
+            ].randomElement() ?? "Let's talk about something else!"
         case .thirteenToSixteen:
             return [
                 "That one's off the table, but I'm all ears for what's actually on your mind.",
                 "Let's talk about something else — what's been the best part of your week?",
                 "Different direction — what's going on with you today?"
-            ].randomElement()!
+            ].randomElement() ?? "Let's talk about something else!"
         case .sixteenToEighteen, .eighteenPlus:
             return [
                 "Let's focus on something I can actually help with — what's on your mind?",
                 "I'll pass on that one. Anything else you want to talk through?",
                 "Gonna steer away from that one. What else is going on?"
-            ].randomElement()!
+            ].randomElement() ?? "Let's talk about something else!"
         }
     }
 
@@ -534,7 +574,7 @@ struct FocusedChatView: View {
         let userMessage = RikiChatMessage(id: UUID(), text: displayText, isFromUser: true)
         withAnimation { messages.append(userMessage) }
 
-        let persistedUserMsg = PersistedChatMessage(text: text, isFromUser: true, characterId: character.id)
+        let persistedUserMsg = PersistedChatMessage(text: displayText, isFromUser: true, characterId: character.id)
         memoryService.saveMessage(persistedUserMsg)
 
         inputText = ""
@@ -605,7 +645,13 @@ struct FocusedChatView: View {
                     withAnimation {
                         messages.append(RikiChatMessage(id: UUID(), text: fallback, isFromUser: false))
                     }
-                    print("Gemini chat error: \(error.localizedDescription)")
+                    #if DEBUG
+                    if let chatError = error as? GeminiChatError {
+                        print("Gemini chat error: \(chatError.debugDescription)")
+                    } else {
+                        print("Gemini chat error: \(error.localizedDescription)")
+                    }
+                    #endif
                 }
                 // Speak the fallback so auto-listen resumes after TTS
                 await audioPlayback.speak(text: LanguageManager.localized("riki.error_fallback"), characterName: character.name)
@@ -671,6 +717,18 @@ struct FocusedChatView: View {
         silenceTierLevel = 0
     }
 
+    private func scheduleIdleRestart() {
+        idleRestartTask?.cancel()
+        idleRestartTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !Task.isCancelled else { return }
+            if greetingSpoken && !isPaused && !isListening && !isLoading && !audioPlayback.isPlaying {
+                startListening()
+                startSilenceTierMonitoring()
+            }
+        }
+    }
+
     private func startListening() {
         silenceTimer?.invalidate()
         silenceTimer = nil
@@ -689,7 +747,9 @@ struct FocusedChatView: View {
                     speechRecognizer.startRecording()
                 }
             } else {
+                #if DEBUG
                 print("Microphone or speech permission denied")
+                #endif
             }
         }
     }
@@ -699,8 +759,9 @@ struct FocusedChatView: View {
         silenceTimer = nil
         speechRecognizer.stopRecording()
         if !speechRecognizer.transcript.isEmpty {
-            inputText = speechRecognizer.transcript
+            inputText = String(speechRecognizer.transcript.prefix(2000))
         }
+        displayTranscript = ""
         withAnimation(KomalAnimations.spring) { isListening = false }
     }
 
@@ -747,6 +808,68 @@ struct FocusedChatView: View {
         }
         let speechAuthorized = SFSpeechRecognizer.authorizationStatus() == .authorized
         return speechAuthorized && micPermissionGranted
+    }
+}
+
+// MARK: - Siri-Like Transcript View
+
+private struct SiriTranscriptView: View {
+    let isListening: Bool
+    let transcript: String
+    let glowColor: Color
+
+    var body: some View {
+        if isListening {
+            if transcript.isEmpty {
+                // Animated waveform dots while waiting for speech
+                HStack(spacing: 6) {
+                    ForEach(0..<5) { index in
+                        WaveformDot(delay: Double(index) * 0.15, color: glowColor)
+                    }
+                }
+                .frame(height: 36)
+                .transition(.opacity)
+            } else {
+                // Live transcript bubble
+                Text(transcript)
+                    .font(.system(size: 22, weight: .medium, design: .rounded))
+                    .foregroundColor(KomalColors.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.7)
+                    .contentTransition(.numericText())
+                    .animation(.easeInOut(duration: 0.15), value: transcript)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(glowColor.opacity(0.08))
+                    )
+                    .transition(.opacity)
+            }
+        }
+    }
+}
+
+private struct WaveformDot: View {
+    let delay: Double
+    let color: Color
+
+    @State private var animating = false
+
+    var body: some View {
+        Circle()
+            .fill(color.opacity(0.6))
+            .frame(width: 8, height: 8)
+            .scaleEffect(animating ? 1.4 : 0.6)
+            .opacity(animating ? 1.0 : 0.3)
+            .animation(
+                .easeInOut(duration: 0.6)
+                .repeatForever(autoreverses: true)
+                .delay(delay),
+                value: animating
+            )
+            .onAppear { animating = true }
     }
 }
 

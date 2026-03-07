@@ -10,22 +10,23 @@ struct DailyActivity: Codable, Identifiable {
     var reflectionCount: Int
     var moodCheckInCount: Int
     var browsingMinutes: Int
-    var morningAnchorCompleted: Bool
-    var eveningAnchorCompleted: Bool
 
     var isActive: Bool {
         chatCount > 0 || reflectionCount > 0 || moodCheckInCount > 0 || browsingMinutes > 0
     }
 
-    init(id: UUID = UUID(), date: String, chatCount: Int = 0, reflectionCount: Int = 0, moodCheckInCount: Int = 0, browsingMinutes: Int = 0, morningAnchorCompleted: Bool = false, eveningAnchorCompleted: Bool = false) {
+    init(id: UUID = UUID(), date: String, chatCount: Int = 0, reflectionCount: Int = 0, moodCheckInCount: Int = 0, browsingMinutes: Int = 0) {
         self.id = id
         self.date = date
         self.chatCount = chatCount
         self.reflectionCount = reflectionCount
         self.moodCheckInCount = moodCheckInCount
         self.browsingMinutes = browsingMinutes
-        self.morningAnchorCompleted = morningAnchorCompleted
-        self.eveningAnchorCompleted = eveningAnchorCompleted
+    }
+
+    // Backward compat: ignore morningAnchorCompleted/eveningAnchorCompleted from old data
+    private enum CodingKeys: String, CodingKey {
+        case id, date, chatCount, reflectionCount, moodCheckInCount, browsingMinutes
     }
 }
 
@@ -70,7 +71,7 @@ struct Milestone: Codable, Identifiable {
     var earnedDate: Date?
 
     var isEarned: Bool { earnedDate != nil }
-    var progress: Double { min(Double(currentProgress) / Double(requirement), 1.0) }
+    var progress: Double { requirement > 0 ? min(Double(currentProgress) / Double(requirement), 1.0) : 0 }
 
     enum MilestoneCategory: String, Codable {
         case streak, chat, reflection, mood, exploration
@@ -84,36 +85,6 @@ struct Milestone: Codable, Identifiable {
         Milestone(id: "character_collector", title: "Character Collector", description: "Chatted with 5 different friends", icon: "person.3.fill", category: .exploration, requirement: 5, currentProgress: 0),
         Milestone(id: "mood_master", title: "Mood Master", description: "Logged 30 mood check-ins", icon: "face.smiling.fill", category: .mood, requirement: 30, currentProgress: 0),
     ]
-}
-
-// MARK: - Daily Anchor
-
-struct DailyAnchor: Codable, Identifiable {
-    let id: UUID
-    let date: String // "yyyy-MM-dd"
-    let anchorType: AnchorType
-    let timestamp: Date
-    let emotion: String
-    let emoji: String
-    let intensity: Int
-    var gratitudeItem: String?
-    var reflectionItem: String?
-
-    enum AnchorType: String, Codable {
-        case morning, evening
-    }
-
-    init(id: UUID = UUID(), date: String, anchorType: AnchorType, timestamp: Date = Date(), emotion: String, emoji: String, intensity: Int, gratitudeItem: String? = nil, reflectionItem: String? = nil) {
-        self.id = id
-        self.date = date
-        self.anchorType = anchorType
-        self.timestamp = timestamp
-        self.emotion = emotion
-        self.emoji = emoji
-        self.intensity = intensity
-        self.gratitudeItem = gratitudeItem
-        self.reflectionItem = reflectionItem
-    }
 }
 
 // MARK: - Identity Stage
@@ -188,17 +159,28 @@ struct GrowthData: Codable {
     var dailyActivities: [DailyActivity]
     var weeklySnapshots: [WeeklySnapshot]
     var milestones: [Milestone]
-    var anchors: [DailyAnchor]
     var uniqueCharactersUsed: Set<Int>
     var identityProgression: IdentityProgression
 
-    init(dailyActivities: [DailyActivity] = [], weeklySnapshots: [WeeklySnapshot] = [], milestones: [Milestone] = Milestone.allMilestones, anchors: [DailyAnchor] = [], uniqueCharactersUsed: Set<Int> = [], identityProgression: IdentityProgression = IdentityProgression()) {
+    private enum CodingKeys: String, CodingKey {
+        case dailyActivities, weeklySnapshots, milestones, uniqueCharactersUsed, identityProgression
+    }
+
+    init(dailyActivities: [DailyActivity] = [], weeklySnapshots: [WeeklySnapshot] = [], milestones: [Milestone] = Milestone.allMilestones, uniqueCharactersUsed: Set<Int> = [], identityProgression: IdentityProgression = IdentityProgression()) {
         self.dailyActivities = dailyActivities
         self.weeklySnapshots = weeklySnapshots
         self.milestones = milestones
-        self.anchors = anchors
         self.uniqueCharactersUsed = uniqueCharactersUsed
         self.identityProgression = identityProgression
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        dailyActivities = try container.decodeIfPresent([DailyActivity].self, forKey: .dailyActivities) ?? []
+        weeklySnapshots = try container.decodeIfPresent([WeeklySnapshot].self, forKey: .weeklySnapshots) ?? []
+        milestones = try container.decodeIfPresent([Milestone].self, forKey: .milestones) ?? Milestone.allMilestones
+        uniqueCharactersUsed = try container.decodeIfPresent(Set<Int>.self, forKey: .uniqueCharactersUsed) ?? []
+        identityProgression = try container.decodeIfPresent(IdentityProgression.self, forKey: .identityProgression) ?? IdentityProgression()
     }
 }
 #endif

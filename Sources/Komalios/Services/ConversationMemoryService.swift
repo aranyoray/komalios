@@ -35,18 +35,24 @@ final class ConversationMemoryService: ObservableObject {
         do {
             let data = try Data(contentsOf: fileURL)
             memoryData = try JSONDecoder().decode(ConversationMemoryData.self, from: data)
+            #if DEBUG
             print("💬 Loaded conversation memory: \(memoryData.sessions.count) sessions")
+            #endif
         } catch {
+            #if DEBUG
             print("💬 Error loading conversation memory: \(error)")
+            #endif
         }
     }
 
     private func saveData() {
         do {
             let data = try JSONEncoder().encode(memoryData)
-            try data.write(to: fileURL)
+            try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
         } catch {
+            #if DEBUG
             print("💬 Error saving conversation memory: \(error)")
+            #endif
         }
     }
 
@@ -65,7 +71,9 @@ final class ConversationMemoryService: ObservableObject {
     /// Save a single message to the current session
     func saveMessage(_ message: PersistedChatMessage) {
         if currentSession == nil {
+            #if DEBUG
             print("⚠️ ConversationMemoryService: No active session — starting fallback session for message")
+            #endif
             startSession(characterId: message.characterId, characterName: "Unknown")
         }
         currentSession?.messages.append(message)
@@ -79,7 +87,9 @@ final class ConversationMemoryService: ObservableObject {
             characterName: characterName
         )
         currentSession = session
+        #if DEBUG
         print("💬 Started session with \(characterName)")
+        #endif
     }
 
     /// End the current session and persist it
@@ -102,7 +112,9 @@ final class ConversationMemoryService: ObservableObject {
         }
 
         currentSession = nil
+        #if DEBUG
         print("💬 Ended session with \(session.characterName), \(session.messages.count) messages")
+        #endif
     }
 
     /// Build a context summary for Gemini system prompt (tier-aware, ~2000 token budget)
@@ -293,7 +305,9 @@ final class ConversationMemoryService: ObservableObject {
 
         if !newSessions.isEmpty || !newSignals.isEmpty {
             saveData()
+            #if DEBUG
             print("💬 Merged \(newSessions.count) sessions, \(newSignals.count) signals from cloud")
+            #endif
         }
     }
 
@@ -338,7 +352,9 @@ final class ConversationMemoryService: ObservableObject {
                     memoryData.sessions[idx].memoryTier = .summarized
                     memoryData.sessions[idx].tierTransitionDate = now
                     summarizationsThisCycle += 1
+                    #if DEBUG
                     print("💬 Tier transition: session \(sessionID) -> summarized")
+                    #endif
                 }
             }
 
@@ -358,7 +374,9 @@ final class ConversationMemoryService: ObservableObject {
                 memoryData.developmentalSignals.append(contentsOf: signals)
 
                 summarizationsThisCycle += 1
+                #if DEBUG
                 print("💬 Tier transition: session \(sessionID) -> signalsOnly")
+                #endif
             }
         }
 
@@ -376,7 +394,9 @@ final class ConversationMemoryService: ObservableObject {
             let summary = try await gemini.summarizeSession(session.messages, characterName: session.characterName)
             return summary
         } catch {
+            #if DEBUG
             print("💬 Failed to summarize session: \(error)")
+            #endif
             // Fallback: create a basic summary from topics
             if !session.topicsCovered.isEmpty {
                 return "Discussed: \(session.topicsCovered.joined(separator: ", "))"
@@ -421,7 +441,9 @@ final class ConversationMemoryService: ObservableObject {
                 )
             }
         } catch {
+            #if DEBUG
             print("💬 Failed to extract developmental signals: \(error)")
+            #endif
             return []
         }
     }
@@ -448,7 +470,9 @@ final class ConversationMemoryService: ObservableObject {
             }
             // Remove empty fullText sessions
             memoryData.sessions.removeAll { $0.characterId == characterId && $0.memoryTier == .fullText && $0.messages.isEmpty }
+            #if DEBUG
             print("💬 Pruned \(excess) messages for character \(characterId)")
+            #endif
         }
     }
 }

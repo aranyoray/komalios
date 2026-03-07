@@ -80,7 +80,24 @@
       "Bash(git ls-tree:*)",
       "Bash(git checkout:*)",
       "Bash(git ls-files:*)",
-      "Bash(comm:*)"
+      "Bash(comm:*)",
+      "Bash(xxd:*)",
+      "Bash(node:*)",
+      "Bash(xcrun devicectl:*)",
+      "Bash(rm:*)",
+      "Read(//Users/aranyoray/Documents/komalapp/**)",
+      "Read(//Users/aranyoray/Documents/**)",
+      "Bash(killall usbmuxd:*)",
+      "Bash(sudo killall:*)",
+      "Bash(ios-deploy:*)",
+      "Bash(devicectl device:*)",
+      "Bash(for id in adc3a5517c6abc193 a4fa8531f94725ff6 aa32d109cb58572e7 a6e6ffb928dd0432c)",
+      "Bash(do echo -n \"$id: \")",
+      "Read(//private/tmp/claude-501/-Users-aranyoray-Documents-komalios/tasks/**)",
+      "Bash(npx next:*)",
+      "Bash(/usr/libexec/PlistBuddy:*)",
+      "Bash(/Users/aranyoray/Documents/komalios/Secrets.xcconfig.template:*)",
+      "Bash(log show:*)"
     ]
   }
 }

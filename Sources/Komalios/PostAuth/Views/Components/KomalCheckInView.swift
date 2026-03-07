@@ -69,6 +69,9 @@ struct KomalCheckInView: View {
                                 .padding(14)
                                 .background(KomalColors.background)
                                 .cornerRadius(16)
+                                .onChange(of: userInput) {
+                                    if userInput.count > 500 { userInput = String(userInput.prefix(500)) }
+                                }
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16)
                                         .stroke(Color.black.opacity(0.08), lineWidth: 1)

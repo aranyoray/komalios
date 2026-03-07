@@ -78,6 +78,7 @@ private struct KomalSafetyScannerContentView: View {
                         ),
                         contentFilterPreferences: appState.contentFilterPreferences,
                         parentSettings: appState.parentSettings,
+                        ageGroup: appState.activeProfile.ageGroup,
                         onInappropriateContent: { trigger, blockedURL in
                             viewModel.interventionTrigger = trigger
                             viewModel.currentSubcategory = trigger.searchTerm
@@ -116,7 +117,7 @@ private struct KomalSafetyScannerContentView: View {
             if viewModel.showEmojiCheckIn {
                 Color.black.opacity(0.45)
                     .ignoresSafeArea()
-                    .onTapGesture {}
+                    .contentShape(Rectangle())
                     .transition(.opacity)
 
                 VStack(spacing: 20) {
@@ -129,24 +130,19 @@ private struct KomalSafetyScannerContentView: View {
                             .shadow(color: KomalColors.bubblegumPink.opacity(0.3), radius: 8, x: 0, y: 4)
                     }
 
-                    Text(LanguageManager.localized("checkin.whats_on_your_mind"))
+                    Text(LanguageManager.localized("checkin.how_are_you"))
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(KomalColors.textPrimary)
 
-                    HStack(spacing: 12) {
-                        ForEach(["Great!", "Okay", "Meh"], id: \.self) { response in
+                    HStack(spacing: 16) {
+                        ForEach(["😊", "😎", "😐", "😔", "😡"], id: \.self) { emoji in
                             Button(action: {
-                                viewModel.handleEmojiResponse(emoji: response, forDocumentId: viewModel.lastLoggedDocumentId)
+                                viewModel.handleEmojiResponse(emoji: emoji, forDocumentId: viewModel.lastLoggedDocumentId)
                             }) {
-                                Text(response)
-                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                                    .foregroundColor(KomalColors.lavenderPurple)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 10)
-                                    .background(
-                                        Capsule().fill(KomalColors.lavenderPurple.opacity(0.12))
-                                    )
+                                Text(emoji)
+                                    .font(.system(size: 36))
                             }
+                            .buttonStyle(ScaleButtonStyle())
                         }
                     }
                 }
@@ -175,23 +171,20 @@ private struct KomalSafetyScannerContentView: View {
                         .overlay(Circle().stroke(KomalColors.bubblegumPink, lineWidth: 3))
                 }
 
-                Text(LanguageManager.localized("checkin.whats_on_your_mind"))
+                Text(LanguageManager.localized("checkin.how_are_you"))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
 
-                HStack(spacing: 12) {
-                    ForEach(["Great!", "Okay", "Meh"], id: \.self) { response in
+                HStack(spacing: 16) {
+                    ForEach(["😊", "😎", "😐", "😔", "😡"], id: \.self) { emoji in
                         Button(action: {
-                            viewModel.handleEmojiResponse(emoji: response, forDocumentId: viewModel.lastLoggedDocumentId)
+                            viewModel.handleEmojiResponse(emoji: emoji, forDocumentId: viewModel.lastLoggedDocumentId)
                             viewModel.showGate = false
                         }) {
-                            Text(response)
-                                .font(.system(size: 15, weight: .semibold, design: .rounded))
-                                .foregroundColor(KomalColors.lavenderPurple)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
-                                .background(Capsule().fill(KomalColors.lavenderPurple.opacity(0.12)))
+                            Text(emoji)
+                                .font(.system(size: 36))
                         }
+                        .buttonStyle(ScaleButtonStyle())
                     }
                 }
 

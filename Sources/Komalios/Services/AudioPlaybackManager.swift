@@ -23,7 +23,9 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
+            #if DEBUG
             print("[AudioPlayback] Failed to configure audio session: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -47,7 +49,9 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
             isPlaying = true
         } catch {
             isPlaying = false
+            #if DEBUG
             print("[AudioPlayback] TTS speak error: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -71,6 +75,7 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
         let interval = 0.3 / Double(steps)
         let volumeStep = player.volume / Float(steps)
         var remaining = steps
+        fadeTimer?.invalidate()
         fadeTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] timer in
             Task { @MainActor [weak self] in
                 remaining -= 1

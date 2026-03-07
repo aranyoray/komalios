@@ -18,7 +18,14 @@ enum Routes: Hashable {
 
 @MainActor
 class PathManager: ObservableObject {
-    @Published var path = NavigationPath()
+    @Published var path = NavigationPath() {
+        didSet {
+            // Sync elements when NavigationPath changes externally (e.g. back gesture)
+            if path.count < elements.count {
+                elements.removeLast(elements.count - path.count)
+            }
+        }
+    }
     private var elements: [AnyHashable] = []
 
     // MARK: - Push a new destination onto the stack
@@ -37,23 +44,16 @@ class PathManager: ObservableObject {
     // MARK: - Pop to a specific destination
     func popTo<T: Hashable>(_ value: T) {
         let wrappedValue = AnyHashable(value)
-        // Look for an index where only the case (not the full value) matches
         guard let index = elements.firstIndex(where: { element in
-            // Unwrap `AnyHashable` to check if it's `Routes`
             guard let route = element.base as? Routes, let targetRoute = value as? Routes else {
-                return element == wrappedValue // Fallback to exact match
+                return element == wrappedValue
             }
-
-            // Match all `tabBarView` cases regardless of associated value
-//            if case .tabBarView = route, case .tabBarView = targetRoute {
-//                return true
-//            }
             return route == targetRoute
         }) else {
-            print("Value not found in elements!")
             return
         }
         let countToRemove = elements.count - index - 1
+        guard countToRemove > 0 else { return }
         path.removeLast(countToRemove)
         elements.removeLast(countToRemove)
     }

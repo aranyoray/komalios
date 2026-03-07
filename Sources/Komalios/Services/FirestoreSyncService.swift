@@ -12,6 +12,11 @@ private let log = Logger(subsystem: "com.komalkids.komal", category: "FirestoreS
 actor FirestoreSyncService {
     static let shared = FirestoreSyncService()
     private let db = Firestore.firestore()
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
 
     // MARK: - Upload: Settings
 
@@ -357,9 +362,7 @@ actor FirestoreSyncService {
         let path = "users/\(uid)/sel-records"
         do {
             let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            let cutoffStr = formatter.string(from: cutoffDate)
+            let cutoffStr = Self.dateFormatter.string(from: cutoffDate)
 
             let snapshot = try await db.collection("users").document(uid)
                 .collection("sel-records")
@@ -480,6 +483,11 @@ actor FirestoreSyncService {
 
         // Delete sel-records subcollection
         await deleteSubcollection(path: "users/\(uid)/sel-records")
+
+        // Delete app-history events subcollection (COPPA: browsing history)
+        await deleteSubcollection(path: "app-history/\(uid)/events")
+        try? await db.collection("app-history").document(uid).delete()
+        log.info("DELETE app-history/\(uid)")
 
         log.info("DELETE COMPLETE for uid=\(uid)")
     }

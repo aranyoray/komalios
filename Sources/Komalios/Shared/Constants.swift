@@ -50,14 +50,23 @@ struct Constants {
     /// Root domains (no www. prefix) for JavaScript injection.
     /// EngagementTracker injects this into pre-hide CSS and JS scripts
     /// so they can skip scanning on trusted domains.
+    /// Uses JSONSerialization for safe encoding (prevents injection if a domain contained special chars).
     static var trustedDomainRootsJSON: String {
         let roots = Set(trustedDomains.map { domain -> String in
             domain.hasPrefix("www.") ? String(domain.dropFirst(4)) : domain
         })
         let sorted = roots.sorted()
-        let jsonArray = sorted.map { "'\($0)'" }.joined(separator: ",")
-        return "[\(jsonArray)]"
+        if let data = try? JSONSerialization.data(withJSONObject: sorted, options: []),
+           let json = String(data: data, encoding: .utf8) {
+            return json
+        }
+        return "[]"
     }
+
+    /// Subdomains of google.com that host arbitrary user content (must NOT be trusted)
+    private static let untrustedGoogleSubdomains: Set<String> = [
+        "sites.google.com", "groups.google.com", "translate.google.com"
+    ]
 
     /// Platforms blocked for child safety
     static let blockedPlatforms: Set<String> = [
@@ -68,14 +77,31 @@ struct Constants {
         "reddit.com", "www.reddit.com", "old.reddit.com",
         "snapchat.com", "www.snapchat.com",
         "discord.com", "www.discord.com",
-        "twitch.tv", "www.twitch.tv",
-        "youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "www.youtu.be",
-        "youtubei.googleapis.com"
+        "twitch.tv", "www.twitch.tv"
     ]
+
+    /// YouTube domains — monitored per-video instead of blocked entirely
+    static let youtubeDomains: Set<String> = [
+        "youtube.com", "www.youtube.com", "m.youtube.com",
+        "youtu.be", "www.youtu.be"
+    ]
+
+    /// Check if a URL is a YouTube domain (exact match + subdomain matching)
+    static func isYouTubeDomain(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased() else { return false }
+        if youtubeDomains.contains(host) { return true }
+        // Subdomain matching for root domains (e.g., music.youtube.com)
+        for domain in youtubeDomains where domain.components(separatedBy: ".").count == 2 {
+            if host.hasSuffix(".\(domain)") { return true }
+        }
+        return false
+    }
 
     /// Check if a URL host is a trusted kid-friendly domain
     static func isTrustedDomain(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased() else { return false }
+        // Block known untrusted subdomains (e.g. sites.google.com hosts arbitrary user content)
+        if untrustedGoogleSubdomains.contains(host) { return false }
         if trustedDomains.contains(host) { return true }
         // Only do subdomain matching for root domains (those with exactly one dot like "google.com")
         for trustedDomain in trustedDomains where trustedDomain.components(separatedBy: ".").count == 2 {

@@ -21,46 +21,68 @@ struct LoginView: View {
             case .notRunning:
                 ZStack {
                     GradientBackground()
-                    VStack {
+                    VStack(spacing: 0) {
+                        Spacer()
+
                         Image("komal_logo")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 140, height: 140)
+                            .frame(width: 120, height: 120)
                             .clipShape(Circle())
-                            .shadow(color: Color.black.opacity(0.1), radius: 10, y: 5)
-                        
-                        VStack(spacing: 16) {
+                            .shadow(color: Color.black.opacity(0.1), radius: 12, y: 6)
+
+                        VStack(spacing: 6) {
                             Text(LanguageManager.localized("login.welcome"))
-                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .font(.system(size: 30, weight: .bold, design: .rounded))
                                 .foregroundColor(KomalColors.textPrimary)
 
                             Text(LanguageManager.localized("login.tagline"))
-                                .font(.system(size: 18, weight: .medium, design: .rounded))
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundColor(KomalColors.textSecondary)
-                                .multilineTextAlignment(.center)
                         }
-                        
-                        SocialSignInButton(logoImage: "google_logo", title: LanguageManager.localized("login.sign_in_google")) {
-                            viewModel.signInWithGoogle()
+                        .padding(.top, 16)
+
+                        Spacer()
+
+                        VStack(spacing: 12) {
+                            SocialSignInButton(logoImage: "google_logo", title: LanguageManager.localized("login.sign_in_google")) {
+                                viewModel.signInWithGoogle()
+                            }
+
+                            SocialSignInButton(logoImage: "apple_logo", title: LanguageManager.localized("login.sign_in_apple")) {
+                                viewModel.signInWithApple()
+                            }
                         }
-                        .padding()
-                        
-                        SocialSignInButton(logoImage: "apple_logo", title: LanguageManager.localized("login.sign_in_apple")) {
-                            viewModel.signInWithApple()
+                        .padding(.horizontal, 32)
+
+                        // Divider
+                        HStack {
+                            Rectangle().fill(Color.gray.opacity(0.3)).frame(height: 1)
+                            Text(LanguageManager.localized("login.or"))
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                .foregroundColor(KomalColors.textSecondary)
+                            Rectangle().fill(Color.gray.opacity(0.3)).frame(height: 1)
                         }
-                        .padding()
-                        
-                        Text(LanguageManager.localized("login.or"))
-                        
+                        .padding(.horizontal, 40)
+                        .padding(.vertical, 16)
+
+                        // Guest button — styled card
                         Button {
                             showOnboarding = true
                         } label: {
                             Text(LanguageManager.localized("login.guest_user"))
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .foregroundColor(KomalColors.lavenderPurple)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(KomalColors.lavenderPurple, lineWidth: 1.5)
+                                )
                         }
-                        .padding()
-                        .foregroundStyle(Color.accentColor)
-                        .font(.title3)
-                        .underline()
+                        .padding(.horizontal, 32)
+
+                        Spacer().frame(height: 48)
                     }
                 }
 #if os(iOS)

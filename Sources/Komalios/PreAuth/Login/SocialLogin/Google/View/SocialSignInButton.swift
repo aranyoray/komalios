@@ -21,23 +21,21 @@ struct SocialSignInButton: View {
                 Image(logoImage)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 20, height: 20)
+                    .frame(width: 22, height: 22)
 
                 Spacer()
 
                 Text(title)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.black)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(.primary)
 
                 Spacer()
             }
-            .padding(.horizontal)
-            .frame(height: 50)
+            .padding(.horizontal, 20)
+            .frame(height: 54)
             .background(Color.white)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-            )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: Color.black.opacity(0.08), radius: 8, y: 3)
         }
         .frame(maxWidth: .infinity)
     }

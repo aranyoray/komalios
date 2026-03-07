@@ -8,24 +8,7 @@ import Speech
 struct ReflectionTimeView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
-    @State private var currentSession: SessionType = .welcome
-    @State private var timeRemaining: Int = 15 * 60 // 15 minutes
-    @State private var timerActive = false
-    @State private var currentQuestionIndex = 0
-    @State private var userResponses: [String] = []
-    @State private var currentResponse = ""
-    @State private var showCompletion = false
-    @State private var sessionTimer: Timer?
-
-    private var isYoungerChild: Bool {
-        appState.activeProfile.ageGroup == .under10 || appState.activeProfile.ageGroup == .tenToThirteen
-    }
-
-    enum SessionType {
-        case welcome
-        case sel // Social-Emotional Learning
-        case freeChat // Open conversation
-    }
+    @State private var showSELSession = false
 
     var body: some View {
         NavigationView {
@@ -41,269 +24,41 @@ struct ReflectionTimeView: View {
                 )
                 .ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    // Timer bar
-                    if timerActive {
-                        TimerBar(timeRemaining: timeRemaining, totalTime: 15 * 60)
-                            .padding(.horizontal, 20)
-                            .padding(.top, 8)
+                if showSELSession {
+                    SELDailySessionView {
+                        withAnimation { showSELSession = false }
                     }
-
-                    // Content
-                    switch currentSession {
-                    case .welcome:
-                        welcomeView
-                    case .sel:
-                        selSessionView
-                    case .freeChat:
-                        freeChatView
-                    }
+                } else {
+                    FreeChatSessionView()
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundStyle(.gray.opacity(0.6))
-                    }
-                }
-
                 ToolbarItem(placement: .principal) {
                     Text(LanguageManager.localized("reflect.title"))
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
                 }
-            }
-            .sheet(isPresented: $showCompletion) {
-                CompletionView(dismiss: dismiss)
-            }
-        }
-        .onAppear {
-            startTimer()
-        }
-        .onDisappear {
-            // Stop the timer when leaving the Reflect tab
-            sessionTimer?.invalidate()
-            sessionTimer = nil
-            timerActive = false
-        }
-    }
-
-    // MARK: - Timer
-
-    private func startTimer() {
-        timerActive = true
-        sessionTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
-            Task { @MainActor in
-                if timeRemaining > 0 {
-                    timeRemaining -= 1
-                } else {
-                    timer.invalidate()
-                    showCompletion = true
-                }
-            }
-        }
-    }
-
-    // MARK: - Welcome View
-
-    private var welcomeView: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                Spacer().frame(height: 20)
-
-                // Icon
-                ZStack {
-                    Circle()
-                        .fill(KomalColors.lavenderPurple.opacity(0.15))
-                        .frame(width: 100, height: 100)
-
-                    Image(systemName: "leaf.fill")
-                        .font(.system(size: 44))
-                        .foregroundColor(KomalColors.lavenderPurple)
-                }
-
-                VStack(spacing: 8) {
-                    Text(LanguageManager.localized("reflect.welcome.title"))
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(KomalColors.textPrimary)
-
-                    Text(LanguageManager.localized("reflect.welcome.subtitle"))
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(KomalColors.textSecondary)
-                }
-
-                // Session options
-                VStack(spacing: 12) {
-                    SessionOptionCard(
-                        icon: "brain.head.profile",
-                        title: LanguageManager.localized("reflect.daily_checkin.title"),
-                        description: LanguageManager.localized("reflect.daily_checkin.desc"),
-                        color: KomalColors.bubblegumPink
-                    ) {
-                        withAnimation { currentSession = .sel }
-                    }
-
-                    SessionOptionCard(
-                        icon: "bubble.left.and.bubble.right.fill",
-                        title: LanguageManager.localized("reflect.free_chat.title"),
-                        description: LanguageManager.localized("reflect.free_chat.desc"),
-                        color: Color.orange
-                    ) {
-                        withAnimation { currentSession = .freeChat }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if !showSELSession {
+                        Button(action: { withAnimation { showSELSession = true } }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "brain.head.profile")
+                                    .font(.system(size: 14))
+                                Text(LanguageManager.localized("reflect.daily_checkin"))
+                                    .font(.system(size: 13, weight: .medium))
+                            }
+                            .foregroundColor(KomalColors.lavenderPurple)
+                        }
                     }
                 }
-                .padding(.horizontal, 20)
-
-                Spacer()
             }
         }
-    }
-
-    // MARK: - SEL Session View (Social-Emotional Learning)
-
-    private var selSessionView: some View {
-        SELDailySessionView(onComplete: { withAnimation { currentSession = .welcome } })
-    }
-
-    // MARK: - Free Chat View
-
-    private var freeChatView: some View {
-        FreeChatSessionView(onBack: { withAnimation { currentSession = .welcome } })
-    }
-}
-
-// MARK: - Timer Bar
-
-struct TimerBar: View {
-    let timeRemaining: Int
-    let totalTime: Int
-
-    private var progress: Double {
-        min(max(Double(totalTime - timeRemaining) / Double(max(totalTime, 1)), 0.0), 1.0)
-    }
-
-    private var timeString: String {
-        let minutes = timeRemaining / 60
-        let seconds = timeRemaining % 60
-        return String(format: "%d:%02d", minutes, seconds)
-    }
-
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack {
-                Image(systemName: "clock.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(KomalColors.lavenderPurple)
-
-                Text(timeString)
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                    .foregroundColor(KomalColors.textPrimary)
-
-                Spacer()
-
-                Text(LanguageManager.localized("reflect.remaining"))
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(KomalColors.textSecondary)
-            }
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.gray.opacity(0.15))
-
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(KomalColors.lavenderPurple)
-                        .frame(width: geometry.size.width * progress)
-                }
-            }
-            .frame(height: 6)
-        }
-        .padding(12)
-        .background(Color.white.opacity(0.8))
-        .cornerRadius(12)
-    }
-}
-
-// MARK: - Session Option Card
-
-struct SessionOptionCard: View {
-    let icon: String
-    let title: String
-    let description: String
-    let color: Color
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .font(.system(size: 28))
-                    .foregroundColor(color)
-                    .frame(width: 44)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(KomalColors.textPrimary)
-
-                    Text(description)
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundColor(KomalColors.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(Color.gray.opacity(0.4))
-            }
-            .padding(16)
-            .background(Color.white)
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.04), radius: 8, y: 2)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Emotion Button
-
-struct EmotionButton: View {
-    let emoji: String
-    let label: String
-    let color: Color
-    let isSelected: Bool
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 6) {
-                Text(emoji)
-                    .font(.system(size: 32))
-
-                Text(label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(isSelected ? color : KomalColors.textSecondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(isSelected ? color.opacity(0.15) : Color.white)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? color : Color.gray.opacity(0.1), lineWidth: isSelected ? 2 : 1)
-            )
-        }
-        .buttonStyle(.plain)
     }
 }
 
 // MARK: - Free Chat Session (Gemini-powered)
 
 struct FreeChatSessionView: View {
-    let onBack: () -> Void
     @EnvironmentObject private var appState: AppState
     @State private var messages: [ReflectionChatMessage] = []
     @State private var inputText = ""
@@ -314,24 +69,10 @@ struct FreeChatSessionView: View {
     /// characterId 0 is reserved for the Reflect free-chat session
     private static let reflectCharacterId = 0
     private let memoryService = ConversationMemoryService.shared
+    private let geminiService = GeminiChatService()
 
     var body: some View {
         VStack(spacing: 0) {
-            // Back button
-            HStack {
-                Button(action: onBack) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "chevron.left")
-                        Text(LanguageManager.localized("common.back"))
-                    }
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(KomalColors.lavenderPurple)
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-
             // Messages
             ScrollViewReader { proxy in
                 ScrollView {
@@ -361,7 +102,7 @@ struct FreeChatSessionView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 16)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 16)
                     .id("bottom")
                 }
                 .onChange(of: messages.count) {
@@ -392,6 +133,9 @@ struct FreeChatSessionView: View {
                     .padding(.vertical, 12)
                     .background(Color.white)
                     .cornerRadius(24)
+                    .onChange(of: inputText) {
+                        if inputText.count > 2000 { inputText = String(inputText.prefix(2000)) }
+                    }
                     .overlay(
                         RoundedRectangle(cornerRadius: 24)
                             .stroke(isRecording ? KomalColors.bubblegumPink.opacity(0.5) : Color.black.opacity(0.1), lineWidth: isRecording ? 1.5 : 0.5)
@@ -406,6 +150,7 @@ struct FreeChatSessionView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
+            .padding(.bottom, 70)
             .background(Color.white.opacity(0.9))
         }
         .onAppear {
@@ -439,7 +184,7 @@ struct FreeChatSessionView: View {
         }
         .onReceive(speechRecognizer.$transcript) { newValue in
             if isRecording && !newValue.isEmpty {
-                inputText = newValue
+                inputText = String(newValue.prefix(2000))
             }
         }
     }
@@ -498,11 +243,12 @@ struct FreeChatSessionView: View {
     private func sendMessage() {
         guard !inputText.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
-        // Two-tier content filter: strict keywords hard-block, softer flags let Gemini redirect
-        var redirectHint: String? = nil
+        // Two-tier content filter: child exploitation → hard block, softer flags → Gemini psychological redirect
+        let displayText = BrowserState.censorForDisplay(inputText)
         if let flagged = BrowserState.checkForInappropriateContent(inputText, isSearchQuery: true) {
-            if BrowserState.isStrictKeyword(flagged) {
-                let userMessage = ReflectionChatMessage(id: UUID(), text: inputText, isFromUser: true)
+            if BrowserState.isChildExploitationKeyword(flagged) {
+                // Safety-critical hard block — no Gemini call
+                let userMessage = ReflectionChatMessage(id: UUID(), text: displayText, isFromUser: true)
                 messages.append(userMessage)
                 inputText = ""
                 let redirectMessage = ReflectionChatMessage(
@@ -513,10 +259,11 @@ struct FreeChatSessionView: View {
                 withAnimation { messages.append(redirectMessage) }
                 return
             }
-            redirectHint = "[SYSTEM NOTE: The child's message may touch on inappropriate content. Redirect naturally. Do not repeat the inappropriate words.]"
+            // Softer inappropriate content: let Gemini redirect naturally via system prompt
+            // (generateFreeChatResponse's system prompt already instructs natural redirection)
         }
 
-        let userMessage = ReflectionChatMessage(id: UUID(), text: inputText, isFromUser: true)
+        let userMessage = ReflectionChatMessage(id: UUID(), text: displayText, isFromUser: true)
         messages.append(userMessage)
         let messageText = inputText
         inputText = ""
@@ -526,9 +273,8 @@ struct FreeChatSessionView: View {
 
         Task {
             do {
-                let gemini = GeminiChatService()
-                let response = try await gemini.generateFreeChatResponse(
-                    userMessage: redirectHint != nil ? "\(messageText)\n\(redirectHint!)" : messageText,
+                let response = try await geminiService.generateFreeChatResponse(
+                    userMessage: messageText,
                     conversationHistory: messages,
                     ageGroup: ageGroup
                 )
@@ -551,6 +297,13 @@ struct FreeChatSessionView: View {
                     }
                 }
             } catch {
+                #if DEBUG
+                if let chatError = error as? GeminiChatError {
+                    print("ReflectionTimeView: Gemini error — \(chatError.debugDescription)")
+                } else {
+                    print("ReflectionTimeView: error — \(error.localizedDescription)")
+                }
+                #endif
                 await MainActor.run {
                     isGenerating = false
                     // Fallback response
@@ -600,57 +353,6 @@ struct FreeChatBubble: View {
                 )
 
             if !message.isFromUser { Spacer(minLength: 60) }
-        }
-    }
-}
-
-// MARK: - Completion View
-
-struct CompletionView: View {
-    let dismiss: DismissAction
-
-    var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-
-            ZStack {
-                Circle()
-                    .fill(KomalColors.pearlAqua.opacity(0.15))
-                    .frame(width: 120, height: 120)
-
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(KomalColors.pearlAqua)
-            }
-
-            VStack(spacing: 8) {
-                Text(LanguageManager.localized("reflect.completion.title"))
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-
-                Text(LanguageManager.localized("reflect.completion.subtitle"))
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(KomalColors.textSecondary)
-            }
-
-            Text(LanguageManager.localized("reflect.completion.message"))
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(KomalColors.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
-
-            Spacer()
-
-            Button(action: { dismiss() }) {
-                Text(LanguageManager.localized("common.done"))
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(KomalColors.pearlAqua)
-                    .cornerRadius(14)
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 20)
         }
     }
 }

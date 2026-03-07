@@ -27,13 +27,13 @@ enum Config {
             return plistKey
         }
         
-        // Priority 3: No hardcoded keys — must be configured via environment or plist
-        print("⚠️ Config: GOOGLE_CLOUD_API_KEY not configured in environment or Info.plist")
+        #if DEBUG
+        print("Config: GOOGLE_CLOUD_API_KEY not configured in environment or Info.plist")
+        #endif
         return ""
     }()
 
     /// Google Custom Search API Key
-    /// Used for safe search filtering and content discovery
     /// Configure via GOOGLE_CUSTOM_SEARCH_API_KEY in environment or Info.plist
     static let googleCustomSearchAPIKey: String = {
         if let envKey = ProcessInfo.processInfo.environment["GOOGLE_CUSTOM_SEARCH_API_KEY"], !envKey.isEmpty {
@@ -44,12 +44,13 @@ enum Config {
             return plistKey
         }
 
-        print("⚠️ Config: GOOGLE_CUSTOM_SEARCH_API_KEY not configured in environment or Info.plist")
+        #if DEBUG
+        print("Config: GOOGLE_CUSTOM_SEARCH_API_KEY not configured in environment or Info.plist")
+        #endif
         return ""
     }()
 
     /// Google Custom Search Engine ID
-    /// Identifies your custom search engine configuration
     /// Configure via GOOGLE_CUSTOM_SEARCH_ENGINE_ID in environment or Info.plist
     static let googleCustomSearchEngineID: String = {
         if let envKey = ProcessInfo.processInfo.environment["GOOGLE_CUSTOM_SEARCH_ENGINE_ID"], !envKey.isEmpty {
@@ -60,7 +61,9 @@ enum Config {
             return plistKey
         }
 
-        print("⚠️ Config: GOOGLE_CUSTOM_SEARCH_ENGINE_ID not configured in environment or Info.plist")
+        #if DEBUG
+        print("Config: GOOGLE_CUSTOM_SEARCH_ENGINE_ID not configured in environment or Info.plist")
+        #endif
         return ""
     }()
 
@@ -75,7 +78,9 @@ enum Config {
             return plistKey
         }
 
-        print("⚠️ Config: GEMINI_API_KEY not configured in environment or Info.plist")
+        #if DEBUG
+        print("Config: GEMINI_API_KEY not configured in environment or Info.plist")
+        #endif
         return ""
     }()
 
@@ -90,7 +95,9 @@ enum Config {
             return plistKey
         }
 
-        print("⚠️ Config: GOOGLE_CLOUD_PROJECT_ID not configured in environment or Info.plist")
+        #if DEBUG
+        print("Config: GOOGLE_CLOUD_PROJECT_ID not configured in environment or Info.plist")
+        #endif
         return ""
     }()
 

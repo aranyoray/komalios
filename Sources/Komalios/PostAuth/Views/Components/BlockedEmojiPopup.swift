@@ -137,6 +137,7 @@ struct BlockedEmojiPopup: View {
         if showTalkFeature {
             // Full countdown with talk feature
             countdown = 3
+            countdownTimer?.invalidate()
             countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
                 Task { @MainActor in
                     if countdown > 1 { countdown -= 1 }

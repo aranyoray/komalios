@@ -48,9 +48,11 @@ enum BiometricAuthService {
 
     static func authenticate() async -> Bool {
         let ctx = LAContext()
-        ctx.localizedFallbackTitle = "Enter PIN"
-        guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: nil) else { return false }
-        return (try? await ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Authenticate to access parent settings")) ?? false
+        // Use biometrics-only policy — do NOT fall back to device passcode,
+        // as a child who knows the device passcode could bypass parent PIN.
+        ctx.localizedFallbackTitle = ""  // Hide "Enter Password" fallback button
+        guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else { return false }
+        return (try? await ctx.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Authenticate to access parent settings")) ?? false
     }
 
     static var biometricName: String {

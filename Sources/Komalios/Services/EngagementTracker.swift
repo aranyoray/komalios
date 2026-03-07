@@ -23,8 +23,17 @@ final class EngagementTracker: ObservableObject {
     private var engagementScript: String?
     private var imageScannerScript: String?
     private var viewportTrackerScript: String?
+    private var youtubeScannerScript: String?
     private var navigationDepth = 0
     private var lastURL: URL?
+
+    /// Per-session security nonce for YouTube scanner API calls.
+    /// Prevents page JS from calling allowVideo/blockVideo directly.
+    let youtubeNonce: String = UUID().uuidString
+
+    /// Per-session security nonce for image scanner API calls.
+    /// Prevents page JS from calling replaceImage/markSafe directly.
+    let imageScannerNonce: String = UUID().uuidString
     
     // MARK: - Initialization
     
@@ -39,11 +48,15 @@ final class EngagementTracker: ObservableObject {
         if let engagementURL = Bundle.main.url(forResource: "engagement_tracker", withExtension: "js"),
            let script = try? String(contentsOf: engagementURL) {
             engagementScript = script
+            #if DEBUG
             print("📊 EngagementTracker: Loaded engagement_tracker.js")
+            #endif
         } else {
             // Fallback to embedded script
             engagementScript = createEmbeddedEngagementScript()
+            #if DEBUG
             print("📊 EngagementTracker: Using embedded engagement script")
+            #endif
         }
         
         let trustedJSON = Constants.trustedDomainRootsJSON
@@ -51,18 +64,20 @@ final class EngagementTracker: ObservableObject {
         // Load image scanner script
         if let imageScannerURL = Bundle.main.url(forResource: "image_scanner", withExtension: "js"),
            var script = try? String(contentsOf: imageScannerURL) {
-            // Inject Komal logo
-            if let logoBase64 = ImageFilterService.shared.getKomalLogoBase64() {
-                script = script.replacingOccurrences(of: "KOMAL_LOGO_BASE64", with: logoBase64)
-            }
             // Inject canonical trusted domain list from Constants.swift
             script = script.replacingOccurrences(of: "TRUSTED_DOMAINS_PLACEHOLDER", with: trustedJSON)
+            // Inject security nonce to protect replaceImage/markSafe from page JS calls
+            script = script.replacingOccurrences(of: "KOMAL_IMAGE_NONCE", with: imageScannerNonce)
             imageScannerScript = script
+            #if DEBUG
             print("📊 EngagementTracker: Loaded image_scanner.js")
+            #endif
         } else {
             // Fallback to embedded script
             imageScannerScript = createEmbeddedImageScannerScript()
+            #if DEBUG
             print("📊 EngagementTracker: Using embedded image scanner script")
+            #endif
         }
 
         // Load viewport tracker script
@@ -71,11 +86,34 @@ final class EngagementTracker: ObservableObject {
             // Inject canonical trusted domain list from Constants.swift
             script = script.replacingOccurrences(of: "TRUSTED_DOMAINS_PLACEHOLDER", with: trustedJSON)
             viewportTrackerScript = script
+            #if DEBUG
             print("📊 EngagementTracker: Loaded viewport_tracker.js")
+            #endif
         } else {
             // Fallback to embedded script
             viewportTrackerScript = createEmbeddedViewportTrackerScript()
+            #if DEBUG
             print("📊 EngagementTracker: Using embedded viewport tracker script")
+            #endif
+        }
+
+        // Load YouTube scanner script
+        if let youtubeURL = Bundle.main.url(forResource: "youtube_scanner", withExtension: "js"),
+           var script = try? String(contentsOf: youtubeURL) {
+            // Inject Komal logo for blocked-video placeholder
+            if let logoBase64 = ImageFilterService.shared.getKomalLogoBase64() {
+                script = script.replacingOccurrences(of: "KOMAL_YT_LOGO_BASE64", with: logoBase64)
+            }
+            // Inject security nonce to protect allowVideo/blockVideo from page JS calls
+            script = script.replacingOccurrences(of: "KOMAL_YT_NONCE", with: youtubeNonce)
+            youtubeScannerScript = script
+            #if DEBUG
+            print("📊 EngagementTracker: Loaded youtube_scanner.js")
+            #endif
+        } else {
+            #if DEBUG
+            print("📊 EngagementTracker: youtube_scanner.js not found in bundle")
+            #endif
         }
     }
     
@@ -84,10 +122,12 @@ final class EngagementTracker: ObservableObject {
     /// Get user scripts to inject into WKWebView
     func getUserScripts() -> [WKUserScript] {
         #if DEBUG
-        print("🔎 SCRIPT-DEBUG: engagementScript=\(engagementScript != nil ? "loaded" : "nil") imageScannerScript=\(imageScannerScript != nil ? "loaded(\(imageScannerScript!.count) chars)" : "nil") viewportTracker=\(viewportTrackerScript != nil ? "loaded" : "nil")")
+        print("🔎 SCRIPT-DEBUG: engagementScript=\(engagementScript != nil ? "loaded" : "nil") imageScannerScript=\(imageScannerScript.map { "loaded(\($0.count) chars)" } ?? "nil") viewportTracker=\(viewportTrackerScript != nil ? "loaded" : "nil")")
         if let ims = imageScannerScript {
             let hasTrusted = ims.contains("google.com")
+            #if DEBUG
             print("🔎 SCRIPT-DEBUG: imageScannerScript contains 'google.com'=\(hasTrusted) (should be true if file-loaded, false if embedded fallback)")
+            #endif
         }
         #endif
         var scripts: [WKUserScript] = []
@@ -181,7 +221,7 @@ final class EngagementTracker: ObservableObject {
             let script = WKUserScript(
                 source: imageScannerScript,
                 injectionTime: .atDocumentEnd,
-                forMainFrameOnly: true
+                forMainFrameOnly: false  // Run in iframes too — images in sub-frames must be scanned
             )
             scripts.append(script)
         }
@@ -189,6 +229,15 @@ final class EngagementTracker: ObservableObject {
         if let viewportTrackerScript = viewportTrackerScript {
             let script = WKUserScript(
                 source: viewportTrackerScript,
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: true
+            )
+            scripts.append(script)
+        }
+
+        if let youtubeScannerScript = youtubeScannerScript {
+            let script = WKUserScript(
+                source: youtubeScannerScript,
                 injectionTime: .atDocumentEnd,
                 forMainFrameOnly: true
             )
@@ -207,11 +256,13 @@ final class EngagementTracker: ObservableObject {
         controller.removeScriptMessageHandler(forName: "komalEngagement")
         controller.removeScriptMessageHandler(forName: "komalImageScanner")
         controller.removeScriptMessageHandler(forName: "komalViewport")
-        
+        controller.removeScriptMessageHandler(forName: "komalYouTubeScanner")
+
         // Add our handlers
         controller.add(handler, name: "komalEngagement")
         controller.add(handler, name: "komalImageScanner")
         controller.add(handler, name: "komalViewport")
+        controller.add(handler, name: "komalYouTubeScanner")
         
         // Add user scripts
         for script in getUserScripts() {
@@ -248,7 +299,9 @@ final class EngagementTracker: ObservableObject {
         
         lastURL = url
         
+        #if DEBUG
         print("📊 Started engagement tracking for: \(url.host ?? url.absoluteString)")
+        #endif
     }
     
     /// Update engagement with scroll data from JavaScript
@@ -257,7 +310,9 @@ final class EngagementTracker: ObservableObject {
 
         currentEngagement?.updateScroll(depthPercent: scrollDepth, eventCount: scrollEvents)
 
+        #if DEBUG
         print("📊 Engagement update - Scroll: \(scrollDepth)%, Events: \(scrollEvents)")
+        #endif
     }
     
     /// Record a filtered image
@@ -285,7 +340,9 @@ final class EngagementTracker: ObservableObject {
                 engagementHistory = Array(engagementHistory.prefix(100))
             }
             
+            #if DEBUG
             print("📊 Ended engagement: \(engagement.domain) - \(engagement.dwellTimeFormatted), \(engagement.scrollDepthPercent)% scroll")
+            #endif
         }
         
         currentEngagement = nil

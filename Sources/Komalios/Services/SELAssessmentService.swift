@@ -37,7 +37,9 @@ final class SELAssessmentService: ObservableObject {
             let data = try Data(contentsOf: fileURL)
             return try JSONDecoder().decode([SELDailyRecord].self, from: data)
         } catch {
+            #if DEBUG
             print("🧠 Error loading SEL records: \(error)")
+            #endif
             return []
         }
     }
@@ -45,9 +47,11 @@ final class SELAssessmentService: ObservableObject {
     private func saveRecords(_ records: [SELDailyRecord]) {
         do {
             let data = try JSONEncoder().encode(records)
-            try data.write(to: fileURL)
+            try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
         } catch {
+            #if DEBUG
             print("🧠 Error saving SEL records: \(error)")
+            #endif
         }
     }
 
@@ -243,11 +247,11 @@ final class SELAssessmentService: ObservableObject {
             let avgFirst = firstHalf.reduce(0.0) { acc, record in
                 let vals = record.domainScores.values
                 return acc + (vals.isEmpty ? 0.0 : Double(vals.reduce(0, +)) / Double(vals.count))
-            } / Double(firstHalf.count)
+            } / Double(max(1, firstHalf.count))
             let avgSecond = secondHalf.reduce(0.0) { acc, record in
                 let vals = record.domainScores.values
                 return acc + (vals.isEmpty ? 0.0 : Double(vals.reduce(0, +)) / Double(vals.count))
-            } / Double(secondHalf.count)
+            } / Double(max(1, secondHalf.count))
             if avgSecond - avgFirst > 3 { trend = .improving }
             else if avgFirst - avgSecond > 3 { trend = .declining }
         }
@@ -298,7 +302,9 @@ final class SELAssessmentService: ObservableObject {
 
         if merged > 0 {
             saveRecords(records)
+            #if DEBUG
             print("🧠 Merged \(merged) SEL records from cloud")
+            #endif
         }
     }
 

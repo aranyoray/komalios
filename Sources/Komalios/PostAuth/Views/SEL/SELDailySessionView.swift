@@ -8,27 +8,25 @@ struct SELDailySessionView: View {
     @State private var breathCount = 0
     @State private var breathAnimating = false
     @State private var breathTimer: Timer?
-    @State private var scenarios: [SELScenario] = []
-    @State private var scenarioIdx = 0
-    @State private var checkIdx = 0
-    @State private var results: [SELCheckResult] = []
-    @State private var selectedOption: SELOption? = nil
-    @State private var showFeedback = false
     @State private var breathingCompleted = false
+
+    // Curriculum state
+    @State private var session: SELCurriculumSession?
+    @State private var stepIdx = 0
+    @State private var selectedOption: SELResponseOption? = nil
+    @State private var showFeedback = false
+    @State private var results: [SELCheckResult] = []
+    @State private var showAvatarDialogue = true
 
     private let breathCycles = 3
 
     private enum Phase {
-        case breathing, scenarios, closing
+        case breathing, session, closing
     }
 
-    private var currentScenario: SELScenario? {
-        scenarios.indices.contains(scenarioIdx) ? scenarios[scenarioIdx] : nil
-    }
-
-    private var currentCheck: SELCheck? {
-        guard let scenario = currentScenario else { return nil }
-        return scenario.checks.indices.contains(checkIdx) ? scenario.checks[checkIdx] : nil
+    private var currentStep: SELCurriculumStep? {
+        guard let session = session else { return nil }
+        return session.steps.indices.contains(stepIdx) ? session.steps[stepIdx] : nil
     }
 
     var body: some View {
@@ -46,20 +44,30 @@ struct SELDailySessionView: View {
             switch phase {
             case .breathing:
                 breathingView
-            case .scenarios:
-                scenarioView
+            case .session:
+                sessionView
             case .closing:
                 closingView
             }
         }
         .onAppear {
-            scenarios = SELAssessmentService.shared.getDailyScenarios()
+            loadCurriculumSession()
             startBreathing()
         }
         .onDisappear {
             breathTimer?.invalidate()
             breathTimer = nil
         }
+    }
+
+    // MARK: - Load Curriculum
+
+    private func loadCurriculumSession() {
+        let progress = Self.loadProgress()
+        let nextNum = progress.nextSessionNumber
+        // Cycle through sessions 1-5
+        let sessionNum = ((nextNum - 1) % SELCurriculumLibrary.sessions.count) + 1
+        session = SELCurriculumLibrary.session(forNumber: sessionNum)
     }
 
     // MARK: - Breathing Phase
@@ -84,7 +92,6 @@ struct SELDailySessionView: View {
                 .foregroundColor(KomalColors.textSecondary)
                 .padding(.bottom, 20)
 
-            // Breathing circle
             ZStack {
                 Circle()
                     .fill(KomalColors.lavenderPurple.opacity(0.1))
@@ -111,7 +118,7 @@ struct SELDailySessionView: View {
 
             Spacer()
 
-            Button(action: { withAnimation { phase = .scenarios } }) {
+            Button(action: { withAnimation { phase = .session } }) {
                 Text(LanguageManager.localized("sel.skip_to_activities"))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
@@ -123,89 +130,111 @@ struct SELDailySessionView: View {
 
     private func startBreathing() {
         breathAnimating = true
-        // Each breath cycle is ~8 seconds (4s in + 4s out)
         breathTimer = Timer.scheduledTimer(withTimeInterval: 8, repeats: true) { timer in
             Task { @MainActor in
                 breathCount += 1
                 if breathCount >= breathCycles {
                     timer.invalidate()
                     breathingCompleted = true
-                    withAnimation { phase = .scenarios }
+                    withAnimation { phase = .session }
                 }
             }
         }
     }
 
-    // MARK: - Scenario Phase
+    // MARK: - Session Phase (Curriculum-driven)
 
-    private var scenarioView: some View {
+    private var sessionView: some View {
         VStack(spacing: 0) {
-            // Progress bar
-            HStack(spacing: 4) {
-                ForEach(Array(scenarios.enumerated()), id: \.element.id) { i, s in
-                    VStack(spacing: 4) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(
-                                i < scenarioIdx ? KomalColors.lavenderPurple :
-                                i == scenarioIdx ? KomalColors.lavenderPurple.opacity(0.5) :
-                                Color.gray.opacity(0.2)
-                            )
-                            .frame(height: 6)
+            if let session = session {
+                // Session header
+                HStack(spacing: 8) {
+                    Text(session.emoji)
+                        .font(.system(size: 20))
+                    Text(session.theme)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
+                    Spacer()
+                    Text("\(stepIdx + 1)/\(session.steps.count)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(KomalColors.lavenderPurple)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
 
-                        Text(s.domain.emoji)
-                            .font(.system(size: 10))
+                // Progress bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.gray.opacity(0.15))
+                            .frame(height: 6)
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(KomalColors.lavenderPurple)
+                            .frame(width: geo.size.width * CGFloat(stepIdx + 1) / CGFloat(max(1, session.steps.count)), height: 6)
+                            .animation(.easeInOut(duration: 0.3), value: stepIdx)
                     }
                 }
+                .frame(height: 6)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
 
-            if let scenario = currentScenario, let check = currentCheck {
+            if let step = currentStep {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        // Domain label
-                        Text(LanguageManager.localized("sel.domain_check", scenario.domain.label.uppercased(), checkIdx + 1))
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(KomalColors.lavenderPurple)
-                            .tracking(0.5)
-                            .padding(.horizontal, 16)
-
-                        // Scenario card (only on first check)
-                        if checkIdx == 0 {
-                            HStack(alignment: .top, spacing: 12) {
-                                Text(scenario.emoji)
-                                    .font(.system(size: 32))
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(scenario.title)
-                                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                                        .foregroundColor(KomalColors.textPrimary)
-
-                                    Text(scenario.narrative)
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(KomalColors.textSecondary)
-                                        .lineSpacing(2)
+                        // Goals tags
+                        if !step.targetGoals.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    ForEach(step.targetDomains, id: \.self) { domain in
+                                        Text(domain.emoji)
+                                            .font(.system(size: 10))
+                                    }
+                                    ForEach(step.targetGoals, id: \.self) { goal in
+                                        Text(goal)
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundColor(KomalColors.lavenderPurple)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(KomalColors.lavenderPurple.opacity(0.1))
+                                            .cornerRadius(8)
+                                    }
                                 }
                             }
-                            .padding(16)
-                            .background(Color.white)
-                            .cornerRadius(16)
-                            .shadow(color: Color.black.opacity(0.04), radius: 8, y: 2)
                             .padding(.horizontal, 16)
                         }
 
-                        // Question
-                        Text(check.question)
+                        // Avatar dialogue bubble
+                        if showAvatarDialogue {
+                            HStack(alignment: .top, spacing: 10) {
+                                Text("🧑‍🎤")
+                                    .font(.system(size: 28))
+
+                                Text(step.avatarDialogue)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(KomalColors.textPrimary)
+                                    .lineSpacing(3)
+                                    .padding(14)
+                                    .background(Color.white)
+                                    .cornerRadius(16)
+                                    .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
+                            }
+                            .padding(.horizontal, 16)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+
+                        // Participation prompt (the question)
+                        Text(step.participationPrompt)
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                             .lineSpacing(2)
                             .padding(.horizontal, 16)
 
-                        // Options
+                        // Response options from curriculum
                         VStack(spacing: 10) {
-                            ForEach(Array(check.options.enumerated()), id: \.offset) { _, option in
-                                Button(action: { handleOptionSelect(option) }) {
+                            ForEach(step.responseOptions) { option in
+                                Button(action: { handleOptionSelect(option, step: step) }) {
                                     HStack(spacing: 12) {
                                         Text(option.emoji)
                                             .font(.system(size: 24))
@@ -219,7 +248,7 @@ struct SELDailySessionView: View {
                                     }
                                     .padding(14)
                                     .background(
-                                        selectedOption == option
+                                        selectedOption?.id == option.id
                                             ? KomalColors.lavenderPurple.opacity(0.1)
                                             : showFeedback ? Color.gray.opacity(0.05) : Color.white
                                     )
@@ -227,13 +256,13 @@ struct SELDailySessionView: View {
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14)
                                             .stroke(
-                                                selectedOption == option
+                                                selectedOption?.id == option.id
                                                     ? KomalColors.lavenderPurple
                                                     : Color.gray.opacity(0.15),
-                                                lineWidth: selectedOption == option ? 2 : 1
+                                                lineWidth: selectedOption?.id == option.id ? 2 : 1
                                             )
                                     )
-                                    .opacity(showFeedback && selectedOption != option ? 0.5 : 1.0)
+                                    .opacity(showFeedback && selectedOption?.id != option.id ? 0.5 : 1.0)
                                 }
                                 .buttonStyle(.plain)
                                 .disabled(showFeedback)
@@ -245,7 +274,7 @@ struct SELDailySessionView: View {
                         if showFeedback, let selected = selectedOption {
                             HStack {
                                 Spacer()
-                                Text(feedbackText(for: selected.score))
+                                Text(feedbackText(for: selected.qualityScore))
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(KomalColors.pearlAqua)
                                 Spacer()
@@ -265,31 +294,41 @@ struct SELDailySessionView: View {
         }
     }
 
-    private func handleOptionSelect(_ option: SELOption) {
-        guard !showFeedback, let scenario = currentScenario, let check = currentCheck else { return }
+    private func handleOptionSelect(_ option: SELResponseOption, step: SELCurriculumStep) {
+        guard !showFeedback else { return }
 
         selectedOption = option
         showFeedback = true
 
+        // Map curriculum step to SELCheckResult for scoring
+        let primaryDomain = step.targetDomains.first ?? .socialCommunication
         let result = SELCheckResult(
-            checkId: check.id,
-            domain: scenario.domain,
-            competency: check.competency,
-            score: option.score
+            checkId: step.id,
+            domain: primaryDomain,
+            competency: step.targetGoals.first ?? "",
+            score: option.qualityScore
         )
         results.append(result)
 
-        // Auto-advance after 1.2s
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+        // Also record results for secondary domains
+        for domain in step.targetDomains.dropFirst() {
+            results.append(SELCheckResult(
+                checkId: "\(step.id)-\(domain.rawValue)",
+                domain: domain,
+                competency: step.targetGoals.first ?? "",
+                score: option.qualityScore
+            ))
+        }
+
+        // Auto-advance after 1.5s
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             withAnimation {
                 showFeedback = false
                 selectedOption = nil
+                showAvatarDialogue = true
 
-                if checkIdx < 2 {
-                    checkIdx += 1
-                } else if scenarioIdx < scenarios.count - 1 {
-                    scenarioIdx += 1
-                    checkIdx = 0
+                if let session = session, stepIdx < session.steps.count - 1 {
+                    stepIdx += 1
                 } else {
                     phase = .closing
                 }
@@ -321,6 +360,13 @@ struct SELDailySessionView: View {
                 .foregroundColor(KomalColors.textPrimary)
                 .padding(.bottom, 8)
 
+            if let session = session {
+                Text(session.theme)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(KomalColors.lavenderPurple)
+                    .padding(.bottom, 4)
+            }
+
             Text(LanguageManager.localized("sel.closing_message"))
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(KomalColors.textSecondary)
@@ -350,7 +396,35 @@ struct SELDailySessionView: View {
     private func handleFinish() {
         _ = SELAssessmentService.shared.saveSessionRecord(results: results, mindfulnessDone: breathingCompleted)
         GrowthTrackingService.shared.recordActivity(type: .reflection)
+
+        // Update curriculum progress
+        if let session = session {
+            var progress = Self.loadProgress()
+            progress.completedSessionIds.append(session.id)
+            progress.currentSessionId = nil
+            progress.currentStepIndex = 0
+            Self.saveProgress(progress)
+        }
+
         onComplete()
+    }
+
+    // MARK: - Progress Persistence
+
+    private static let progressURL: URL = {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory())
+        return docs.appendingPathComponent("sel_curriculum_progress.json")
+    }()
+
+    private static func loadProgress() -> SELCurriculumProgress {
+        guard let data = try? Data(contentsOf: progressURL) else { return SELCurriculumProgress() }
+        return (try? JSONDecoder().decode(SELCurriculumProgress.self, from: data)) ?? SELCurriculumProgress()
+    }
+
+    private static func saveProgress(_ progress: SELCurriculumProgress) {
+        guard let data = try? JSONEncoder().encode(progress) else { return }
+        try? data.write(to: progressURL, options: [.atomic, .completeFileProtection])
     }
 }
 #endif

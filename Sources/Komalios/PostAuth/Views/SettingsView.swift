@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var enteredPin = ""
     @State private var pinError = false
     @State private var isDeletingAccount = false
+    private let pinLockout = PinLockoutState.shared
     
     init(selectedTab: Binding<NavigationTab>? = nil) {
         self.selectedTab = selectedTab
@@ -145,7 +146,7 @@ struct SettingsView: View {
                     Color.clear.frame(height: 20)
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 12)
+                .padding(.bottom, 80)
             }
         }
         .sheet(isPresented: $showFilterPreferences) {
@@ -163,16 +164,33 @@ struct SettingsView: View {
                 enteredPin: $enteredPin,
                 pinError: $pinError,
                 onSubmit: {
-                    if let savedPin = KeychainService.getPin(), enteredPin == savedPin {
+                    // Brute-force protection: check lockout
+                    if pinLockout.isLockedOut {
+                        pinError = true
+                        enteredPin = ""
+                        return
+                    }
+
+                    guard let savedPin = KeychainService.getPin() else {
+                        showPinEntry = false
+                        enteredPin = ""
+                        pinError = false
+                        showPinReset = true
+                        return
+                    }
+
+                    if enteredPin == savedPin {
                         pinError = false
                         showPinEntry = false
                         enteredPin = ""
+                        pinLockout.reset()
                         withAnimation(.spring(response: 0.3)) {
                             appState.accountMode = .guest
                         }
                     } else {
                         pinError = true
                         enteredPin = ""
+                        pinLockout.recordFailure()
                     }
                 },
                 onCancel: {
@@ -184,6 +202,7 @@ struct SettingsView: View {
                     showPinEntry = false
                     enteredPin = ""
                     pinError = false
+                    pinLockout.reset()
                     withAnimation(.spring(response: 0.3)) {
                         appState.accountMode = .guest
                     }
@@ -204,7 +223,7 @@ struct SettingsView: View {
                 mismatchError: $pinResetMismatch,
                 showSuccess: $pinResetSuccess,
                 onSave: {
-                    guard newPin.count == 4, newPin == confirmNewPin else {
+                    guard newPin.count == 4, newPin.allSatisfy(\.isNumber), newPin == confirmNewPin, !KeychainService.isWeakPin(newPin) else {
                         pinResetMismatch = true
                         return
                     }
@@ -244,12 +263,15 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showParentInsights) {
             ParentInsightsDashboardView()
+                .environmentObject(appState)
         }
         .sheet(isPresented: $showGrowthJourney) {
             GrowthJourneyView()
+                .environmentObject(appState)
         }
         .sheet(isPresented: $showSELJourney) {
             SELJourneyView()
+                .environmentObject(appState)
         }
         .sheet(isPresented: $showEyeTrackingReport) {
             EyeTrackingReportView()
@@ -651,39 +673,6 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Divider()
-
-                    ModernToggleRow(
-                        icon: "sunrise.fill",
-                        iconColor: .orange,
-                        title: "Morning Check-in",
-                        subtitle: "Daily morning mood anchor",
-                        isOn: Binding(
-                            get: { appState.retentionState.morningAnchorEnabled },
-                            set: {
-                                appState.retentionState.morningAnchorEnabled = $0
-                                appState.savePreferences()
-                                NotificationService.shared.updateSchedules(retentionState: appState.retentionState)
-                            }
-                        )
-                    )
-
-                    Divider()
-
-                    ModernToggleRow(
-                        icon: "moon.fill",
-                        iconColor: KomalColors.lavenderPurple,
-                        title: "Evening Wind-down",
-                        subtitle: "Daily evening reflection anchor",
-                        isOn: Binding(
-                            get: { appState.retentionState.eveningAnchorEnabled },
-                            set: {
-                                appState.retentionState.eveningAnchorEnabled = $0
-                                appState.savePreferences()
-                                NotificationService.shared.updateSchedules(retentionState: appState.retentionState)
-                            }
-                        )
-                    )
                 }
             }
 
@@ -867,6 +856,11 @@ struct SettingsView: View {
                             
                             TextField("Child's Name", text: $appState.activeProfile.name)
                                 .cleanTextFieldStyle()
+                                .onChange(of: appState.activeProfile.name) {
+                                    if appState.activeProfile.name.count > 50 {
+                                        appState.activeProfile.name = String(appState.activeProfile.name.prefix(50))
+                                    }
+                                }
                         }
 
                         VStack(alignment: .leading, spacing: 8) {
@@ -1000,13 +994,27 @@ struct SettingsView: View {
                         Divider()
                     }
 
-                    // Change PIN
+                    // Change PIN — requires re-authentication even in parent mode
                     Button(action: {
                         newPin = ""
                         confirmNewPin = ""
                         pinResetMismatch = false
                         pinResetSuccess = false
-                        showPinReset = true
+                        // Require biometric or current PIN before allowing PIN change
+                        if BiometricAuthService.isBiometricEnabled {
+                            Task {
+                                let success = await BiometricAuthService.authenticate()
+                                await MainActor.run {
+                                    if success {
+                                        showPinReset = true
+                                    }
+                                    // If biometric fails, don't show PIN reset
+                                }
+                            }
+                        } else {
+                            // Fall back to showing PIN entry first
+                            showPinEntry = true
+                        }
                     }) {
                         HStack(spacing: 12) {
                             Image(systemName: "key.fill")
@@ -1083,6 +1091,9 @@ struct SettingsView: View {
                                 TextField("Add keyword (e.g. 'weapons')", text: $newBlockedKeyword)
                                     .cleanTextFieldStyle()
                                     .submitLabel(.done)
+                                    .onChange(of: newBlockedKeyword) {
+                                        if newBlockedKeyword.count > 100 { newBlockedKeyword = String(newBlockedKeyword.prefix(100)) }
+                                    }
                                     .onSubmit {
                                         addKeyword()
                                     }
@@ -1147,6 +1158,9 @@ struct SettingsView: View {
                                     .keyboardType(.URL)
                                     .textInputAutocapitalization(.never)
                                     .submitLabel(.done)
+                                    .onChange(of: newBlockedHost) {
+                                        if newBlockedHost.count > 253 { newBlockedHost = String(newBlockedHost.prefix(253)) }
+                                    }
                                     .onSubmit {
                                         addHost()
                                     }
@@ -1358,7 +1372,7 @@ struct SettingsView: View {
                         .buttonStyle(.plain)
 
                         if let email = Auth.auth().currentUser?.email {
-                            Text(email)
+                            Text(Self.maskEmail(email))
                                 .font(.caption)
                                 .foregroundColor(KomalColors.textSecondary)
                                 .padding(.top, 4)
@@ -1399,8 +1413,20 @@ struct SettingsView: View {
         }
     }
     
+    /// Mask email for display: "a***@gmail.com"
+    private static func maskEmail(_ email: String) -> String {
+        let parts = email.split(separator: "@", maxSplits: 1)
+        guard parts.count == 2 else { return "***" }
+        let local = parts[0]
+        let domain = parts[1]
+        let visible = local.prefix(1)
+        return "\(visible)***@\(domain)"
+    }
+
     private func handleLogout() {
+        #if DEBUG
         print("🔄 Starting logout process...")
+        #endif
 
         let wasGuest = appState.isGuestUser
 
@@ -1412,21 +1438,20 @@ struct SettingsView: View {
             // Sign out from Firebase Auth first
             do {
                 try Auth.auth().signOut()
-                print("✅ Firebase Auth signed out")
 #if canImport(GoogleSignIn)
                 GIDSignIn.sharedInstance.signOut()
-                print("✅ Google Sign-In signed out")
 #else
                 // GoogleSignIn not available in this build configuration
 #endif
             } catch {
+                #if DEBUG
                 print("❌ Error signing out: \(error.localizedDescription)")
+                #endif
             }
         }
 
         // Update the shared authViewModel state immediately using Task with @MainActor
         Task { @MainActor in
-            print("🔄 Updating authViewModel state...")
 
             // Directly update the state
             authViewModel.user = nil
@@ -1438,18 +1463,15 @@ struct SettingsView: View {
 
             // Post notification as additional backup
             NotificationCenter.default.post(name: NSNotification.Name("UserDidSignOut"), object: nil)
-            print("✅ Logout completed (wasGuest: \(wasGuest))")
         }
     }
-    
+
     private func handleDeleteAccount() {
         guard let user = Auth.auth().currentUser else {
-            print("❌ No user to delete")
             return
         }
-        
+
         isDeletingAccount = true
-        print("🗑️ Starting account deletion process...")
         
         Task {
             do {
@@ -1466,22 +1488,18 @@ struct SettingsView: View {
 
                 // Delete synced data (sync docs + subcollections)
                 await FirestoreSyncService.shared.deleteAllUserData(uid: user.uid)
-                print("✅ Synced data deleted from Firestore")
 
                 // Delete top-level user document
                 let userRef = db.collection("users").document(user.uid)
                 try await userRef.delete()
-                print("✅ User data deleted from Firestore")
-                
+
                 // 2. Delete Firebase Auth account
                 try await user.delete()
-                print("✅ Firebase Auth account deleted")
                 
                 // 3. Sign out from Google Sign-In if it was used
                 await MainActor.run {
 #if canImport(GoogleSignIn)
                     GIDSignIn.sharedInstance.signOut()
-                    print("✅ Google Sign-In signed out")
 #else
                     // GoogleSignIn not available in this build configuration
 #endif
@@ -1493,20 +1511,28 @@ struct SettingsView: View {
                     // Clear UserDefaults
                     UserDefaults.standard.removeObject(forKey: "komal.hasCompletedOnboarding")
                     UserDefaults.standard.removeObject(forKey: "komal.isGuestUser")
+                    UserDefaults.standard.removeObject(forKey: "komal.subscriptionState")
+                    UserDefaults.standard.removeObject(forKey: "komal.hasSelectedPlan")
+
+                    // Clear Keychain data (migrated from UserDefaults)
+                    KeychainService.deleteSecureData(forKey: "komal.contentFilterPreferences")
+                    KeychainService.deleteSecureData(forKey: "komal.activeProfile")
+                    KeychainService.deleteSecureData(forKey: "komal.accountMode")
+                    KeychainService.deleteSecureData(forKey: "komal.parentSettings")
+                    KeychainService.deleteSecureData(forKey: "komal.retentionState")
+                    KeychainService.deleteSecureData(forKey: "komal.guidedAccessDismissed")
+                    KeychainService.deletePin()
+
+                    // Also remove legacy UserDefaults keys in case migration hasn't run
                     UserDefaults.standard.removeObject(forKey: "komal.contentFilterPreferences")
                     UserDefaults.standard.removeObject(forKey: "komal.activeProfile")
                     UserDefaults.standard.removeObject(forKey: "komal.accountMode")
                     UserDefaults.standard.removeObject(forKey: "komal.parentSettings")
-                    UserDefaults.standard.removeObject(forKey: "komal.subscriptionState")
-                    UserDefaults.standard.removeObject(forKey: "komal.hasSelectedPlan")
+                    UserDefaults.standard.removeObject(forKey: "komal.retentionState")
 
-                    print("✅ Local data cleared")
-                    
                     // 5. Update authViewModel state
                     authViewModel.user = nil
                     authViewModel.loginState = .notRunning
-                    
-                    print("✅ Account deletion completed")
                     
                     // Clear navigation stack and navigate to LoginView
                     pathManager.popToRoot()
@@ -1519,11 +1545,10 @@ struct SettingsView: View {
                 }
             } catch {
                 await MainActor.run {
+                    #if DEBUG
                     print("❌ Error deleting account: \(error.localizedDescription)")
+                    #endif
                     isDeletingAccount = false
-                    
-                    // Show error alert
-                    // You might want to add an error alert here
                 }
             }
         }
@@ -2218,7 +2243,7 @@ struct PinResetView: View {
 
                 // New PIN fields
                 VStack(spacing: 12) {
-                    SecureField("New PIN", text: $newPin)
+                    SecureField(LanguageManager.localized("settings.new_pin_placeholder"), text: $newPin)
                         .keyboardType(.numberPad)
                         .font(.system(size: 24, weight: .bold, design: .rounded))
                         .multilineTextAlignment(.center)
@@ -2232,11 +2257,12 @@ struct PinResetView: View {
                                 .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
                         )
                         .onChange(of: newPin) {
-                            if newPin.count > 4 { newPin = String(newPin.prefix(4)) }
+                            let filtered = String(newPin.filter(\.isNumber).prefix(4))
+                            if filtered != newPin { newPin = filtered }
                             mismatchError = false
                         }
 
-                    SecureField("Confirm PIN", text: $confirmNewPin)
+                    SecureField(LanguageManager.localized("settings.confirm_pin_placeholder"), text: $confirmNewPin)
                         .keyboardType(.numberPad)
                         .font(.system(size: 24, weight: .bold, design: .rounded))
                         .multilineTextAlignment(.center)
@@ -2250,7 +2276,8 @@ struct PinResetView: View {
                                 .stroke(mismatchError ? Color.red : Color.black.opacity(0.1), lineWidth: mismatchError ? 2 : 0.5)
                         )
                         .onChange(of: confirmNewPin) {
-                            if confirmNewPin.count > 4 { confirmNewPin = String(confirmNewPin.prefix(4)) }
+                            let filtered = String(confirmNewPin.filter(\.isNumber).prefix(4))
+                            if filtered != confirmNewPin { confirmNewPin = filtered }
                             mismatchError = false
                         }
 

@@ -65,11 +65,10 @@ final class DigitalJourneyViewModel: ObservableObject {
             guard !items.isEmpty else { isLoading = false; return }
 
             let urlData = items.prefix(100).map { item -> [String: String] in
-                var data: [String: String] = ["url": item.url, "action": item.action]
+                var data: [String: String] = ["action": item.action]
                 if let cat = item.category { data["category"] = cat }
                 if let sub = item.subcategory { data["subcategory"] = sub }
-                if let emoji = item.emojiResponse { data["emoji"] = emoji }
-                if let title = item.pageTitle { data["title"] = title }
+                if let domain = URL(string: item.url)?.host { data["domain"] = domain }
                 return data
             }
 

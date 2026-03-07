@@ -91,7 +91,9 @@ final class AuthViewModel: ObservableObject {
                 loginState = .success
             } catch {
                 loginState = .failure(error.localizedDescription)
+                #if DEBUG
                 print("ERROR: \(error.localizedDescription)")
+                #endif
             }
         }
     }

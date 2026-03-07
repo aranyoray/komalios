@@ -23,11 +23,11 @@ enum FrenchStrings {
 
         // MARK: - Splash
         d["splash.title"] = "Komal"
-        d["splash.tagline"] = "Le compagnon numérique sûr de votre enfant"
+        d["splash.tagline"] = "Your Digital Buddy"
 
         // MARK: - Login
         d["login.welcome"] = "Bienvenue sur Komal"
-        d["login.tagline"] = "Le compagnon numérique sûr de votre enfant"
+        d["login.tagline"] = "navigation sécurisée pour les enfants"
         d["login.sign_in_google"] = "Se connecter avec Google"
         d["login.sign_in_apple"] = "Se connecter avec Apple"
         d["login.or"] = "ou"
@@ -218,6 +218,7 @@ enum FrenchStrings {
         d["onboarding.pin.confirm"] = "Confirmez le PIN"
         d["onboarding.pin.confirm_placeholder"] = "Confirmez le PIN"
         d["onboarding.pin.mismatch"] = "Les PIN ne correspondent pas. Veuillez réessayer."
+        d["onboarding.pin.weak"] = "Ce PIN est trop courant. Veuillez en choisir un plus sûr."
         d["onboarding.pin.enable_biometric"] = "Activer %@"
         d["onboarding.pin.use_biometric"] = "Utiliser %@ au lieu du PIN"
         d["onboarding.pin.research_note"] = "Un PIN parental garantit que seuls les adultes autorisés peuvent modifier les paramètres de sécurité et approuver le contenu restreint."
@@ -365,6 +366,8 @@ enum FrenchStrings {
         d["settings.set_new_pin"] = "Nouveau PIN"
         d["settings.new_pin_desc"] = "Entrez un nouveau PIN parental à 4 chiffres"
         d["settings.pin_mismatch"] = "Les PINs ne correspondent pas ou sont incomplets"
+        d["settings.new_pin_placeholder"] = "Nouveau PIN"
+        d["settings.confirm_pin_placeholder"] = "Confirmer le PIN"
         d["settings.save_pin"] = "Enregistrer le PIN"
 
         // Settings - Localized UI Strings
@@ -442,7 +445,6 @@ enum FrenchStrings {
 
         // MARK: - Reflection
         d["reflect.how_feeling"] = "Comment te sens-tu en ce moment ?"
-        d["reflect.select_emotion"] = "Sélectionne une émotion pour commencer"
         d["reflect.session.title"] = "Réflexion guidée"
         d["reflect.session.breathe"] = "Prenons une grande respiration ensemble"
         d["reflect.session.think_about"] = "Pense à..."
@@ -452,19 +454,6 @@ enum FrenchStrings {
         d["reflect.coping.try_this"] = "Essaie ceci :"
 
         // Emotions
-        d["reflect.emotion.happy"] = "Content"
-        d["reflect.emotion.sad"] = "Triste"
-        d["reflect.emotion.angry"] = "En colère"
-        d["reflect.emotion.scared"] = "Effrayé"
-        d["reflect.emotion.worried"] = "Inquiet"
-        d["reflect.emotion.calm"] = "Calme"
-        d["reflect.emotion.excited"] = "Excité"
-        d["reflect.emotion.confused"] = "Confus"
-        d["reflect.emotion.tired"] = "Fatigué"
-        d["reflect.emotion.lonely"] = "Seul"
-        d["reflect.emotion.grateful"] = "Reconnaissant"
-        d["reflect.emotion.frustrated"] = "Frustré"
-        d["reflect.emotion.okay"] = "Ça va"
 
         // Reflection exercises
         d["reflect.exercise.gratitude"] = "Nomme 3 choses pour lesquelles tu es reconnaissant aujourd'hui"
@@ -621,9 +610,7 @@ enum FrenchStrings {
 
         // MARK: - Reflection Time
         d["reflect.title"] = "Temps de réflexion"
-        d["reflect.welcome.title"] = "Bienvenue au temps de réflexion"
-        d["reflect.welcome.subtitle"] = "15 minutes de bien-être numérique en pleine conscience"
-        d["reflect.remaining"] = "restant"
+        d["reflect.daily_checkin"] = "Bilan quotidien"
         d["reflect.feelings.title"] = "Bilan des émotions"
         d["reflect.feelings.desc"] = "Explore et comprends tes émotions"
         d["reflect.mindfulness.title"] = "Exercice de pleine conscience"
@@ -643,9 +630,6 @@ enum FrenchStrings {
         d["reflect.next"] = "Suivant"
         d["reflect.free_chat.placeholder"] = "Écris tes pensées..."
         d["reflect.free_chat.thinking"] = "Réflexion..."
-        d["reflect.completion.title"] = "Bravo !"
-        d["reflect.completion.subtitle"] = "Tu as terminé ton temps de réflexion"
-        d["reflect.completion.message"] = "Prendre le temps de réfléchir t'aide à mieux te connaître et à rester en bonne santé en ligne."
 
         // MARK: - Coping Strategies
         d["reflect.coping.sad.1"] = "Parle à quelqu'un en qui tu as confiance"
@@ -771,28 +755,8 @@ enum FrenchStrings {
         d["insights.avg_time_per_page"] = "Temps moyen par page"
 
         // MARK: - Anchor - Morning
-        d["anchor.morning.title"] = "Bonjour !"
-        d["anchor.morning.greeting"] = "Bonjour !"
-        d["anchor.morning.subtitle"] = "Comment te sens-tu ce matin ?"
-        d["anchor.morning.how_feeling"] = "Comment te sens-tu aujourd'hui ?"
-        d["anchor.morning.how_strong"] = "À quel point ce sentiment est-il fort ?"
-        d["anchor.morning.set_intention"] = "Définis ton intention pour aujourd'hui"
-        d["anchor.morning.looking_forward"] = "Qu'est-ce qui te réjouit aujourd'hui ?"
-        d["anchor.morning.intention_placeholder"] = "Aujourd'hui je veux..."
-        d["anchor.morning.looking_forward_placeholder"] = "Quelque chose de fun, un cours, voir un ami..."
-        d["anchor.morning.ready"] = "Je suis prêt pour aujourd'hui !"
-        d["anchor.morning.start_my_day"] = "Commencer ma journée !"
 
         // MARK: - Anchor - Evening
-        d["anchor.evening.title"] = "Réflexion du soir"
-        d["anchor.evening.greeting"] = "Bonsoir !"
-        d["anchor.evening.subtitle"] = "Comment s'est passée ta journée ?"
-        d["anchor.evening.wind_down"] = "Détendons-nous ensemble"
-        d["anchor.evening.how_feeling"] = "Comment te sens-tu ce soir ?"
-        d["anchor.evening.deep_breaths"] = "Prends 3 grandes respirations"
-        d["anchor.evening.breathe_in_out"] = "Inspire... et expire..."
-        d["anchor.evening.goodnight"] = "Bonne nuit !"
-        d["anchor.evening.good_night"] = "Bonne nuit !"
 
         // MARK: - Reconnection
         d["reconnection.title"] = "Bon retour !"
@@ -967,10 +931,6 @@ enum FrenchStrings {
         d["prompt.action.go_deeper"] = "Approfondir"
 
         // MARK: - Notifications
-        d["notification.morning.title"] = "Bonjour !"
-        d["notification.morning.body"] = "C'est Momo ! Commençons ta journée avec un petit bilan. Comment te sens-tu ?"
-        d["notification.evening.title"] = "C'est l'heure de se détendre"
-        d["notification.evening.body"] = "Coucou, c'est Bunny ! Prenons un moment pour réfléchir à ta journée ensemble."
         d["notification.reconnect.title"] = "Tu nous manques !"
         d["notification.reconnect.body"] = "C'est Ellie — je n'oublie jamais mes amis ! Reviens nous dire bonjour, j'ai quelque chose de chouette à partager."
         d["notification.milestone.title"] = "Nouveau jalon !"
@@ -1299,8 +1259,6 @@ enum FrenchStrings {
         d["sel.feedback.okay"] = "C'est bien ! Continuons"
 
         // MARK: - Reflection Time (additional)
-        d["reflect.daily_checkin.title"] = "Bilan quotidien"
-        d["reflect.daily_checkin.desc"] = "Un bilan socio-émotionnel rapide pour la journée"
 
         // MARK: - Eye Tracking
         d["eye.delete_button"] = "Supprimer les données"
@@ -1327,15 +1285,29 @@ enum FrenchStrings {
 
         // MARK: - Guided Access
         d["guided_access.reminder.dont_remind"] = "Ne plus rappeler"
-        d["guided_access.reminder.explanation"] = "L'accès guidé empêche votre enfant de quitter Komal ou de modifier les paramètres."
+        d["guided_access.reminder.done"] = "Terminé"
+        d["guided_access.reminder.enabled_explanation"] = "Appuyez trois fois sur le bouton latéral pour verrouiller votre enfant dans Komal."
+        d["guided_access.reminder.enabled_title"] = "L'accès guidé est prêt !"
+        d["guided_access.reminder.explanation"] = "L'accès guidé verrouille l'appareil sur Komal pour que votre enfant ne change pas d'application."
         d["guided_access.reminder.got_it"] = "Compris"
+        d["guided_access.reminder.open_accessibility"] = "Ouvrir les réglages d'accessibilité"
+        d["guided_access.reminder.step1"] = "Ouvrez Accessibilité → Accès guidé"
+        d["guided_access.reminder.step2"] = "Activez-le et définissez un code"
+        d["guided_access.reminder.step3"] = "Revenez ici, puis appuyez trois fois sur le bouton latéral"
         d["guided_access.reminder.title"] = "Activer l'accès guidé"
+        d["onboarding.guided_access.enabled_explanation"] = "Parfait ! Appuyez trois fois sur le bouton latéral pour verrouiller votre enfant dans Komal."
+        d["onboarding.guided_access.enabled_title"] = "L'accès guidé est activé !"
         d["onboarding.guided_access.explanation"] = "L'accès guidé verrouille l'appareil sur Komal pour que votre enfant ne puisse pas accéder à d'autres applications."
+        d["onboarding.guided_access.open_accessibility"] = "Ouvrir les réglages d'accessibilité"
         d["onboarding.guided_access.open_settings"] = "Ouvrir les réglages"
         d["onboarding.guided_access.research_note"] = "Recommandé par les experts en sécurité numérique des enfants."
-        d["onboarding.guided_access.step1"] = "Allez dans Réglages > Accessibilité > Accès guidé"
-        d["onboarding.guided_access.step2"] = "Activez l'accès guidé et définissez un code"
-        d["onboarding.guided_access.step3"] = "Appuyez trois fois sur le bouton latéral pour activer"
+        d["onboarding.guided_access.return_hint"] = "Après avoir activé l'accès guidé dans les Réglages, revenez ici — nous le détecterons automatiquement !"
+        d["onboarding.guided_access.step1_title"] = "ouvrir les réglages d'accessibilité"
+        d["onboarding.guided_access.step1_detail"] = "appuyez sur le bouton ci-dessous — il ouvre la page Accessibilité. faites défiler vers le bas et cherchez « Accès guidé » près du bas."
+        d["onboarding.guided_access.step2_title"] = "activer l'Accès guidé"
+        d["onboarding.guided_access.step2_detail"] = "appuyez sur « Accès guidé » puis activez l'interrupteur (vert = activé). il vous demandera un code — choisissez-en un dont vous vous souviendrez (votre enfant ne le connaîtra pas)."
+        d["onboarding.guided_access.step3_title"] = "revenir et verrouiller l'app"
+        d["onboarding.guided_access.step3_detail"] = "revenez à Komal. quand vous êtes prêt à donner l'appareil à votre enfant, appuyez trois fois sur le bouton latéral pour le verrouiller dans Komal."
         d["onboarding.guided_access.subtitle"] = "Gardez votre enfant dans l'application Komal"
         d["onboarding.guided_access.title"] = "Configurer l'accès guidé"
 
@@ -1345,6 +1317,7 @@ enum FrenchStrings {
         d["browser.content_unverified"] = "Ce contenu n'a pas été vérifié"
         d["gate.locked_out"] = "Trop de tentatives. Réessayez dans %d secondes."
         d["gate.wrong_pin"] = "Code PIN incorrect. Réessayez."
+        d["gate.no_pin_set"] = "Aucun code PIN parental défini. Définissez-en un dans les Paramètres."
         d["journey.history_empty_hint"] = "L'historique de navigation apparaîtra ici."
 
         // MARK: - Settings (SEL)

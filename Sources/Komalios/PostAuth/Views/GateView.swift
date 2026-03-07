@@ -9,16 +9,10 @@ struct GateView: View {
     @State private var pin = ""
     @State private var showMindfulBreak = false
     @State private var showPinError = false
-    @State private var failedAttempts = 0
-    @State private var lockedUntil: Date? = nil
 
-    private static let maxAttempts = 5
-    private static let lockoutDuration: TimeInterval = 60 // 60 seconds
+    private let lockout = PinLockoutState.shared
 
-    private var isLockedOut: Bool {
-        if let until = lockedUntil, Date() < until { return true }
-        return false
-    }
+    private var isLockedOut: Bool { lockout.isLockedOut }
 
     var body: some View {
         NavigationStack {
@@ -57,8 +51,7 @@ struct GateView: View {
                                             let success = await BiometricAuthService.authenticate()
                                             if success {
                                                 await MainActor.run {
-                                                    failedAttempts = 0
-                                                    lockedUntil = nil
+                                                    lockout.reset()
                                                     onApproved?()
                                                     dismiss()
                                                 }
@@ -85,10 +78,19 @@ struct GateView: View {
                                 SecureField(LanguageManager.localized("gate.enter_pin"), text: $pin)
                                     .roundedTextFieldStyle()
                                     .keyboardType(.numberPad)
+                                    .onChange(of: pin) {
+                                        let filtered = String(pin.filter(\.isNumber).prefix(4))
+                                        if filtered != pin { pin = filtered }
+                                        showPinError = false
+                                    }
 
                                 if showPinError {
-                                    if isLockedOut, let until = lockedUntil {
-                                        let remaining = Int(until.timeIntervalSinceNow) + 1
+                                    if !KeychainService.hasPin() {
+                                        Text(LanguageManager.localized("gate.no_pin_set"))
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(.orange)
+                                    } else if isLockedOut {
+                                        let remaining = lockout.remainingSeconds
                                         Text(LanguageManager.localized("gate.locked_out", remaining))
                                             .font(.system(size: 13, weight: .medium))
                                             .foregroundColor(.red)
@@ -101,19 +103,18 @@ struct GateView: View {
 
                                 Button {
                                     guard !isLockedOut else { return }
+                                    guard KeychainService.hasPin() else {
+                                        showPinError = true
+                                        return
+                                    }
                                     if let savedPin = KeychainService.getPin(), pin == savedPin {
-                                        failedAttempts = 0
-                                        lockedUntil = nil
+                                        lockout.reset()
                                         onApproved?()
                                         dismiss()
                                     } else {
                                         pin = ""
-                                        failedAttempts += 1
+                                        lockout.recordFailure(maxAttempts: 5, lockoutDurations: [3: 30, 4: 60, 5: 300])
                                         showPinError = true
-                                        if failedAttempts >= GateView.maxAttempts {
-                                            lockedUntil = Date().addingTimeInterval(GateView.lockoutDuration)
-                                            failedAttempts = 0
-                                        }
                                     }
                                 } label: {
                                     HStack {

@@ -84,9 +84,16 @@ actor GeminiChatService {
 
     // MARK: - Initialization
 
-    init(apiKey: String = Config.geminiAPIKey, model: String = "gemini-2.0-flash") {
+    init(apiKey: String = Config.geminiAPIKey, model: String = "gemini-2.5-flash") {
         self.apiKey = apiKey
         self.model = model
+        #if DEBUG
+        if apiKey.isEmpty {
+            print("GeminiChatService: WARNING — API key is empty. Configure GEMINI_API_KEY in Secrets.xcconfig or environment.")
+        } else if !apiKey.hasPrefix("AIza") {
+            print("GeminiChatService: WARNING — API key format looks wrong (expected AIzaSy... prefix, got \(apiKey.prefix(4))...). Ensure GEMINI_API_KEY is a valid Google AI Studio key.")
+        }
+        #endif
     }
 
     // MARK: - Public Methods
@@ -159,6 +166,10 @@ actor GeminiChatService {
         }
 
         guard httpResponse.statusCode == 200 else {
+            #if DEBUG
+            let bodySnippet = String(data: data.prefix(500), encoding: .utf8) ?? "(non-UTF8)"
+            print("GeminiChatService: HTTP \(httpResponse.statusCode) — \(bodySnippet)")
+            #endif
             if let errorResponse = try? JSONDecoder().decode(GeminiResponse.self, from: data),
                let error = errorResponse.error {
                 throw GeminiChatError.apiError(error.message ?? "Unknown error (code: \(error.code ?? 0))")
@@ -169,6 +180,9 @@ actor GeminiChatService {
         let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
 
         guard let text = geminiResponse.candidates?.first?.content?.parts?.first?.text else {
+            #if DEBUG
+            print("GeminiChatService: No content in response — finishReason: \(geminiResponse.candidates?.first?.finishReason ?? "nil")")
+            #endif
             throw GeminiChatError.noContent
         }
 
@@ -572,13 +586,24 @@ actor GeminiChatService {
         Respond in 1-3 sentences. Be a buddy — empathetic, curious, and real. Ask a follow-up question when it feels natural.
         """
 
+        // Micro-guidance: select a technique hint when dysregulation is moderate+
+        let intent = await IntentInferenceService.shared.currentIntent
+        var techniqueHint = ""
+        if intent.dysregulationProbability >= 0.3 {
+            var fatigue = Self.loadTechniqueFatigue()
+            if let technique = MicroGuidanceLibrary.selectTechnique(for: intent, ageGroup: ageGroup, fatigue: &fatigue) {
+                techniqueHint = "\nMICRO-GUIDANCE TECHNIQUE: \(technique.systemPromptHint)"
+                Self.saveTechniqueFatigue(fatigue)
+            }
+        }
+
         let systemPrompt = """
         You are a warm, caring buddy who helps kids reflect on their day and feelings. Talk like a real friend, not a robot or teacher. NEVER use emojis. Keep it short and genuine. Sound like a peer, not an authority.
         When a child mentions something inappropriate, redirect naturally — don't say "I can't talk about that." Instead, bridge to a fun or interesting related topic. Do NOT repeat or echo the inappropriate word. Do NOT use ### or asterisks to censor.
         When they seem stressed or escalated, naturally use grounding techniques: help them name what they feel, notice their body, or think about their thinking. Don't label these techniques — just weave them in naturally.
         If they seem upset or mention self-harm, be empathetic and encourage them to talk to a trusted adult.
         NEVER ask for personal details. NEVER pretend to be a real person. No therapeutic jargon.
-        IMPORTANT: Respond in \(await LanguageManager.shared.currentLanguage.displayName).
+        IMPORTANT: Respond in \(await LanguageManager.shared.currentLanguage.displayName).\(techniqueHint)
         """
 
         return try await sendSimplePrompt(prompt, systemPrompt: systemPrompt)
@@ -593,10 +618,12 @@ actor GeminiChatService {
     private func sanitizeInput(_ raw: String, maxLength: Int = 2000) -> String {
         var s = raw
         if s.count > maxLength { s = String(s.prefix(maxLength)) }
-        // Role markers (Anthropic / OpenAI / generic)
+        // Role markers (Anthropic / OpenAI / Gemini / generic)
         s = s.replacingOccurrences(of: "\n\nHuman:", with: " ")
         s = s.replacingOccurrences(of: "\n\nAssistant:", with: " ")
         s = s.replacingOccurrences(of: "\n\nSystem:", with: " ")
+        s = s.replacingOccurrences(of: "\nuser:", with: " ")
+        s = s.replacingOccurrences(of: "\nmodel:", with: " ")
         // XML/HTML angle brackets (blocks <system>, <!-- -->, etc.)
         s = s.replacingOccurrences(of: "<", with: "&lt;")
         s = s.replacingOccurrences(of: ">", with: "&gt;")
@@ -605,11 +632,32 @@ actor GeminiChatService {
         s = s.replacingOccurrences(of: "*/", with: " ")
         // Markdown injection (heading/rule/code fence)
         s = s.replacingOccurrences(of: "```", with: " ")
+        // JSON structure injection
+        s = s.replacingOccurrences(of: "\\\"", with: "\"")
+        // Backslash escape sequences
+        s = s.replacingOccurrences(of: "\\n", with: " ")
+        s = s.replacingOccurrences(of: "\\r", with: " ")
         return s
     }
 
     private func sanitizePersonality(_ raw: String) -> String {
         sanitizeInput(raw, maxLength: 500)
+    }
+
+    private static let techniqueFatigueURL: URL = {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory())
+        return docs.appendingPathComponent("technique_fatigue.json")
+    }()
+
+    private static func loadTechniqueFatigue() -> TechniqueFatigueTracker {
+        guard let data = try? Data(contentsOf: techniqueFatigueURL) else { return TechniqueFatigueTracker() }
+        return (try? JSONDecoder().decode(TechniqueFatigueTracker.self, from: data)) ?? TechniqueFatigueTracker()
+    }
+
+    private static func saveTechniqueFatigue(_ tracker: TechniqueFatigueTracker) {
+        guard let data = try? JSONEncoder().encode(tracker) else { return }
+        try? data.write(to: techniqueFatigueURL, options: [.atomic, .completeFileProtection])
     }
 
     private func buildSystemPrompt(characterName: String, characterPersonality: String, conversationContext: String? = nil, ageGroup: AgeGroup = .tenToThirteen) async -> String {
@@ -797,12 +845,26 @@ enum GeminiChatError: LocalizedError {
         switch self {
         case .invalidResponse:
             return "Oops! Something went wrong. Let's try again!"
-        case .httpError(let code):
-            return "Connection hiccup (code \(code)). Let's try again!"
-        case .apiError(let message):
-            return "API error: \(message)"
+        case .httpError:
+            return "Oops! Something went wrong. Let's try again!"
+        case .apiError:
+            return "Oops! Something went wrong. Let's try again!"
         case .noContent:
             return "Hmm, I lost my train of thought. Try again!"
+        }
+    }
+
+    /// Detailed error for DEBUG console logging only — never shown to child
+    var debugDescription: String {
+        switch self {
+        case .invalidResponse:
+            return "GeminiChatError: invalidResponse"
+        case .httpError(let code):
+            return "GeminiChatError: HTTP \(code)"
+        case .apiError(let message):
+            return "GeminiChatError: \(message)"
+        case .noContent:
+            return "GeminiChatError: no content in response"
         }
     }
 }

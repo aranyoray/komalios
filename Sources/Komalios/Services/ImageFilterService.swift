@@ -49,8 +49,8 @@ final class ImageFilterService: ObservableObject {
     private let urlResultCacheLimit = 200
 
     // Confidence threshold for filtering (0.0 - 1.0)
-    // Only block images with meaningful confidence of inappropriate content
-    private let filterConfidenceThreshold: Float = 0.50
+    // Lowered from 0.50 to catch more borderline NSFW content (bikini, swimwear)
+    private let filterConfidenceThreshold: Float = 0.40
 
     // MARK: - URL Pre-Classification (Synchronous Blocking)
     // Per spec: "Intercept request → pre-classify URL hash → IF risk > threshold: Do not render image"
@@ -110,7 +110,9 @@ final class ImageFilterService: ObservableObject {
             }
             
             guard let url = modelURL else {
+                #if DEBUG
                 print("🛡️ ImageFilterService: NSFW.mlmodel not found in bundle, using heuristic filtering")
+                #endif
                 DispatchQueue.main.async {
                     self.isModelLoaded = false
                 }
@@ -126,10 +128,14 @@ final class ImageFilterService: ObservableObject {
                 DispatchQueue.main.async {
                     self.visionModel = vnModel
                     self.isModelLoaded = true
+                    #if DEBUG
                     print("🛡️ ImageFilterService: NSFW CoreML model loaded successfully from \(url.lastPathComponent)")
+                    #endif
                 }
             } catch {
+            #if DEBUG
             print("🛡️ ImageFilterService: Failed to load NSFW CoreML model: \(error)")
+            #endif
                 DispatchQueue.main.async {
                     self.isModelLoaded = false
                 }
@@ -201,16 +207,16 @@ final class ImageFilterService: ObservableObject {
             return result
         }
 
-        // Download image — if download fails, allow it (don't block unverifiable images)
+        // Download image — fail-closed for untrusted domains, fail-open for trusted
         guard let imageData = await downloadImage(url: url),
               let image = UIImage(data: imageData) else {
-            // Can't download/parse image — allow it rather than blocking all failed downloads
+            let isTrusted = Constants.isTrustedDomain(url)
             let failResult = ImageAnalysisResult(
                 imageURL: url,
-                category: .neutral,
+                category: isTrusted ? .neutral : .suggestive,
                 confidence: 0,
-                shouldFilter: false,
-                action: .allowed
+                shouldFilter: !isTrusted,
+                action: isTrusted ? .allowed : .replaced
             )
             cacheResult(failResult, forKey: cacheKey)
             return failResult
@@ -270,7 +276,9 @@ final class ImageFilterService: ObservableObject {
         // Minor detected — err on side of safety: block the image
         // Do NOT return unfiltered base result when a minor is in the image
         if revealingResult.minorDetected {
+            #if DEBUG
             print("🛡️ Minor detected in image — blocking for safety")
+            #endif
             return ImageAnalysisResult(
                 imageURL: url,
                 category: .suggestive,
@@ -286,7 +294,9 @@ final class ImageFilterService: ObservableObject {
             if shouldFilter {
                 self.totalImagesFiltered += 1
             }
+            #if DEBUG
             print("🛡️ Revealing level \(revealingResult.level.rawValue) → upgraded to explicit (score: \(revealingResult.aggregateScore))")
+            #endif
             return ImageAnalysisResult(
                 imageURL: url,
                 category: .explicit,
@@ -302,7 +312,9 @@ final class ImageFilterService: ObservableObject {
             if shouldFilter {
                 self.totalImagesFiltered += 1
             }
+            #if DEBUG
             print("🛡️ Revealing level \(revealingResult.level.rawValue) → upgraded to suggestive (score: \(revealingResult.aggregateScore))")
+            #endif
             return ImageAnalysisResult(
                 imageURL: url,
                 category: .suggestive,
@@ -375,7 +387,8 @@ final class ImageFilterService: ObservableObject {
     /// Determine if a category should be filtered based on preferences.
     /// For images, both `.block` and `.gate` mean the image should be replaced —
     /// only `.allow` passes the image through.
-    func shouldFilter(category: ImageContentCategory, preferences: ContentFilterPreferences) -> Bool {
+    /// nonisolated: pure function (no mutable state access), safe to call from any queue
+    nonisolated func shouldFilter(category: ImageContentCategory, preferences: ContentFilterPreferences) -> Bool {
         let action = category.shouldFilter(preferences: preferences)
         return action == .block || action == .gate
     }
@@ -433,14 +446,17 @@ final class ImageFilterService: ObservableObject {
                 }
 
                 if let error = error {
+                    #if DEBUG
                     print("🛡️ CoreML analysis error: \(error)")
-                    // Analysis error — allow the image
+                    #endif
+                    // Analysis error — fail closed (block) for untrusted domains
+                    let isTrusted = Constants.isTrustedDomain(url)
                     continuation.resume(returning: ImageAnalysisResult(
                         imageURL: url,
-                        category: .neutral,
+                        category: isTrusted ? .neutral : .suggestive,
                         confidence: 0,
-                        shouldFilter: false,
-                        action: .allowed
+                        shouldFilter: !isTrusted,
+                        action: isTrusted ? .allowed : .replaced
                     ))
                     return
                 }
@@ -467,7 +483,9 @@ final class ImageFilterService: ObservableObject {
                         DispatchQueue.main.async {
                             self.totalImagesFiltered += 1
                         }
+                        #if DEBUG
                         print("🛡️ NSFW detected: \(category.displayName) (confidence: \(Int(confidence * 100))%)")
+                        #endif
                     }
 
                     continuation.resume(returning: ImageAnalysisResult(
@@ -481,7 +499,9 @@ final class ImageFilterService: ObservableObject {
                 }
 
                 // Fallback: If no classification results, allow the image
+                #if DEBUG
                 print("🛡️ NSFW model returned unexpected results, allowing image")
+                #endif
                 continuation.resume(returning: ImageAnalysisResult(
                     imageURL: url,
                     category: .neutral,
@@ -513,14 +533,17 @@ final class ImageFilterService: ObservableObject {
                     try handler.perform([visionRequest])
                 } catch {
                     guard resumeGuard.tryMarkResumed() else { return }
+                    #if DEBUG
                     print("🛡️ Vision request failed: \(error)")
-                    // Vision failed — allow the image
+                    #endif
+                    // Vision failed — fail closed for untrusted domains
+                    let isTrusted = Constants.isTrustedDomain(url)
                     continuation.resume(returning: ImageAnalysisResult(
                         imageURL: url,
-                        category: .neutral,
+                        category: isTrusted ? .neutral : .suggestive,
                         confidence: 0,
-                        shouldFilter: false,
-                        action: .allowed
+                        shouldFilter: !isTrusted,
+                        action: isTrusted ? .allowed : .replaced
                     ))
                 }
             }
@@ -528,7 +551,8 @@ final class ImageFilterService: ObservableObject {
     }
     
     /// Extract NSFW probability score from classification observation
-    private func extractNSFWScore(from observation: VNClassificationObservation) -> Double {
+    /// nonisolated: pure function called from VNCoreMLRequest handler on analysisQueue
+    nonisolated private func extractNSFWScore(from observation: VNClassificationObservation) -> Double {
         let identifier = observation.identifier.lowercased()
         let confidence = Double(observation.confidence)
 
@@ -575,7 +599,8 @@ final class ImageFilterService: ObservableObject {
     }
     
     /// Determine category based on NSFW score
-    private func determineCategory(from nsfwScore: Double) -> ImageContentCategory {
+    /// nonisolated: pure function called from VNCoreMLRequest handler on analysisQueue
+    nonisolated private func determineCategory(from nsfwScore: Double) -> ImageContentCategory {
         // NSFW score ranges:
         // 0.0 - 0.3: Safe
         // 0.3 - 0.6: Suggestive
@@ -633,10 +658,18 @@ final class ImageFilterService: ObservableObject {
             return self.analyzeSkinToneRatio(image: image)
         }.value
 
-        if skinToneRatio > 0.6 {
-            // Skin tone ratio above 60% — likely inappropriate content
-            let category: ImageContentCategory = skinToneRatio > 0.65 ? .explicit : .suggestive
-            let confidence = Float(skinToneRatio)
+        // Check genital region (middle-lower area) for concentrated skin exposure
+        let genitalRegionSkinRatio = await Task.detached(priority: .userInitiated) {
+            return self.analyzeGenitalRegionSkinRatio(image: image)
+        }.value
+
+        // Lower threshold (35%) only for skin concentrated near genital area
+        let hasGenitalAreaExposure = genitalRegionSkinRatio > 0.55 && skinToneRatio > 0.35
+
+        if skinToneRatio > 0.60 || hasGenitalAreaExposure {
+            // General skin threshold at 60%, or lower threshold when skin is concentrated in genital region
+            let category: ImageContentCategory = (skinToneRatio > 0.60 || genitalRegionSkinRatio > 0.70) ? .explicit : .suggestive
+            let confidence = Float(hasGenitalAreaExposure ? max(skinToneRatio, genitalRegionSkinRatio) : skinToneRatio)
             let shouldFilter = self.shouldFilter(category: category, preferences: preferences) && confidence >= filterConfidenceThreshold
             
             if shouldFilter {
@@ -688,12 +721,14 @@ final class ImageFilterService: ObservableObject {
 
             return data
         } catch {
+            #if DEBUG
             print("🛡️ Failed to download image: \(error)")
+            #endif
             return nil
         }
     }
     
-    private func categorizeByURLPattern(_ pattern: String) -> ImageContentCategory {
+    nonisolated private func categorizeByURLPattern(_ pattern: String) -> ImageContentCategory {
         switch pattern {
         case "nsfw", "xxx", "porn", "adult", "nude", "naked":
             return .explicit
@@ -762,7 +797,69 @@ final class ImageFilterService: ObservableObject {
 
         return Double(skinPixels) / Double(totalPixels)
     }
-    
+
+    /// Analyze skin tone ratio specifically in the genital region (middle-lower 30% of image)
+    private nonisolated func analyzeGenitalRegionSkinRatio(image: UIImage) -> Double {
+        guard let cgImage = image.cgImage else { return 0 }
+
+        let width = min(cgImage.width, 100)
+        let height = min(cgImage.height, 100)
+
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return 0 }
+
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        guard let data = context.data else { return 0 }
+
+        let bufferSize = width * height * 4
+        let pointer = data.bindMemory(to: UInt8.self, capacity: bufferSize)
+
+        // Genital region: horizontal middle 50%, vertical 40%-70% of image
+        let xStart = width / 4
+        let xEnd = (width * 3) / 4
+        let yStart = (height * 40) / 100
+        let yEnd = (height * 70) / 100
+
+        var skinPixels = 0
+        var regionPixels = 0
+
+        for y in yStart..<yEnd {
+            for x in xStart..<xEnd {
+                let i = y * width + x
+                let offset = i * 4
+                guard offset + 3 < bufferSize else { continue }
+                let r = Int(pointer[offset])
+                let g = Int(pointer[offset + 1])
+                let b = Int(pointer[offset + 2])
+
+                regionPixels += 1
+
+                let rule1 = r > 95 && g > 40 && b > 20 &&
+                            r > g && r > b &&
+                            abs(r - g) > 15 && r - b > 20 &&
+                            b < g
+                let rule2 = r > 60 && g > 35 && b > 15 &&
+                            r > g && g > b &&
+                            (r - g) > 5 && (r - g) < 60 && (g - b) > 5 && (g - b) < 50
+
+                if rule1 || rule2 {
+                    skinPixels += 1
+                }
+            }
+        }
+
+        guard regionPixels > 0 else { return 0 }
+        return Double(skinPixels) / Double(regionPixels)
+    }
+
     private nonisolated static func createDefaultLogo() -> UIImage? {
         // Create a simple placeholder logo if no image is available
         let size = CGSize(width: 200, height: 200)

@@ -14,79 +14,15 @@ final class NotificationService {
             do {
                 let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
                 if granted {
+                    #if DEBUG
                     print("🔔 Notification permission granted")
+                    #endif
                 }
             } catch {
+                #if DEBUG
                 print("🔔 Notification permission error: \(error)")
+                #endif
             }
-        }
-    }
-
-    // MARK: - Morning Anchor
-
-    func scheduleMorningAnchor(hour: Int = 8, minute: Int = 0) {
-        Task {
-            let settings = await UNUserNotificationCenter.current().notificationSettings()
-            guard settings.authorizationStatus == .authorized else { return }
-            let title = LanguageManager.localized("notification.morning.title")
-            let body = LanguageManager.localized("notification.morning.body")
-            await _scheduleMorningAnchor(hour: hour, minute: minute, title: title, body: body)
-        }
-    }
-
-    private func _scheduleMorningAnchor(hour: Int, minute: Int, title: String, body: String) async {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        content.categoryIdentifier = "morningAnchor"
-
-        var dateComponents = DateComponents()
-        dateComponents.hour = hour
-        dateComponents.minute = minute
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-        let request = UNNotificationRequest(identifier: "morningAnchor", content: content, trigger: trigger)
-
-        do {
-            try await UNUserNotificationCenter.current().add(request)
-            print("🔔 Morning anchor scheduled at \(hour):\(String(format: "%02d", minute))")
-        } catch {
-            print("🔔 Error scheduling morning anchor: \(error)")
-        }
-    }
-
-    // MARK: - Evening Anchor
-
-    func scheduleEveningAnchor(hour: Int = 19, minute: Int = 0) {
-        Task {
-            let settings = await UNUserNotificationCenter.current().notificationSettings()
-            guard settings.authorizationStatus == .authorized else { return }
-            let title = LanguageManager.localized("notification.evening.title")
-            let body = LanguageManager.localized("notification.evening.body")
-            await _scheduleEveningAnchor(hour: hour, minute: minute, title: title, body: body)
-        }
-    }
-
-    private func _scheduleEveningAnchor(hour: Int, minute: Int, title: String, body: String) async {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-        content.categoryIdentifier = "eveningAnchor"
-
-        var dateComponents = DateComponents()
-        dateComponents.hour = hour
-        dateComponents.minute = minute
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-        let request = UNNotificationRequest(identifier: "eveningAnchor", content: content, trigger: trigger)
-
-        do {
-            try await UNUserNotificationCenter.current().add(request)
-            print("🔔 Evening anchor scheduled at \(hour):\(String(format: "%02d", minute))")
-        } catch {
-            print("🔔 Error scheduling evening anchor: \(error)")
         }
     }
 
@@ -118,19 +54,13 @@ final class NotificationService {
         do {
             try await UNUserNotificationCenter.current().add(request)
         } catch {
+            #if DEBUG
             print("🔔 Error scheduling reconnection: \(error)")
+            #endif
         }
     }
 
     // MARK: - Cancel
-
-    func cancelMorningAnchor() {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["morningAnchor"])
-    }
-
-    func cancelEveningAnchor() {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["eveningAnchor"])
-    }
 
     func cancelReconnection() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["reconnection"])
@@ -153,17 +83,7 @@ final class NotificationService {
 
     /// Update notification schedules based on retention state
     func updateSchedules(retentionState: RetentionState) {
-        if retentionState.morningAnchorEnabled {
-            scheduleMorningAnchor()
-        } else {
-            cancelMorningAnchor()
-        }
-
-        if retentionState.eveningAnchorEnabled {
-            scheduleEveningAnchor()
-        } else {
-            cancelEveningAnchor()
-        }
+        // Anchor notifications removed (v2 spec §13)
     }
 }
 #endif

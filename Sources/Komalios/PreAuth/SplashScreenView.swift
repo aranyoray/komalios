@@ -43,17 +43,17 @@ struct SplashScreenView: View {
                 .scaleEffect(scale)
                 .opacity(opacity)
                 
-                // App Name
-                Text("Komal")
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .foregroundColor(KomalColors.textPrimary)
-                    .opacity(opacity)
-                
-                // Tagline
-                Text(LanguageManager.localized("splash.tagline"))
-                    .font(.system(size: 18, weight: .medium, design: .rounded))
-                    .foregroundColor(KomalColors.textSecondary)
-                    .opacity(opacity * 0.8)
+                // App Name + Tagline
+                VStack(spacing: 4) {
+                    Text("Komal")
+                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
+
+                    Text(LanguageManager.localized("login.tagline"))
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.textSecondary)
+                }
+                .opacity(opacity)
             }
         }
         .onAppear {

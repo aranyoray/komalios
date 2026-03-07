@@ -1,10 +1,16 @@
 #if os(iOS)
 import SwiftUI
 
-/// Compact horizontal 7-day mood strip showing dominant emotion emoji per day
+/// Compact horizontal 7-day mood strip showing dominant emotion per day
 struct MoodHistoryMiniView: View {
+    private static let dateKeyFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+    private static let dayLabelFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "EEE"; return f
+    }()
     @ObservedObject private var moodService = MoodTrackingService.shared
-    private let trend: [(date: String, emotion: String, emoji: String)]
+    private let trend: [(date: String, emotion: String)]
 
     init() {
         trend = MoodTrackingService.shared.getMoodTrend(days: 7)
@@ -15,9 +21,7 @@ struct MoodHistoryMiniView: View {
             ForEach(0..<7, id: \.self) { dayOffset in
                 let calendar = Calendar.current
                 let date = calendar.date(byAdding: .day, value: -(6 - dayOffset), to: Date()) ?? Date()
-                let formatter = DateFormatter()
-                let _ = formatter.dateFormat = "yyyy-MM-dd"
-                let dateStr = formatter.string(from: date)
+                let dateStr = Self.dateKeyFormatter.string(from: date)
 
                 let dayTrend = trend.first(where: { $0.date == dateStr })
 
@@ -27,15 +31,16 @@ struct MoodHistoryMiniView: View {
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(KomalColors.textSecondary)
 
-                    // Emoji circle
+                    // Emotion circle
                     ZStack {
                         Circle()
                             .fill(dayTrend != nil ? KomalColors.lavenderPurple.opacity(0.15) : Color.gray.opacity(0.08))
                             .frame(width: 36, height: 36)
 
                         if let entry = dayTrend {
-                            Text(entry.emoji)
-                                .font(.system(size: 18))
+                            Text(entry.emotion.prefix(1).uppercased())
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundColor(KomalColors.lavenderPurple)
                         } else {
                             Circle()
                                 .fill(Color.gray.opacity(0.15))
@@ -52,9 +57,7 @@ struct MoodHistoryMiniView: View {
     }
 
     private func dayLabel(for date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEE"
-        return String(formatter.string(from: date).prefix(2))
+        String(Self.dayLabelFormatter.string(from: date).prefix(2))
     }
 }
 #endif

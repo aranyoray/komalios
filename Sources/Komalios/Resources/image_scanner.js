@@ -8,24 +8,23 @@
         return;
     }
 
+    // Security nonce — injected at runtime by EngagementTracker.
+    // Required for replaceImage/markSafe calls to prevent page JS from bypassing the filter.
+    var SECURITY_NONCE = 'KOMAL_IMAGE_NONCE';
+
     // Trusted domains — skip pre-hiding but still scan images
     var TRUSTED_DOMAINS = (typeof TRUSTED_DOMAINS_PLACEHOLDER !== 'undefined') ? TRUSTED_DOMAINS_PLACEHOLDER : [];
     var currentHost = (window.location.hostname || '').toLowerCase();
     var isTrustedDomain = TRUSTED_DOMAINS.some(function(d) { return currentHost === d || currentHost === 'www.' + d || currentHost.endsWith('.' + d); });
 
-    // Pre-hide ALL images on ALL domains during analysis.
-    // This eliminates the window where inappropriate images are visible
-    // before CoreML classification completes.
-    var skipPreHide = isTrustedDomain;
+    // Pre-hide ALL images on ALL domains during analysis (v2 §4).
+    // No trusted-domain bypass — every image starts hidden until classified.
+    var skipPreHide = false;
 
-    // Placeholder that will be replaced with actual base64 logo at runtime
-    const KOMAL_LOGO_PLACEHOLDER = 'KOMAL_LOGO_BASE64';
-
-    // Inject global CSS for replacement protection (pre-hide is handled by document-start CSS)
+    // Inject global CSS for pre-hide (document-start CSS also handles initial hiding)
     var komalStyle = document.createElement('style');
     komalStyle.textContent =
-        '[data-komal-pending] { visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }' +
-        '[data-komal-replaced] { visibility: visible !important; opacity: 1 !important; object-fit: contain !important; background-color: #FFF5F8 !important; border-radius: 8px !important; border: 2px solid #FFB6C1 !important; }';
+        '[data-komal-pending] { visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }';
     (document.head || document.documentElement).appendChild(komalStyle);
 
     const komalImageScanner = {
@@ -34,45 +33,61 @@
         processedImages: new Set(),
         pendingImages: new Map(),
         pendingTimestamps: new Map(), // imageId -> Date.now() when sent for analysis
-        replacementSrcs: new Map(),  // imageId -> replacement src for enforcement
         blockedURLs: new Map(),      // src URL -> category (cache for instant re-block)
         safeURLs: new Set(),         // src URLs confirmed safe (skip re-analysis)
         minImageSize: 50,  // Minimum size to analyze (skip icons)
         batchSize: 5,      // Process images in batches
-        pendingTimeoutMs: 10000, // Fail-safe: block image after 10s without response
+        pendingTimeoutMs: 5000, // Fail-safe: block image after 5s without response
         processTimeout: null, // Debounce timer for MutationObserver processing
 
         // Check if image should be scanned
-        shouldScanImage: function(img) {
+        // Returns: 'scan' | 'safe' | 'pending' | 'skip'
+        //   scan    = ready to analyze
+        //   safe    = genuinely small icon / SVG / already processed — reveal immediately
+        //   pending = has src but hasn't loaded yet — keep hidden, attach load listener
+        //   skip    = already processed (scanned/replaced) — no action needed
+        classifyImage: function(img) {
             // Skip if already processed
             if (img.hasAttribute('data-komal-scanned')) {
-                return false;
+                return 'skip';
             }
 
             // Skip data URLs that are our replacement
             if (img.src && img.src.startsWith('data:image') && img.hasAttribute('data-komal-replaced')) {
-                return false;
-            }
-
-            // Skip very small images (likely icons)
-            var width = img.naturalWidth || img.width || 0;
-            var height = img.naturalHeight || img.height || 0;
-            if (width < this.minImageSize || height < this.minImageSize) {
-                return false;
+                return 'skip';
             }
 
             // Skip SVGs (vector graphics, not photographic)
             if (!img.src || img.src.startsWith('data:image/svg')) {
-                return false;
+                return 'safe';
             }
 
             // Allow data: URLs (base64 images) — native side will decode and analyze
             // Only skip if it's a tiny placeholder (< 200 chars base64)
             if (img.src.startsWith('data:image')) {
-                return img.src.length > 200;
+                return img.src.length > 200 ? 'scan' : 'safe';
             }
 
-            return true;
+            var natW = img.naturalWidth || 0;
+            var natH = img.naturalHeight || 0;
+
+            // Image hasn't loaded yet (has src but no natural dimensions)
+            // Keep it hidden and attach a load listener for deferred scanning
+            if (natW === 0 || natH === 0) {
+                return 'pending';
+            }
+
+            // Genuinely small images (loaded, confirmed small) — safe to reveal
+            if (natW < this.minImageSize && natH < this.minImageSize) {
+                return 'safe';
+            }
+
+            return 'scan';
+        },
+
+        // Backward-compatible wrapper used by other code paths
+        shouldScanImage: function(img) {
+            return this.classifyImage(img) === 'scan';
         },
 
         // Pre-hide an element pending analysis using INLINE styles
@@ -127,6 +142,58 @@
             }
         },
 
+        // Attach a one-shot load listener so unloaded images get scanned once ready
+        attachLoadListener: function(img) {
+            if (img.hasAttribute('data-komal-load-listener')) return;
+            img.setAttribute('data-komal-load-listener', 'true');
+            var self = this;
+            img.addEventListener('load', function onLoad() {
+                img.removeEventListener('load', onLoad);
+                img.removeAttribute('data-komal-load-listener');
+                // Re-classify now that dimensions are available
+                var cls = self.classifyImage(img);
+                if (cls === 'scan') {
+                    img.setAttribute('data-komal-scanned', 'true');
+                    var imageId = 'komal_img_' + self.scannedCount;
+                    img.setAttribute('data-komal-id', imageId);
+                    self.scannedCount++;
+                    self.preHideElement(img);
+                    var analyzeSrc = img.currentSrc || img.src;
+
+                    // Check caches
+                    if (self.blockedURLs.has(analyzeSrc)) {
+                        self.pendingImages.set(imageId, img);
+                        self.replaceImage(imageId, self.blockedURLs.get(analyzeSrc), SECURITY_NONCE);
+                        return;
+                    }
+                    if (self.safeURLs.has(analyzeSrc)) {
+                        self.markElementSafe(img);
+                        return;
+                    }
+
+                    self.pendingImages.set(imageId, img);
+                    var picture = img.closest('picture');
+                    if (picture) picture.setAttribute('data-komal-picture-for', imageId);
+                    self.sendForAnalysis([{
+                        id: imageId,
+                        src: analyzeSrc,
+                        width: img.naturalWidth || img.width,
+                        height: img.naturalHeight || img.height
+                    }]);
+                } else if (cls === 'safe') {
+                    self.markElementSafe(img);
+                }
+                // else 'skip' or still 'pending' (shouldn't happen after load) — leave hidden
+            }, { once: true });
+
+            // Also handle broken images — if load fails, mark safe (no image to filter)
+            img.addEventListener('error', function onError() {
+                img.removeEventListener('error', onError);
+                img.removeAttribute('data-komal-load-listener');
+                self.markElementSafe(img);
+            }, { once: true });
+        },
+
         // Scan all images on page
         scanImages: function() {
             var images = document.querySelectorAll('img');
@@ -134,14 +201,28 @@
             var self = this;
 
             images.forEach(function(img) {
-                if (!self.shouldScanImage(img)) {
-                    // Images we don't need to scan (icons, SVGs, already processed)
-                    // must be marked safe so the document-start CSS pre-hide reveals them
-                    if (!img.hasAttribute('data-komal-safe') && !img.hasAttribute('data-komal-replaced') && !img.hasAttribute('data-komal-pending')) {
+                var classification = self.classifyImage(img);
+
+                if (classification === 'skip') {
+                    return;
+                }
+
+                if (classification === 'safe') {
+                    // Genuinely small icons, SVGs, tiny placeholders — reveal
+                    if (!img.hasAttribute('data-komal-safe') && !img.hasAttribute('data-komal-replaced')) {
                         self.markElementSafe(img);
                     }
                     return;
                 }
+
+                if (classification === 'pending') {
+                    // Image hasn't loaded yet — keep hidden, attach load listener
+                    self.preHideElement(img);
+                    self.attachLoadListener(img);
+                    return;
+                }
+
+                // classification === 'scan' — proceed with analysis
 
                 // Get the actual source URL for cache lookup
                 var analyzeSrc = img.currentSrc || img.src;
@@ -154,7 +235,7 @@
                     self.scannedCount++;
                     // Immediately replace — no need to send to native
                     self.pendingImages.set(cachedId, img);
-                    self.replaceImage(cachedId, self.blockedURLs.get(analyzeSrc));
+                    self.replaceImage(cachedId, self.blockedURLs.get(analyzeSrc), SECURITY_NONCE);
                     return;
                 }
 
@@ -209,7 +290,7 @@
                     video.setAttribute('data-komal-id', cachedId);
                     self.scannedCount++;
                     self.pendingImages.set(cachedId, video);
-                    self.replaceImage(cachedId, self.blockedURLs.get(posterUrl));
+                    self.replaceImage(cachedId, self.blockedURLs.get(posterUrl), SECURITY_NONCE);
                     return;
                 }
 
@@ -235,9 +316,11 @@
             return imageData;
         },
 
-        // Replace image with Komal shield placeholder
-        replaceImage: function(imageId, category) {
-            var el = this.pendingImages.get(imageId) || document.querySelector('[data-komal-id="' + imageId + '"]');
+        // Block image — remove from DOM (or clear background/poster)
+        replaceImage: function(imageId, category, nonce) {
+            if (nonce !== SECURITY_NONCE) return false;
+            // Use Map lookup only — no querySelector fallback to prevent CSS selector injection
+            var el = this.pendingImages.get(imageId);
 
             if (!el) {
                 return false;
@@ -275,51 +358,18 @@
                 return true;
             }
 
-            // Handle <img> elements
-            if (!el.hasAttribute('data-komal-original')) {
-                el.setAttribute('data-komal-original', el.src);
-            }
-
-            el.setAttribute('data-komal-replaced', 'true');
-            el.setAttribute('data-komal-category', category || 'unknown');
-
-            // Clear srcset to prevent browser from using alternative sources
-            if (el.hasAttribute('srcset')) {
-                el.setAttribute('data-komal-original-srcset', el.getAttribute('srcset'));
-                el.removeAttribute('srcset');
-            }
-
-            // Disable <source> elements in parent <picture>
+            // Handle <img> elements — remove from DOM entirely
             var picture = el.closest('picture');
             if (picture) {
-                var sources = picture.querySelectorAll('source');
-                sources.forEach(function(source) {
-                    if (!source.hasAttribute('data-komal-original-srcset')) {
-                        source.setAttribute('data-komal-original-srcset', source.getAttribute('srcset') || '');
-                    }
-                    source.removeAttribute('srcset');
-                    source.removeAttribute('media');
-                    source.removeAttribute('type');
-                });
-            }
-
-            // Generate replacement src
-            var replacementSrc;
-            if (KOMAL_LOGO_PLACEHOLDER !== 'KOMAL_LOGO_BASE64') {
-                replacementSrc = KOMAL_LOGO_PLACEHOLDER;
+                // Remove the entire <picture> element
+                picture.setAttribute('data-komal-replaced', 'true');
+                picture.setAttribute('data-komal-category', category || 'unknown');
+                picture.remove();
             } else {
-                replacementSrc = this.generatePlaceholderDataURL(el, category);
+                el.setAttribute('data-komal-replaced', 'true');
+                el.setAttribute('data-komal-category', category || 'unknown');
+                el.remove();
             }
-
-            el.src = replacementSrc;
-
-            // Store replacement src for periodic enforcement
-            this.replacementSrcs.set(imageId, replacementSrc);
-
-            // Remove pre-hide and make replacement visible
-            el.removeAttribute('data-komal-pending');
-            el.style.setProperty('visibility', 'visible', 'important');
-            el.style.setProperty('opacity', '1', 'important');
 
             this.filteredCount++;
             this.pendingImages.delete(imageId);
@@ -328,29 +378,9 @@
             return true;
         },
 
-        // Generate a shield placeholder as data URL
-        generatePlaceholderDataURL: function(img, category) {
-            var canvas = document.createElement('canvas');
-            var w = parseInt(img.width) || parseInt(img.naturalWidth) || 200;
-            var h = parseInt(img.height) || parseInt(img.naturalHeight) || 200;
-            canvas.width = w;
-            canvas.height = h;
-            var ctx = canvas.getContext('2d');
-            // Draw solid placeholder background - don't touch original image (cross-origin safe)
-            ctx.fillStyle = '#f0f0f0';
-            ctx.fillRect(0, 0, w, h);
-            ctx.fillStyle = '#999';
-            ctx.font = Math.max(12, Math.min(w, h) / 8) + 'px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('🛡️', w / 2, h / 2 - 10);
-            ctx.font = Math.max(10, Math.min(w, h) / 12) + 'px sans-serif';
-            ctx.fillText('Komal', w / 2, h / 2 + 15);
-            return canvas.toDataURL('image/png');
-        },
-
         // Mark image as safe (no replacement needed)
-        markSafe: function(imageId) {
+        markSafe: function(imageId, nonce) {
+            if (nonce !== SECURITY_NONCE) return;
             var el = this.pendingImages.get(imageId);
             if (el) {
                 // Cache this URL as safe
@@ -450,7 +480,7 @@
                         el.setAttribute('data-komal-id', cachedId);
                         self.scannedCount++;
                         self.pendingImages.set(cachedId, el);
-                        self.replaceImage(cachedId, self.blockedURLs.get(bgUrl));
+                        self.replaceImage(cachedId, self.blockedURLs.get(bgUrl), SECURITY_NONCE);
                         return;
                     }
 
@@ -477,20 +507,14 @@
             return imageData;
         },
 
-        // Replace a CSS background image element
+        // Replace a CSS background image element — clear the background image and collapse
         replaceBackgroundImage: function(el, category) {
-            if (!el.hasAttribute('data-komal-original-bg')) {
-                el.setAttribute('data-komal-original-bg', el.style.backgroundImage || '');
-            }
             el.setAttribute('data-komal-replaced', 'true');
             el.setAttribute('data-komal-category', category || 'unknown');
             el.removeAttribute('data-komal-pending');
+            el.style.setProperty('background-image', 'none', 'important');
             el.style.setProperty('visibility', 'visible', 'important');
             el.style.setProperty('opacity', '1', 'important');
-            el.style.setProperty('background-image', 'none', 'important');
-            el.style.setProperty('background-color', '#FFF5F8', 'important');
-            el.style.setProperty('border-radius', '8px', 'important');
-            el.style.setProperty('border', '2px solid #FFB6C1', 'important');
         },
 
         // Enforce that all replaced images stay replaced (guards against page JS reverting)
@@ -499,55 +523,34 @@
             var self = this;
             var now = Date.now();
 
-            // Check for timed-out pending images
-            // Trusted domains: fail-open (keep image visible) to avoid false positives on cultural/educational content
-            // Untrusted domains: fail-closed (replace for safety)
+            // Check for timed-out pending images — fail-closed on ALL domains (v2 §4)
             self.pendingTimestamps.forEach(function(timestamp, imageId) {
                 if (now - timestamp > self.pendingTimeoutMs) {
-                    if (isTrustedDomain) {
-                        self.markSafe(imageId);
-                    } else {
-                        self.replaceImage(imageId, 'timeout');
-                    }
+                    self.replaceImage(imageId, 'timeout', SECURITY_NONCE);
                 }
             });
 
+            // Enforce background-image elements that are still in DOM
             var replaced = document.querySelectorAll('[data-komal-replaced]');
-
             replaced.forEach(function(el) {
-                var imageId = el.getAttribute('data-komal-id');
-
-                if (el.nodeName === 'IMG') {
-                    // Re-apply replacement src if page JS changed it
-                    var expectedSrc = self.replacementSrcs.get(imageId);
-                    if (expectedSrc && el.src !== expectedSrc) {
-                        el.src = expectedSrc;
-                    }
-                    // Ensure srcset stays cleared
-                    if (el.hasAttribute('srcset')) {
-                        el.removeAttribute('srcset');
-                    }
-                    // Ensure opacity is visible (not hidden)
-                    el.style.setProperty('opacity', '1', 'important');
-                    // Re-disable <source> elements in parent <picture>
-                    var picture = el.closest('picture');
-                    if (picture) {
-                        var sources = picture.querySelectorAll('source[srcset]');
-                        sources.forEach(function(source) {
-                            source.removeAttribute('srcset');
-                        });
-                    }
-                } else if (el.nodeName === 'VIDEO') {
-                    // Re-clear poster if page JS restored it
+                if (el.nodeName === 'VIDEO') {
                     if (el.hasAttribute('poster')) {
                         el.removeAttribute('poster');
                     }
-                } else {
-                    // Background element — ensure background-image stays none
+                } else if (el.nodeName !== 'IMG' && el.nodeName !== 'PICTURE') {
                     var computed = window.getComputedStyle(el);
                     if (computed.backgroundImage !== 'none') {
                         el.style.setProperty('background-image', 'none', 'important');
                     }
+                }
+            });
+
+            // Re-check for blocked URLs that page JS may have re-inserted
+            var allImages = document.querySelectorAll('img:not([data-komal-replaced]):not([data-komal-scanned])');
+            allImages.forEach(function(img) {
+                var src = img.currentSrc || img.src || '';
+                if (src && self.blockedURLs.has(src)) {
+                    img.remove();
                 }
             });
         },
@@ -624,27 +627,10 @@
                     } else if (mutation.type === 'attributes') {
                         var target = mutation.target;
 
-                        // Guard replaced elements: if page JS changed src/srcset/poster, revert immediately
+                        // Guard replaced elements still in DOM (videos, bg elements)
                         if (target.hasAttribute('data-komal-replaced')) {
-                            if (mutation.attributeName === 'src' && target.nodeName === 'IMG') {
-                                var imgId = target.getAttribute('data-komal-id');
-                                var expectedSrc = self.replacementSrcs.get(imgId);
-                                if (expectedSrc && target.src !== expectedSrc) {
-                                    target.src = expectedSrc;
-                                }
-                            }
-                            if (mutation.attributeName === 'srcset') {
-                                target.removeAttribute('srcset');
-                            }
                             if (mutation.attributeName === 'poster' && target.nodeName === 'VIDEO') {
                                 target.removeAttribute('poster');
-                            }
-                            // Also re-enforce opacity on replaced images
-                            // Guard: only set if not already correct to avoid infinite MutationObserver loop
-                            if (mutation.attributeName === 'style' && target.nodeName === 'IMG') {
-                                if (target.style.getPropertyValue('opacity') !== '1' || target.style.getPropertyPriority('opacity') !== 'important') {
-                                    target.style.setProperty('opacity', '1', 'important');
-                                }
                             }
                             return; // Don't trigger rescan for replaced elements
                         }
@@ -652,12 +638,15 @@
                         // New/changed src on unscanned image — trigger rescan
                         if (target.nodeName === 'IMG' && mutation.attributeName === 'src') {
                             // Immediately hide while waiting for rescan (skip on trusted domains)
-                            if (!skipPreHide && !target.hasAttribute('data-komal-safe')) {
+                            if (!skipPreHide) {
                                 target.style.setProperty('visibility', 'hidden', 'important');
                                 target.style.setProperty('opacity', '0', 'important');
                                 target.style.setProperty('pointer-events', 'none', 'important');
                             }
+                            // Clear previous classification — new src needs fresh analysis
                             target.removeAttribute('data-komal-scanned');
+                            target.removeAttribute('data-komal-safe');
+                            target.removeAttribute('data-komal-load-listener');
                             hasNewImages = true;
                         }
                         if (target.nodeName === 'VIDEO' && mutation.attributeName === 'poster') {
@@ -708,7 +697,11 @@
         }
     };
 
-    // Initialize and expose
+    // Initialize and expose (non-writable to prevent page JS from overwriting)
     komalImageScanner.init();
-    window.komalImageScanner = komalImageScanner;
+    Object.defineProperty(window, 'komalImageScanner', {
+        value: komalImageScanner,
+        writable: false,
+        configurable: false
+    });
 })();

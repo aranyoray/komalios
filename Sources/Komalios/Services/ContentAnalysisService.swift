@@ -40,10 +40,16 @@ final class ContentAnalysisService {
             let config = MLModelConfiguration()
             config.computeUnits = .cpuAndNeuralEngine // Use Neural Engine if available
             contentSafetyModel = try ContentSafetyTextClassifier(configuration: config)
+            #if DEBUG
             print("✅ ContentSafetyTextClassifier model loaded successfully")
+            #endif
         } catch {
+            #if DEBUG
             print("⚠️ Could not load ContentSafetyTextClassifier: \(error.localizedDescription)")
+            #endif
+            #if DEBUG
             print("   Falling back to keyword-based detection")
+            #endif
         }
     }
     
@@ -57,8 +63,14 @@ final class ContentAnalysisService {
         customBlockedKeywords: [String],
         customBlockedHosts: [String],
         filterPreferences: ContentFilterPreferences,
-        searchQuery: String? = nil
+        searchQuery rawSearchQuery: String? = nil
     ) async throws -> UnifiedDecisionResponse {
+        // Sanitize search query before use
+        let searchQuery: String? = {
+            guard let q = rawSearchQuery?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !q.isEmpty else { return nil }
+            return String(q.prefix(256))
+        }()
         
         // Step 1: Check custom blocked keywords/URLs FIRST (before any analysis)
         if let customDecision = checkCustomRules(
@@ -297,16 +309,22 @@ final class ContentAnalysisService {
         do {
             let mlResult = try detectWithCoreML(text: combinedText)
             if !mlResult.isEmpty {
+                #if DEBUG
                 print("✅ Using CoreML model for category detection")
+                #endif
                 rawCategories = mlResult
             }
         } catch {
+            #if DEBUG
             print("⚠️ CoreML detection failed, using keyword fallback: \(error.localizedDescription)")
+            #endif
         }
 
         // Fallback to enhanced keyword-based detection with NaturalLanguage
         if rawCategories.isEmpty {
+            #if DEBUG
             print("📝 Using enhanced keyword detection")
+            #endif
             rawCategories = enhancedKeywordDetection(textBlocks: textBlocks, combinedText: combinedText)
         }
 
@@ -386,7 +404,9 @@ final class ContentAnalysisService {
             return processModelOutput(prediction: prediction)
             
         } catch {
+            #if DEBUG
             print("⚠️ CoreML prediction error: \(error.localizedDescription)")
+            #endif
             throw error
         }
     }
@@ -396,7 +416,9 @@ final class ContentAnalysisService {
         var categories: [MajorCategory] = []
         
         // Debug: Print all available output features
+        #if DEBUG
         print("🔍 CoreML model output features: \(prediction.featureNames)")
+        #endif
         
         // The output structure depends on how the model was trained
         // We'll try common output formats
@@ -404,7 +426,9 @@ final class ContentAnalysisService {
         // Option 1: Single label output (most common for text classification)
         // Try "label" first
         if let labelFeature = prediction.featureValue(for: "label")?.stringValue {
+            #if DEBUG
             print("📋 Found label: \(labelFeature)")
+            #endif
             if let categoryType = mapLabelToCategoryType(label: labelFeature) {
                 let probability = prediction.featureValue(for: "labelProbability")?.doubleValue ??
                                  prediction.featureValue(for: "probability")?.doubleValue ?? 0.3
@@ -414,13 +438,17 @@ final class ContentAnalysisService {
                     probability: probability,
                     source: .nlp
                 ))
+                #if DEBUG
                 print("✅ Mapped to category: \(categoryType.rawValue) (prob: \(probability))")
+                #endif
             }
         }
         
         // Option 2: Dictionary output with multiple labels and probabilities
         if let labelProbs = prediction.featureValue(for: "labelProbability")?.dictionaryValue as? [String: Double] {
+            #if DEBUG
             print("📋 Found labelProbability dictionary with \(labelProbs.count) labels")
+            #endif
             for (label, prob) in labelProbs {
                 if let categoryType = mapLabelToCategoryType(label: label), prob > 0.3 {
                     categories.append(MajorCategory(
@@ -428,14 +456,18 @@ final class ContentAnalysisService {
                         probability: prob,
                         source: .nlp
                     ))
+                    #if DEBUG
                     print("✅ Mapped \(label) to \(categoryType.rawValue) (prob: \(prob))")
+                    #endif
                 }
             }
         }
         
         // Option 3: Check for probability dictionary (common in Create ML text classifiers)
         if let probDict = prediction.featureValue(for: "probability")?.dictionaryValue as? [String: Double] {
+            #if DEBUG
             print("📋 Found probability dictionary with \(probDict.count) labels")
+            #endif
             for (label, prob) in probDict where prob > 0.3 {
                 if let categoryType = mapLabelToCategoryType(label: label) {
                     categories.append(MajorCategory(
@@ -443,7 +475,9 @@ final class ContentAnalysisService {
                         probability: prob,
                         source: .nlp
                     ))
+                    #if DEBUG
                     print("✅ Mapped \(label) to \(categoryType.rawValue) (prob: \(prob))")
+                    #endif
                 }
             }
         }
@@ -453,7 +487,9 @@ final class ContentAnalysisService {
         for outputName in possibleOutputs {
             if let value = prediction.featureValue(for: outputName) {
                 if !value.stringValue.isEmpty {
+                    #if DEBUG
                     print("📋 Found \(outputName): \(value.stringValue)")
+                    #endif
                     if let categoryType = mapLabelToCategoryType(label: value.stringValue) {
                         let prob = prediction.featureValue(for: "\(outputName)Probability")?.doubleValue ??
                                    prediction.featureValue(for: "probability")?.doubleValue ?? 0.7
@@ -464,7 +500,9 @@ final class ContentAnalysisService {
                         ))
                     }
                 } else if let dictValue = value.dictionaryValue as? [String: Double] {
+                    #if DEBUG
                     print("📋 Found \(outputName) dictionary with \(dictValue.count) entries")
+                    #endif
                     for (label, prob) in dictValue where prob > 0.3 {
                         if let categoryType = mapLabelToCategoryType(label: label) {
                             categories.append(MajorCategory(
@@ -480,14 +518,20 @@ final class ContentAnalysisService {
         
         // If no categories found, print debug info
         if categories.isEmpty {
+            #if DEBUG
             print("⚠️ No categories found in model output. Available features:")
+            #endif
             for featureName in prediction.featureNames {
                 if let value = prediction.featureValue(for: featureName) {
+                    #if DEBUG
                     print("   \(featureName): \(value.type) = \(value)")
+                    #endif
                 }
             }
         } else {
+            #if DEBUG
             print("✅ CoreML model detected \(categories.count) categories")
+            #endif
         }
         
         return categories.sorted { $0.probability > $1.probability }
@@ -925,7 +969,9 @@ final class ContentAnalysisService {
                     ))
                     maxConfidence = max(maxConfidence, probability)
                     
+                    #if DEBUG
                     print("🛡️ Vision analysis: \(subcategoryName) (confidence: \(Int(probability * 100))%)")
+                    #endif
                 }
             }
         }
@@ -1325,7 +1371,9 @@ final class ContentAnalysisService {
         // 0. Always use cloud if NO on-device source produced results
         //    (e.g., search queries where htmlText is nil — CoreML on empty text is noise)
         if !nlp.used && !vision.used && !audio.used && !links.used {
+            #if DEBUG
             print("☁️ Cloud fallback: no on-device source produced results")
+            #endif
             return true
         }
 

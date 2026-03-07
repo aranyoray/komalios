@@ -61,7 +61,7 @@ struct HistoryBatchDetailView: View {
                                         .foregroundColor(KomalColors.textPrimary)
                                 }
 
-                                Text(batch.timeRange)
+                                Text(Self.generalizedTimeOfDay(from: batch.events.first?.timestamp))
                                     .font(.system(size: 13, weight: .medium, design: .rounded))
                                     .foregroundColor(KomalColors.textSecondary)
 
@@ -237,6 +237,16 @@ struct HistoryBatchDetailView: View {
         return Image(systemName: icon)
             .font(.system(size: 18))
             .foregroundColor(color)
+    }
+
+    static func generalizedTimeOfDay(from date: Date?) -> String {
+        guard let date = date else { return "" }
+        let hour = Calendar.current.component(.hour, from: date)
+        switch hour {
+        case 5..<12: return "Morning"
+        case 12..<17: return "Afternoon"
+        default: return "Evening"
+        }
     }
 }
 

@@ -67,6 +67,7 @@ struct MindfulBreakView: View {
     }
 
     private func startTimer() {
+        countdownTimer?.invalidate()
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
             Task { @MainActor in
                 if timeRemaining > 0 {

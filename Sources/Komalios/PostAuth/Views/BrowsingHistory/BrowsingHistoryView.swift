@@ -207,7 +207,7 @@ struct TopicBoxCard: View {
                         Image(systemName: "clock")
                             .font(.system(size: 11))
                             .foregroundColor(KomalColors.textSecondary.opacity(0.7))
-                        Text(batch.timeRange)
+                        Text(HistoryBatchDetailView.generalizedTimeOfDay(from: batch.events.first?.timestamp))
                             .font(.system(size: 12, weight: .medium, design: .rounded))
                             .foregroundColor(KomalColors.textSecondary.opacity(0.7))
                             .lineLimit(1)
@@ -235,7 +235,8 @@ struct TopicBoxCard: View {
             .prefix(3)
             .map { event in
                 let domain = event.domain
-                let faviconURL = URL(string: "https://www.google.com/s2/favicons?domain=\(domain)&sz=32")
+                let safeDomain = domain.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? domain
+                let faviconURL = URL(string: "https://\(safeDomain)/favicon.ico")
                 return PreviewItem(title: event.pageTitle ?? "", faviconURL: faviconURL)
             }
     }

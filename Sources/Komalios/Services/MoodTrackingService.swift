@@ -41,18 +41,24 @@ final class MoodTrackingService: ObservableObject {
             let data = try Data(contentsOf: fileURL)
             moodData = try JSONDecoder().decode(MoodEntriesData.self, from: data)
             pruneOldEntries()
+            #if DEBUG
             print("🎭 Loaded \(moodData.entries.count) mood entries")
+            #endif
         } catch {
+            #if DEBUG
             print("🎭 Error loading mood data: \(error)")
+            #endif
         }
     }
 
     private func saveData() {
         do {
             let data = try JSONEncoder().encode(moodData)
-            try data.write(to: fileURL)
+            try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
         } catch {
+            #if DEBUG
             print("🎭 Error saving mood data: \(error)")
+            #endif
         }
     }
 
@@ -72,7 +78,9 @@ final class MoodTrackingService: ObservableObject {
             }
         }
 
-        print("🎭 Logged mood: \(entry.emotion) (\(entry.context.rawValue))")
+        #if DEBUG
+        print("🎭 Logged mood: \(entry.emotion)")
+        #endif
     }
 
     /// Get mood entries within a date range
@@ -87,11 +95,11 @@ final class MoodTrackingService: ObservableObject {
     }
 
     /// Get the dominant mood for each of the last N days
-    func getMoodTrend(days: Int) -> [(date: String, emotion: String, emoji: String)] {
+    func getMoodTrend(days: Int) -> [(date: String, emotion: String)] {
         let calendar = Calendar.current
         let formatter = Self.dayFormatter
 
-        var trend: [(date: String, emotion: String, emoji: String)] = []
+        var trend: [(date: String, emotion: String)] = []
         let entries = getMoodEntries(days: days)
 
         // Group by day
@@ -106,8 +114,7 @@ final class MoodTrackingService: ObservableObject {
                 // Find dominant emotion (most frequent)
                 let counts = Dictionary(grouping: dayEntries, by: { $0.emotion }).mapValues { $0.count }
                 if let dominant = counts.max(by: { $0.value < $1.value }) {
-                    let emoji = dayEntries.first(where: { $0.emotion == dominant.key })?.emoji ?? ""
-                    trend.append((date: dateStr, emotion: dominant.key, emoji: emoji))
+                    trend.append((date: dateStr, emotion: dominant.key))
                 }
             }
         }
@@ -167,7 +174,9 @@ final class MoodTrackingService: ObservableObject {
         pruneOldEntries()
         recentEntries = Array(moodData.entries.suffix(7))
         saveData()
+        #if DEBUG
         print("🎭 Merged \(newEntries.count) mood entries from cloud")
+        #endif
     }
 
     // MARK: - Pruning
@@ -179,7 +188,9 @@ final class MoodTrackingService: ObservableObject {
         let removed = before - moodData.entries.count
         if removed > 0 {
             saveData()
+            #if DEBUG
             print("🎭 Pruned \(removed) old mood entries")
+            #endif
         }
     }
 }

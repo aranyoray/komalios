@@ -2,15 +2,9 @@
 import SwiftUI
 
 struct RootView: View {
-    enum ActiveAnchor: Identifiable {
-        case morning, evening
-        var id: Self { self }
-    }
-
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var authViewModel: AuthViewModel
     @State private var selectedTab: NavigationTab = .browser
-    @State private var activeAnchor: ActiveAnchor? = nil
     @State private var showReconnectionFlow = false
     @State private var contextPrompt: ContextualPrompt? = nil
     @State private var showGrowthJourney = false
@@ -33,6 +27,7 @@ struct RootView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .animation(.none, value: selectedTab)
 
             // Floating menu — only occupies tab bar area at the bottom
             FloatingMenuView(selectedTab: $selectedTab)
@@ -52,15 +47,20 @@ struct RootView: View {
         }
         .modifier(SelectedTabChangeHandler(selectedTab: $selectedTab))
         .onAppear {
-            checkDailyAnchors()
             checkReconnection()
             checkReturnFromAbsence()
 
-            // Guided Access reminder
+            // Guided Access reminder — show every launch when in child mode unless dismissed
+            // iOS doesn't allow apps to programmatically start Guided Access
+            // (requires restricted entitlement), so we persistently guide parents
             if !UIAccessibility.isGuidedAccessEnabled,
-               !UserDefaults.standard.bool(forKey: "komal.guidedAccessReminderDismissed") {
+               appState.accountMode == .child,
+               KeychainService.loadSecureData(forKey: "komal.guidedAccessDismissed") == nil {
                 showGuidedAccessReminder = true
             }
+
+            // Update intent vector on app open
+            IntentInferenceService.shared.updateIntent()
 
             // App open trigger
             evaluatePrompt(trigger: .appOpen)
@@ -68,16 +68,6 @@ struct RootView: View {
         .onChange(of: selectedTab) {
             // Feed tab switch into contextual prompt engine
             evaluatePrompt(trigger: .tabSwitch, currentTab: selectedTab)
-        }
-        .sheet(item: $activeAnchor) { anchor in
-            switch anchor {
-            case .morning:
-                MorningAnchorView()
-                    .environmentObject(appState)
-            case .evening:
-                EveningAnchorView()
-                    .environmentObject(appState)
-            }
         }
         .sheet(isPresented: $showGrowthJourney) {
             GrowthJourneyView()
@@ -88,6 +78,7 @@ struct RootView: View {
         }
         .sheet(isPresented: $showGuidedAccessReminder) {
             GuidedAccessReminderSheet(isPresented: $showGuidedAccessReminder)
+                .interactiveDismissDisabled()
         }
         // B29 fix: When ReconnectionView (or any sheet) requests a tab switch via appState,
         // apply it here where selectedTab is owned.
@@ -126,37 +117,6 @@ struct RootView: View {
         }
     }
 
-    // MARK: - Daily Anchor Checks
-
-    private static let anchorDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy-MM-dd"
-        return f
-    }()
-
-    private func checkDailyAnchors() {
-        let hour = Calendar.current.component(.hour, from: Date())
-        let todayStr = RootView.anchorDateFormatter.string(from: Date())
-
-        // Morning anchor: before noon, if not completed today
-        if hour < 12 && appState.retentionState.morningAnchorEnabled {
-            if appState.retentionState.lastMorningAnchor != todayStr {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    activeAnchor = .morning
-                }
-            }
-        }
-
-        // Evening anchor: after 5 PM, if not completed today (only if morning not also pending)
-        if hour >= 17 && appState.retentionState.eveningAnchorEnabled {
-            if appState.retentionState.lastEveningAnchor != todayStr && activeAnchor == nil {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    activeAnchor = .evening
-                }
-            }
-        }
-    }
-
     // MARK: - Reconnection Check
 
     private func checkReconnection() {
@@ -192,31 +152,60 @@ struct RootView: View {
 struct GuidedAccessReminderSheet: View {
     @Binding var isPresented: Bool
     @State private var dontRemindAgain = false
+    @State private var guidedAccessEnabled = UIAccessibility.isGuidedAccessEnabled
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             Spacer().frame(height: 12)
 
             ZStack {
                 Circle()
-                    .fill(KomalColors.lavenderPurple.opacity(0.15))
+                    .fill(guidedAccessEnabled ? Color.green.opacity(0.15) : KomalColors.lavenderPurple.opacity(0.15))
                     .frame(width: 80, height: 80)
 
-                Image(systemName: "lock.shield.fill")
+                Image(systemName: guidedAccessEnabled ? "checkmark.shield.fill" : "lock.shield.fill")
                     .font(.system(size: 36))
-                    .foregroundColor(KomalColors.lavenderPurple)
+                    .foregroundColor(guidedAccessEnabled ? .green : KomalColors.lavenderPurple)
             }
 
             VStack(spacing: 8) {
-                Text("guided_access.reminder.title".localized)
+                Text((guidedAccessEnabled ? "guided_access.reminder.enabled_title" : "guided_access.reminder.title").localized)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
 
-                Text("guided_access.reminder.explanation".localized)
+                Text((guidedAccessEnabled ? "guided_access.reminder.enabled_explanation" : "guided_access.reminder.explanation").localized)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(KomalColors.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
+            }
+
+            if !guidedAccessEnabled {
+                // Detailed steps
+                VStack(alignment: .leading, spacing: 10) {
+                    guidedAccessStep(number: 1, text: "guided_access.reminder.step1".localized)
+                    guidedAccessStep(number: 2, text: "guided_access.reminder.step2".localized)
+                    guidedAccessStep(number: 3, text: "guided_access.reminder.step3".localized)
+                }
+                .padding(.horizontal, 24)
+
+                // Open Accessibility Settings
+                Button(action: {
+                    openAccessibilitySettings()
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "accessibility")
+                            .font(.system(size: 18, weight: .semibold))
+                        Text("guided_access.reminder.open_accessibility".localized)
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(KomalColors.lavenderPurple)
+                    .cornerRadius(14)
+                }
+                .padding(.horizontal, 24)
             }
 
             Toggle(isOn: $dontRemindAgain) {
@@ -229,23 +218,61 @@ struct GuidedAccessReminderSheet: View {
 
             Button(action: {
                 if dontRemindAgain {
-                    UserDefaults.standard.set(true, forKey: "komal.guidedAccessReminderDismissed")
+                    KeychainService.saveSecureData(Data([1]), forKey: "komal.guidedAccessDismissed")
                 }
                 isPresented = false
             }) {
-                Text("guided_access.reminder.got_it".localized)
+                Text((guidedAccessEnabled ? "guided_access.reminder.done" : "guided_access.reminder.got_it").localized)
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(guidedAccessEnabled ? .white : KomalColors.lavenderPurple)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(KomalColors.lavenderPurple)
+                    .background(guidedAccessEnabled ? Color.green : KomalColors.lavenderPurple.opacity(0.1))
                     .cornerRadius(14)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(guidedAccessEnabled ? Color.clear : KomalColors.lavenderPurple, lineWidth: 1)
+                    )
             }
             .padding(.horizontal, 24)
 
             Spacer()
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.large])
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            guidedAccessEnabled = UIAccessibility.isGuidedAccessEnabled
+        }
+    }
+
+    private func openAccessibilitySettings() {
+        // Try direct Accessibility deep link first, fall back to general Settings
+        if let accessibilityURL = URL(string: "App-Prefs:root=ACCESSIBILITY") {
+            UIApplication.shared.open(accessibilityURL, options: [:]) { success in
+                if !success {
+                    if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(settingsURL)
+                    }
+                }
+            }
+        } else if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsURL)
+        }
+    }
+
+    private func guidedAccessStep(number: Int, text: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(number)")
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .frame(width: 24, height: 24)
+                .background(KomalColors.lavenderPurple)
+                .clipShape(Circle())
+
+            Text(text)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(KomalColors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

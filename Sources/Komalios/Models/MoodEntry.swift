@@ -14,15 +14,18 @@ struct MoodEntry: Codable, Identifiable {
     var characterId: Int?
 
     enum MoodContext: String, Codable {
-        case morningAnchor
-        case eveningAnchor
-        case selSession
         case chatCheckIn
         case blockedContent
         case spontaneous
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let raw = try container.decode(String.self)
+            self = MoodContext(rawValue: raw) ?? .spontaneous
+        }
     }
 
-    init(id: UUID = UUID(), emotion: String, emoji: String, intensity: Int, timestamp: Date = Date(), context: MoodContext, note: String? = nil, characterId: Int? = nil) {
+    init(id: UUID = UUID(), emotion: String, emoji: String = "", intensity: Int = 0, timestamp: Date = Date(), context: MoodContext, note: String? = nil, characterId: Int? = nil) {
         self.id = id
         self.emotion = emotion
         self.emoji = emoji
@@ -31,6 +34,22 @@ struct MoodEntry: Codable, Identifiable {
         self.context = context
         self.note = note
         self.characterId = characterId
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, emotion, emoji, intensity, timestamp, context, note, characterId
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        emotion = try container.decode(String.self, forKey: .emotion)
+        emoji = try container.decodeIfPresent(String.self, forKey: .emoji) ?? ""
+        intensity = try container.decodeIfPresent(Int.self, forKey: .intensity) ?? 0
+        timestamp = try container.decode(Date.self, forKey: .timestamp)
+        context = try container.decode(MoodContext.self, forKey: .context)
+        note = try container.decodeIfPresent(String.self, forKey: .note)
+        characterId = try container.decodeIfPresent(Int.self, forKey: .characterId)
     }
 }
 

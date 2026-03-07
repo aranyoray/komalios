@@ -48,12 +48,12 @@ actor AppHistoryService {
         let deviceId = "unknown"
         #endif
 
+        // COPPA: Do NOT include childName or userEmail — use only uid for identification.
+        // Browsing URLs + child PII in the same document is a COPPA violation.
         var data: [String: Any] = ["url": url, "action": action, "timestamp": Timestamp(), "uid": user.uid, "deviceId": deviceId, "timezone": TimeZone.current.identifier]
-        if let v = user.email { data["userEmail"] = v }
         if let v = searchQuery { data["searchQuery"] = v }
         if let v = category { data["category"] = v }
         if let v = subcategory { data["subcategory"] = v }
-        if let v = childName { data["childName"] = v }
         if let v = ageGroup { data["ageGroup"] = v }
         if let v = emojiResponse { data["emojiResponse"] = v }
         if let v = pageTitle { data["pageTitle"] = v }

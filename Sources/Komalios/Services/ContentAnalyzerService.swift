@@ -22,10 +22,9 @@ final class ContentAnalyzerService: ObservableObject {
     // MARK: - Private Properties
     private var allPageSummaries: [PageContentSummary] = []
     private let analysisQueue = DispatchQueue(label: "com.komalios.contentanalyzer", qos: .userInitiated)
-    /// Serial queue that serializes all mutations to `currentPageSummary`, preventing
-    /// races between the analysisQueue callback (which posts back to main) and direct
-    /// call sites such as startPageTracking / finalizeCurrentPage.
-    private let summaryQueue = DispatchQueue(label: "com.komalios.contentanalyzer.summary", qos: .userInitiated)
+    // NOTE: summaryQueue was removed — this class is @MainActor, so all public methods
+    // are already serialized on the main thread. The double-bounce (summaryQueue → main)
+    // was redundant and could cause re-ordering of mutations.
     
     // Keyword categories for detection
     private let keywordCategories: [String: [String]] = [
@@ -95,31 +94,18 @@ final class ContentAnalyzerService: ObservableObject {
 
     /// Start tracking a new page
     func startPageTracking(url: URL, title: String?) {
-        // Serialize through summaryQueue to prevent races with processViewportSnapshot callbacks
-        summaryQueue.async { [weak self] in
-            guard let self = self else { return }
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                // Finalize previous page summary
-                self.finalizeCurrentPageInternal()
-                // Start new summary
-                self.currentPageSummary = PageContentSummary(
-                    pageURL: url,
-                    pageTitle: title
-                )
-            }
-        }
+        // Finalize previous page summary
+        finalizeCurrentPageInternal()
+        // Start new summary
+        currentPageSummary = PageContentSummary(
+            pageURL: url,
+            pageTitle: title
+        )
     }
 
     /// Finalize current page tracking
     func finalizeCurrentPage() {
-        summaryQueue.async { [weak self] in
-            guard let self = self else { return }
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.finalizeCurrentPageInternal()
-            }
-        }
+        finalizeCurrentPageInternal()
     }
 
     /// Internal (must be called on the main thread, within summaryQueue serialization)
@@ -337,9 +323,11 @@ final class ContentAnalyzerService: ObservableObject {
     private func saveSummaries() {
         do {
             let data = try JSONEncoder().encode(allPageSummaries)
-            try data.write(to: summariesFileURL)
+            try data.write(to: summariesFileURL, options: [.atomic, .completeFileProtection])
         } catch {
+            #if DEBUG
             print("🔍 Error saving content summaries: \(error)")
+            #endif
         }
     }
     
@@ -349,9 +337,13 @@ final class ContentAnalyzerService: ObservableObject {
         do {
             let data = try Data(contentsOf: summariesFileURL)
             allPageSummaries = try JSONDecoder().decode([PageContentSummary].self, from: data)
+            #if DEBUG
             print("🔍 Loaded \(allPageSummaries.count) content summaries")
+            #endif
         } catch {
+            #if DEBUG
             print("🔍 Error loading content summaries: \(error)")
+            #endif
         }
     }
     

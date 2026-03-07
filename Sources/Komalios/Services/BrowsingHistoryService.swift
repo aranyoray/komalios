@@ -50,7 +50,9 @@ final class BrowsingHistoryService: ObservableObject {
         }
         
         currentSession = BrowsingSession()
+        #if DEBUG
         print("📊 Started new browsing session: \(currentSession?.id.uuidString ?? "nil")")
+        #endif
     }
     
     /// End the current session and save
@@ -82,9 +84,13 @@ final class BrowsingHistoryService: ObservableObject {
 
             // Log session summary
             let imageStats = session.totalImagesFiltered > 0 ? ", \(session.totalImagesFiltered) images filtered" : ""
+            #if DEBUG
             print("📊 Ended session with \(session.events.count) events, duration: \(session.durationFormatted)\(imageStats)")
+            #endif
         } else {
+            #if DEBUG
             print("📊 Ended empty session, not saving")
+            #endif
         }
         
         // Reset navigation tracking
@@ -141,7 +147,9 @@ final class BrowsingHistoryService: ObservableObject {
         // Update insights to include new event
         updateInsights()
         
-        print("📊 Logged event: \(type.displayName) - \(url.host ?? url.absoluteString) \(category.map { "[\($0)]" } ?? "") [depth: \(currentNavigationDepth)]")
+        #if DEBUG
+        print("📊 Logged event: \(type.displayName) - \(url.host ?? url.absoluteString) [depth: \(currentNavigationDepth)]")
+        #endif
     }
     
     /// Log a blocked URL event with optional subcategory
@@ -247,7 +255,9 @@ final class BrowsingHistoryService: ObservableObject {
         updateInsights()
         updateEngagementInsights()
         
+        #if DEBUG
         print("🛡️ Logged image filter: \(event.detectedCategory.displayName) - \(event.action.displayName)")
+        #endif
     }
     
     /// Log image filtering stats for current page
@@ -477,7 +487,9 @@ final class BrowsingHistoryService: ObservableObject {
         currentNavigationDepth = 0
         lastPageURL = nil
         saveSessions()
+        #if DEBUG
         print("📊 Cleared all browsing history")
+        #endif
     }
     
     // MARK: - Cloud Sync
@@ -497,7 +509,9 @@ final class BrowsingHistoryService: ObservableObject {
         saveSessions()
         updateInsights()
         updateEngagementInsights()
+        #if DEBUG
         print("📊 Merged \(newSessions.count) cloud browsing sessions")
+        #endif
     }
 
     // MARK: - Persistence
@@ -512,25 +526,35 @@ final class BrowsingHistoryService: ObservableObject {
     private func saveSessions() {
         do {
             let data = try JSONEncoder().encode(allSessions)
-            try data.write(to: sessionsFileURL, options: .completeFileProtection)
+            try data.write(to: sessionsFileURL, options: [.atomic, .completeFileProtection])
+            #if DEBUG
             print("📊 Saved \(allSessions.count) sessions to disk")
+            #endif
         } catch {
+            #if DEBUG
             print("📊 Error saving sessions: \(error)")
+            #endif
         }
     }
     
     private func loadSessions() {
         guard fileManager.fileExists(atPath: sessionsFileURL.path) else {
+            #if DEBUG
             print("📊 No existing sessions file found")
+            #endif
             return
         }
         
         do {
             let data = try Data(contentsOf: sessionsFileURL)
             allSessions = try JSONDecoder().decode([BrowsingSession].self, from: data)
+            #if DEBUG
             print("📊 Loaded \(allSessions.count) sessions from disk")
+            #endif
         } catch {
+            #if DEBUG
             print("📊 Error loading sessions: \(error)")
+            #endif
         }
     }
     

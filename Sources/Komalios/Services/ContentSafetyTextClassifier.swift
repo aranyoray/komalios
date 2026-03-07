@@ -36,7 +36,9 @@ final class ContentSafetyTextClassifier {
     init(configuration: MLModelConfiguration = MLModelConfiguration()) throws {
         // In production, this would load the actual .mlmodel file
         // For now, we use keyword-based fallback
+        #if DEBUG
         print("⚠️ ContentSafetyTextClassifier: Using keyword-based fallback (no CoreML model)")
+        #endif
     }
 
     func prediction(input: ContentSafetyTextClassifierInput) throws -> ContentSafetyTextClassifierOutput {

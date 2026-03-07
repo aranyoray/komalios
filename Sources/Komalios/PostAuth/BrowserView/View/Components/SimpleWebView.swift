@@ -69,10 +69,14 @@ private func applyWKWebViewKeyboardFix() {
     wkKeyboardSwizzleApplied = true
 
     guard let WKContentView: AnyClass = NSClassFromString("WKContentView") else {
+        #if DEBUG
         print("⌨️ KEYBOARD-FIX: WKContentView class NOT found")
+        #endif
         return
     }
+    #if DEBUG
     print("⌨️ KEYBOARD-FIX: WKContentView class found")
+    #endif
 
     // Try selectors from newest to oldest
     let selectors = [
@@ -85,10 +89,14 @@ private func applyWKWebViewKeyboardFix() {
     for selName in selectors {
         let sel = sel_getUid(selName)
         guard let method = class_getInstanceMethod(WKContentView, sel) else {
+            #if DEBUG
             print("⌨️ KEYBOARD-FIX: Selector NOT found: \(selName)")
+            #endif
             continue
         }
+        #if DEBUG
         print("⌨️ KEYBOARD-FIX: ✅ Matched selector: \(selName)")
+        #endif
 
         typealias Fn = @convention(c) (Any, Selector, UnsafeRawPointer, Bool, Bool, Bool, Any?) -> Void
         let originalImp = method_getImplementation(method)
@@ -100,11 +108,15 @@ private func applyWKWebViewKeyboardFix() {
         }
 
         method_setImplementation(method, imp_implementationWithBlock(block))
+        #if DEBUG
         print("⌨️ KEYBOARD-FIX: Swizzle applied successfully")
+        #endif
         return
     }
 
+    #if DEBUG
     print("⌨️ KEYBOARD-FIX: ⚠️ No matching selector found for this iOS version")
+    #endif
 }
 
 // MARK: - WebView ViewController
@@ -143,6 +155,7 @@ struct SimpleWebView: UIViewControllerRepresentable {
     @Binding var loading: Bool
     var contentFilterPreferences: ContentFilterPreferences
     var parentSettings: ParentSettings
+    var ageGroup: AgeGroup = .under10
     var onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?
     var onPageFinished: ((URL, String?) -> Void)?
     var onSearchNeedsScan: ((String, URL) -> Void)?
@@ -153,6 +166,7 @@ struct SimpleWebView: UIViewControllerRepresentable {
             loading: $loading,
             contentFilterPreferences: contentFilterPreferences,
             parentSettings: parentSettings,
+            ageGroup: ageGroup,
             onInappropriateContent: onInappropriateContent,
             onPageFinished: onPageFinished,
             onSearchNeedsScan: onSearchNeedsScan
@@ -162,6 +176,8 @@ struct SimpleWebView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> SimpleWebViewController {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
+        // Require user gesture to play audio/video — prevents autoplay of unscanned media
+        config.mediaTypesRequiringUserActionForPlayback = .all
         config.defaultWebpagePreferences.preferredContentMode = .mobile
 
         EngagementTracker.shared.configureMessageHandlers(
@@ -174,6 +190,21 @@ struct SimpleWebView: UIViewControllerRepresentable {
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsLinkPreview = false
         webView.scrollView.keyboardDismissMode = .none
+
+        // Inject YouTube restricted mode cookie
+        // Do NOT set HttpOnly — the JS enforcer in youtube_scanner.js needs
+        // to read this cookie via document.cookie to maintain restricted mode.
+        let ytCookie = HTTPCookie(properties: [
+            .domain: ".youtube.com",
+            .path: "/",
+            .name: "PREF",
+            .value: "f2=8000000",
+            .secure: "TRUE",
+            .expires: Date.distantFuture
+        ])
+        if let ytCookie {
+            webView.configuration.websiteDataStore.httpCookieStore.setCookie(ytCookie)
+        }
 
         let vc = SimpleWebViewController()
         vc.webView = webView
@@ -198,7 +229,8 @@ struct SimpleWebView: UIViewControllerRepresentable {
         context.coordinator.onSearchNeedsScan = onSearchNeedsScan
         context.coordinator.updatePreferences(
             contentFilter: contentFilterPreferences,
-            parent: parentSettings
+            parent: parentSettings,
+            age: ageGroup
         )
 
         // Only reload when URL genuinely changed (both checks prevent loops)
@@ -226,16 +258,19 @@ struct SimpleWebView: UIViewControllerRepresentable {
 
         private(set) var contentFilterPreferences: ContentFilterPreferences
         private(set) var parentSettings: ParentSettings
+        private(set) var ageGroup: AgeGroup
 
-        func updatePreferences(contentFilter: ContentFilterPreferences, parent: ParentSettings) {
+        func updatePreferences(contentFilter: ContentFilterPreferences, parent: ParentSettings, age: AgeGroup) {
             contentFilterPreferences = contentFilter
             parentSettings = parent
+            ageGroup = age
         }
 
         init(
             loading: Binding<Bool>,
             contentFilterPreferences: ContentFilterPreferences,
             parentSettings: ParentSettings,
+            ageGroup: AgeGroup = .under10,
             onInappropriateContent: ((KomalInterventionTrigger, URL) -> Void)?,
             onPageFinished: ((URL, String?) -> Void)?,
             onSearchNeedsScan: ((String, URL) -> Void)?
@@ -243,6 +278,7 @@ struct SimpleWebView: UIViewControllerRepresentable {
             _loading = loading
             self.contentFilterPreferences = contentFilterPreferences
             self.parentSettings = parentSettings
+            self.ageGroup = ageGroup
             self.onInappropriateContent = onInappropriateContent
             self.onPageFinished = onPageFinished
             self.onSearchNeedsScan = onSearchNeedsScan
@@ -268,6 +304,9 @@ struct SimpleWebView: UIViewControllerRepresentable {
             case "komalViewport":
                 handleViewportMessage(message.body)
 
+            case "komalYouTubeScanner":
+                handleYouTubeScannerMessage(message.body)
+
             default:
                 break
             }
@@ -282,7 +321,9 @@ struct SimpleWebView: UIViewControllerRepresentable {
             // DEBUG: Handle tap diagnostic messages
             if messageType == "tapdiag" {
                 if let msg = data["data"] as? String {
+                    #if DEBUG
                     print("🔎 TAP-DIAG: \(msg)")
+                    #endif
                 }
                 return
             }
@@ -299,7 +340,9 @@ struct SimpleWebView: UIViewControllerRepresentable {
             // 1. JS-flagged keywords (from viewport_tracker.js word-boundary regex)
             if let flaggedKeywords = snapshot["flaggedKeywords"] as? [String],
                let first = flaggedKeywords.first {
+                #if DEBUG
                 print("🛡️ VIEWPORT FLAGGED CONTENT: \(flaggedKeywords)")
+                #endif
                 historyService.logBlocked(url: pageURL, category: "Content Filter", reason: "Viewport content: \(first)")
                 DispatchQueue.main.async { [weak self] in
                     self?.onInappropriateContent?(.pageContent(first), pageURL)
@@ -312,7 +355,9 @@ struct SimpleWebView: UIViewControllerRepresentable {
                 for item in visibleContent {
                     guard let text = item["text"] as? String, !text.isEmpty else { continue }
                     if let flagged = BrowserState.checkForInappropriateContent(text, isSearchQuery: false) {
+                        #if DEBUG
                         print("🛡️ VIEWPORT TEXT FLAGGED: \(flagged)")
+                        #endif
                         historyService.logBlocked(url: pageURL, category: "Content Filter", reason: "Page content: \(flagged)")
                         DispatchQueue.main.async { [weak self] in
                             self?.onInappropriateContent?(.pageContent(flagged), pageURL)
@@ -325,10 +370,86 @@ struct SimpleWebView: UIViewControllerRepresentable {
             // 3. Primary content
             if let primary = snapshot["primaryContent"] as? String, !primary.isEmpty {
                 if let flagged = BrowserState.checkForInappropriateContent(primary, isSearchQuery: false) {
+                    #if DEBUG
                     print("🛡️ PRIMARY CONTENT FLAGGED: \(flagged)")
+                    #endif
                     historyService.logBlocked(url: pageURL, category: "Content Filter", reason: "Primary content: \(flagged)")
                     DispatchQueue.main.async { [weak self] in
                         self?.onInappropriateContent?(.pageContent(flagged), pageURL)
+                    }
+                }
+            }
+        }
+
+        // MARK: YouTube Video Scanning
+
+        private func handleYouTubeScannerMessage(_ body: Any) {
+            guard let data = body as? [String: Any],
+                  let messageType = data["type"] as? String,
+                  messageType == "videoDetected" else { return }
+
+            guard let videoId = data["videoId"] as? String, !videoId.isEmpty,
+                  videoId.range(of: "^[a-zA-Z0-9_-]{6,20}$", options: .regularExpression) != nil else { return }
+
+            // Truncate all untrusted string inputs to prevent memory pressure
+            let title = String((data["title"] as? String ?? "").prefix(500))
+            let description = String((data["description"] as? String ?? "").prefix(5000))
+            let channelName = String((data["channelName"] as? String ?? "").prefix(200))
+            let thumbnailUrl = String((data["thumbnailUrl"] as? String ?? "").prefix(500))
+            let pageUrl = String((data["pageUrl"] as? String ?? "").prefix(500))
+
+            #if DEBUG
+            print("🎬 YouTube video detected: \(videoId) - \(title)")
+            #endif
+
+            let metadata = YouTubeContentAnalyzer.VideoMetadata(
+                videoId: videoId,
+                title: title,
+                description: description,
+                channelName: channelName,
+                thumbnailUrl: thumbnailUrl
+            )
+
+            let currentAgeGroup = ageGroup
+            let currentParentSettings = parentSettings
+            let currentFilterPreferences = contentFilterPreferences
+
+            Task { [weak self] in
+                guard let self else { return }
+
+                let decision = await YouTubeContentAnalyzer.shared.analyzeVideo(
+                    metadata,
+                    ageGroup: currentAgeGroup,
+                    parentSettings: currentParentSettings,
+                    filterPreferences: currentFilterPreferences
+                )
+
+                await MainActor.run {
+                    let nonce = self.escapeJSString(EngagementTracker.shared.youtubeNonce)
+
+                    switch decision {
+                    case .allow:
+                        #if DEBUG
+                        print("✅ YouTube video allowed: \(videoId)")
+                        #endif
+                        let js = "window.komalYouTubeScanner && window.komalYouTubeScanner.allowVideo('\(self.escapeJSString(videoId))', '\(nonce)');"
+                        self.webView?.evaluateJavaScript(js)
+
+                    case .block(let reason, let category):
+                        #if DEBUG
+                        print("🛡️ YouTube video blocked: \(videoId) - \(reason)")
+                        #endif
+                        let safeReason = self.escapeJSString(reason)
+                        let js = "window.komalYouTubeScanner && window.komalYouTubeScanner.blockVideo('\(self.escapeJSString(videoId))', '\(safeReason)', '\(nonce)');"
+                        self.webView?.evaluateJavaScript(js)
+
+                        // Log the block (but don't trigger onInappropriateContent — the JS
+                        // scanner handles the UX by showing a blocked overlay and navigating
+                        // back within YouTube. Calling onInappropriateContent would destroy
+                        // the WebView and conflict with the JS-side history.back().)
+                        if let videoURL = URL(string: pageUrl.isEmpty ? "https://www.youtube.com/watch?v=\(videoId)" : pageUrl) {
+                            self.historyService.logBlocked(url: videoURL, category: category, reason: reason)
+                        }
                     }
                 }
             }
@@ -349,34 +470,60 @@ struct SimpleWebView: UIViewControllerRepresentable {
 
             let preferences = contentFilterPreferences
 
-            Task {
-                await withTaskGroup(of: Void.self) { group in
-                    for imageData in images {
-                        guard let imageId = imageData["id"] as? String,
-                              let imageSrc = imageData["src"] as? String else { continue }
+            Task { [weak self] in
+                guard let self else { return }
+                let maxConcurrent = 5
+                for batch in stride(from: 0, to: images.count, by: maxConcurrent) {
+                    let batchEnd = min(batch + maxConcurrent, images.count)
+                    let batchImages = Array(images[batch..<batchEnd])
 
-                        group.addTask { [weak self] in
-                            guard let self else { return }
+                    await withTaskGroup(of: Void.self) { group in
+                        for imageData in batchImages {
+                            guard let imageId = imageData["id"] as? String,
+                                  let imageSrc = imageData["src"] as? String else { continue }
 
-                            guard let imageURL = URL(string: imageSrc) else {
-                                await MainActor.run {
-                                    self.replaceImageInWebView(imageId: imageId, category: "unknown")
+                            group.addTask { [weak self] in
+                                guard let self else { return }
+
+                                guard let imageURL = URL(string: imageSrc) else {
+                                    await MainActor.run {
+                                        self.replaceImageInWebView(imageId: imageId, category: "unknown")
+                                    }
+                                    return
                                 }
-                                return
-                            }
 
-                            let result = await self.imageFilterService.analyzeImage(
-                                url: imageURL, preferences: preferences
-                            )
-
-                            if result.shouldFilter {
-                                await MainActor.run {
-                                    self.replaceImageInWebView(imageId: imageId, category: result.category.rawValue)
+                                // Timeout: fail-closed after 5s (v2 §4)
+                                let result = await withTaskGroup(of: ImageAnalysisResult?.self) { tg -> ImageAnalysisResult? in
+                                    tg.addTask {
+                                        await self.imageFilterService.analyzeImage(url: imageURL, preferences: preferences)
+                                    }
+                                    tg.addTask {
+                                        try? await Task.sleep(nanoseconds: 5_000_000_000)
+                                        return nil
+                                    }
+                                    let first = await tg.next() ?? nil
+                                    tg.cancelAll()
+                                    return first
                                 }
-                                print("🛡️ Filtered image: \(imageId) - \(result.category.displayName)")
-                            } else {
-                                await MainActor.run {
-                                    self.markImageSafe(imageId: imageId)
+
+                                if let result, !result.shouldFilter {
+                                    await MainActor.run {
+                                        self.markImageSafe(imageId: imageId)
+                                    }
+                                } else {
+                                    let cat = result?.category.rawValue ?? "timeout"
+                                    await MainActor.run {
+                                        self.replaceImageInWebView(imageId: imageId, category: cat)
+                                    }
+                                    if let result {
+                                        #if DEBUG
+                                        print("🛡️ Filtered image: \(imageId) - \(result.category.displayName)")
+                                        #endif
+                                    } else {
+                                        #if DEBUG
+                                        print("🛡️ Image scan timeout (fail-closed): \(imageId)")
+                                        #endif
+                                    }
                                 }
                             }
                         }
@@ -388,14 +535,20 @@ struct SimpleWebView: UIViewControllerRepresentable {
         private func escapeJSString(_ str: String) -> String {
             str.replacingOccurrences(of: "\\", with: "\\\\")
                .replacingOccurrences(of: "'", with: "\\'")
+               .replacingOccurrences(of: "\"", with: "\\\"")
+               .replacingOccurrences(of: "`", with: "\\`")
                .replacingOccurrences(of: "\n", with: "\\n")
                .replacingOccurrences(of: "\r", with: "\\r")
+               .replacingOccurrences(of: "\0", with: "")
+               .replacingOccurrences(of: "\u{2028}", with: "\\u2028")
+               .replacingOccurrences(of: "\u{2029}", with: "\\u2029")
         }
 
         private func replaceImageInWebView(imageId: String, category: String) {
             let safeId = escapeJSString(imageId)
             let safeCat = escapeJSString(category)
-            let js = "window.komalImageScanner && window.komalImageScanner.replaceImage('\(safeId)', '\(safeCat)');"
+            let nonce = escapeJSString(EngagementTracker.shared.imageScannerNonce)
+            let js = "window.komalImageScanner && window.komalImageScanner.replaceImage('\(safeId)', '\(safeCat)', '\(nonce)');"
             webView?.evaluateJavaScript(js) { _, error in
                 #if DEBUG
                 if let error { print("🛡️ JS bridge replaceImage error: \(error)") }
@@ -405,7 +558,8 @@ struct SimpleWebView: UIViewControllerRepresentable {
 
         private func markImageSafe(imageId: String) {
             let safeId = escapeJSString(imageId)
-            let js = "window.komalImageScanner && window.komalImageScanner.markSafe('\(safeId)');"
+            let nonce = escapeJSString(EngagementTracker.shared.imageScannerNonce)
+            let js = "window.komalImageScanner && window.komalImageScanner.markSafe('\(safeId)', '\(nonce)');"
             webView?.evaluateJavaScript(js) { _, error in
                 #if DEBUG
                 if let error { print("🛡️ JS bridge markSafe error: \(error)") }
@@ -425,8 +579,42 @@ struct SimpleWebView: UIViewControllerRepresentable {
                 return
             }
 
-            // Back/forward: allow without rewrites
+            // --- Scheme allowlist: only allow http/https ---
+            // Blocks javascript:, data:text/html, blob: navigations that bypass content filtering
+            guard let scheme = url.scheme?.lowercased(), ["https", "http"].contains(scheme) else {
+                #if DEBUG
+                print("🛡️ SimpleWebView: Blocked non-http(s) scheme: \(url.scheme ?? "nil")")
+                #endif
+                decisionHandler(.cancel)
+                return
+            }
+
+            // Back/forward: apply blocked platform and keyword checks
             if navigationAction.navigationType == .backForward {
+                if Constants.isBlockedPlatform(url) {
+                    let host = url.host ?? "unknown"
+                    #if DEBUG
+                    print("🛡️ SimpleWebView: Blocked back/forward to: \(host)")
+                    #endif
+                    historyService.logBlocked(url: url, category: "Platform Block", reason: "Back/forward to blocked platform: \(host)")
+                    DispatchQueue.main.async { [weak self] in
+                        self?.onInappropriateContent?(.urlKeyword(host), url)
+                    }
+                    decisionHandler(.cancel)
+                    return
+                }
+                let contentCheck = BrowserState.checkURL(url, parentSettings: parentSettings)
+                if contentCheck.shouldIntervene, let trigger = contentCheck.trigger {
+                    #if DEBUG
+                    print("🛡️ SimpleWebView: Blocked back/forward navigation: \(trigger.searchTerm)")
+                    #endif
+                    historyService.logBlocked(url: url, category: "Content Filter", reason: "Back/forward: \(trigger.searchTerm)")
+                    DispatchQueue.main.async { [weak self] in
+                        self?.onInappropriateContent?(trigger, url)
+                    }
+                    decisionHandler(.cancel)
+                    return
+                }
                 decisionHandler(.allow)
                 return
             }
@@ -436,7 +624,9 @@ struct SimpleWebView: UIViewControllerRepresentable {
                 // Still check search keywords on trusted domains
                 if let query = BrowserState.extractSearchQuery(from: url) {
                     if let flagged = BrowserState.checkForInappropriateContent(query, isSearchQuery: true) {
+                        #if DEBUG
                         print("🛡️ SimpleWebView: Blocked search on trusted domain: \(flagged)")
+                        #endif
                         historyService.logBlocked(url: url, category: "Content Filter", reason: "Search query: \(flagged)")
                         DispatchQueue.main.async { [weak self] in
                             self?.onInappropriateContent?(.searchQuery(flagged), url)
@@ -448,13 +638,43 @@ struct SimpleWebView: UIViewControllerRepresentable {
                     // User-initiated searches: background cloud scan while SafeSearch loads
                     if navigationAction.navigationType == .formSubmitted ||
                        navigationAction.navigationType == .linkActivated {
+                        #if DEBUG
                         print("🔍 SimpleWebView: Background cloud scan for search: \(query)")
+                        #endif
                         DispatchQueue.main.async { [weak self] in
                             self?.onSearchNeedsScan?(query, url)
                         }
                     }
                 }
+                #if DEBUG
                 print("✅ SimpleWebView: Trusted domain - skipping content check: \(url.host ?? "")")
+                #endif
+                decisionHandler(.allow)
+                return
+            }
+
+            // --- YouTube: allow navigation, per-video analysis handled by JS scanner ---
+            if Constants.isYouTubeDomain(url) {
+                // Still check search keywords
+                if let query = BrowserState.extractSearchQuery(from: url) {
+                    if let flagged = BrowserState.checkForInappropriateContent(query, isSearchQuery: true) {
+                        #if DEBUG
+                        print("🛡️ SimpleWebView: Blocked YouTube search: \(flagged)")
+                        #endif
+                        historyService.logBlocked(url: url, category: "Content Filter", reason: "YouTube search: \(flagged)")
+                        DispatchQueue.main.async { [weak self] in
+                            self?.onInappropriateContent?(.searchQuery(flagged), url)
+                        }
+                        decisionHandler(.cancel)
+                        return
+                    }
+                }
+                // Re-inject restricted mode cookie on each YouTube navigation
+                // (YouTube may overwrite the PREF cookie during browsing)
+                self.reinjectYouTubeRestrictedModeCookie(webView)
+                #if DEBUG
+                print("✅ SimpleWebView: YouTube domain - per-video JS analysis: \(url.host ?? "")")
+                #endif
                 decisionHandler(.allow)
                 return
             }
@@ -465,13 +685,17 @@ struct SimpleWebView: UIViewControllerRepresentable {
                 let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
 
                 if isMainFrame {
+                    #if DEBUG
                     print("🛡️ SimpleWebView blocked platform: \(host)")
+                    #endif
                     historyService.logBlocked(url: url, category: "Platform Block", reason: "Blocked platform: \(host)")
                     DispatchQueue.main.async { [weak self] in
                         self?.onInappropriateContent?(.urlKeyword(host), url)
                     }
                 } else {
+                    #if DEBUG
                     print("🛡️ SimpleWebView silently blocked subframe from: \(host)")
+                    #endif
                 }
 
                 decisionHandler(.cancel)
@@ -481,7 +705,9 @@ struct SimpleWebView: UIViewControllerRepresentable {
             // --- BrowserState keyword / host check ---
             let contentCheck = BrowserState.checkURL(url, parentSettings: parentSettings)
             if contentCheck.shouldIntervene, let trigger = contentCheck.trigger {
+                #if DEBUG
                 print("🛡️ SimpleWebView blocked navigation: \(trigger.searchTerm)")
+                #endif
                 historyService.logBlocked(url: url, category: "Content Filter", reason: "Inappropriate: \(trigger.searchTerm)")
                 DispatchQueue.main.async { [weak self] in
                     self?.onInappropriateContent?(trigger, url)
@@ -498,7 +724,32 @@ struct SimpleWebView: UIViewControllerRepresentable {
             }
 
             // --- New-window requests (target frame nil) ---
+            // Apply content checks — window.open() must not bypass filtering
             if navigationAction.targetFrame == nil {
+                if Constants.isBlockedPlatform(url) {
+                    let host = url.host ?? "unknown"
+                    #if DEBUG
+                    print("🛡️ SimpleWebView: Blocked new-window to: \(host)")
+                    #endif
+                    historyService.logBlocked(url: url, category: "Platform Block", reason: "New window to blocked platform: \(host)")
+                    DispatchQueue.main.async { [weak self] in
+                        self?.onInappropriateContent?(.urlKeyword(host), url)
+                    }
+                    decisionHandler(.cancel)
+                    return
+                }
+                let newWinCheck = BrowserState.checkURL(url, parentSettings: parentSettings)
+                if newWinCheck.shouldIntervene, let trigger = newWinCheck.trigger {
+                    #if DEBUG
+                    print("🛡️ SimpleWebView: Blocked new-window navigation: \(trigger.searchTerm)")
+                    #endif
+                    historyService.logBlocked(url: url, category: "Content Filter", reason: "New window: \(trigger.searchTerm)")
+                    DispatchQueue.main.async { [weak self] in
+                        self?.onInappropriateContent?(trigger, url)
+                    }
+                    decisionHandler(.cancel)
+                    return
+                }
                 webView.load(URLRequest(url: url))
                 decisionHandler(.cancel)
                 return
@@ -524,6 +775,8 @@ struct SimpleWebView: UIViewControllerRepresentable {
             } else if host.contains("duckduckgo.com") {
                 paramName = "kp"; paramValue = "1"
             } else {
+                // YouTube restricted mode is cookie-based (PREF cookie), not URL param
+                // so we don't add safe=active for YouTube — it has no effect
                 return nil
             }
 
@@ -543,6 +796,22 @@ struct SimpleWebView: UIViewControllerRepresentable {
             return components.url
         }
 
+        // MARK: YouTube Restricted Mode
+
+        private func reinjectYouTubeRestrictedModeCookie(_ webView: WKWebView) {
+            let cookie = HTTPCookie(properties: [
+                .domain: ".youtube.com",
+                .path: "/",
+                .name: "PREF",
+                .value: "f2=8000000",
+                .secure: "TRUE",
+                .expires: Date.distantFuture
+            ])
+            if let cookie {
+                webView.configuration.websiteDataStore.httpCookieStore.setCookie(cookie)
+            }
+        }
+
         // MARK: Navigation Lifecycle
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
@@ -551,14 +820,18 @@ struct SimpleWebView: UIViewControllerRepresentable {
                 DispatchQueue.main.async { [weak self] in
                     guard let self, !self.loading else { return }
                     self.loading = true
+                    #if DEBUG
                     print("🌐 WebView started loading")
+                    #endif
                 }
             }
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             guard currentNavigation == navigation else {
+                #if DEBUG
                 print("⚠️ Ignoring didFinish for old navigation")
+                #endif
                 return
             }
 
@@ -566,7 +839,9 @@ struct SimpleWebView: UIViewControllerRepresentable {
                 guard let self else { return }
                 self.currentNavigation = nil
                 self.loading = false
+                #if DEBUG
                 print("🌐 WebView finished loading - setting loading to false")
+                #endif
 
                 // Nudge responder chain so WKWebView can accept keyboard input
                 webView.becomeFirstResponder()
@@ -581,7 +856,9 @@ struct SimpleWebView: UIViewControllerRepresentable {
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             if (error as NSError).code == NSURLErrorCancelled {
+                #if DEBUG
                 print("⚠️ Navigation cancelled (ignoring)")
+                #endif
                 return
             }
             guard currentNavigation == navigation else { return }
@@ -590,13 +867,17 @@ struct SimpleWebView: UIViewControllerRepresentable {
                 guard let self else { return }
                 self.currentNavigation = nil
                 self.loading = false
+                #if DEBUG
                 print("❌ WebView failed to load - setting loading to false: \(error.localizedDescription)")
+                #endif
             }
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
             if (error as NSError).code == NSURLErrorCancelled {
+                #if DEBUG
                 print("⚠️ Provisional navigation cancelled (ignoring)")
+                #endif
                 return
             }
             guard currentNavigation == navigation else { return }
@@ -605,7 +886,9 @@ struct SimpleWebView: UIViewControllerRepresentable {
                 guard let self else { return }
                 self.currentNavigation = nil
                 self.loading = false
+                #if DEBUG
                 print("❌ WebView provisional navigation failed - setting loading to false: \(error.localizedDescription)")
+                #endif
             }
         }
     }

@@ -26,10 +26,10 @@ enum RevealingLevel: Int, Codable, Comparable, CaseIterable {
     static func from(score: Double) -> RevealingLevel {
         switch score {
         case ...0:     return .fullyCovered
-        case ...1:     return .modestCasual
-        case ...2:     return .partialExposure
-        case ...3.5:   return .revealing
-        case ...5:     return .highlyRevealing
+        case ...0.8:   return .modestCasual
+        case ...1.5:   return .partialExposure  // lowered from 2.0 to catch bikini earlier
+        case ...3.0:   return .revealing         // lowered from 3.5
+        case ...4.5:   return .highlyRevealing   // lowered from 5.0
         default:       return .explicitExposure
         }
     }
@@ -358,10 +358,10 @@ final class VisionBodyRegionClassifier: BodyRegionClassifier {
             }
 
             // Map skin ratio to exposure level
-            // Clothing covers skin → low ratio; exposed skin → high ratio
-            if effectiveRatio > 0.6 {
+            // Lowered thresholds to catch bikini/swimwear (was 0.6/0.3)
+            if effectiveRatio > 0.50 {
                 exposures[region] = .full
-            } else if effectiveRatio > 0.3 {
+            } else if effectiveRatio > 0.22 {
                 exposures[region] = .partial
             } else {
                 exposures[region] = .covered

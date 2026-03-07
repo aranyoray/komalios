@@ -47,18 +47,24 @@ final class GrowthTrackingService: ObservableObject {
             let data = try Data(contentsOf: fileURL)
             growthData = try JSONDecoder().decode(GrowthData.self, from: data)
             pruneOldActivities()
+            #if DEBUG
             print("🌱 Loaded growth data: \(growthData.dailyActivities.count) days, \(growthData.milestones.count) milestones")
+            #endif
         } catch {
+            #if DEBUG
             print("🌱 Error loading growth data: \(error)")
+            #endif
         }
     }
 
     private func saveData() {
         do {
             let data = try JSONEncoder().encode(growthData)
-            try data.write(to: fileURL)
+            try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
         } catch {
+            #if DEBUG
             print("🌱 Error saving growth data: \(error)")
+            #endif
             return
         }
 
@@ -77,8 +83,6 @@ final class GrowthTrackingService: ObservableObject {
         case chat
         case reflection
         case moodCheckIn
-        case morningAnchor
-        case eveningAnchor
     }
 
     /// Record an activity for today
@@ -95,10 +99,6 @@ final class GrowthTrackingService: ObservableObject {
             growthData.dailyActivities[index].reflectionCount += 1
         case .moodCheckIn:
             growthData.dailyActivities[index].moodCheckInCount += 1
-        case .morningAnchor:
-            growthData.dailyActivities[index].morningAnchorCompleted = true
-        case .eveningAnchor:
-            growthData.dailyActivities[index].eveningAnchorCompleted = true
         }
 
         todayActivity = growthData.dailyActivities[index]
@@ -174,7 +174,9 @@ final class GrowthTrackingService: ObservableObject {
         growthData.milestones[index].currentProgress = progress
         if progress >= growthData.milestones[index].requirement && growthData.milestones[index].earnedDate == nil {
             growthData.milestones[index].earnedDate = Date()
+            #if DEBUG
             print("🌱 Milestone earned: \(growthData.milestones[index].title)")
+            #endif
         }
     }
 
@@ -187,30 +189,6 @@ final class GrowthTrackingService: ObservableObject {
 
     func getWeeklySnapshots() -> [WeeklySnapshot] {
         growthData.weeklySnapshots.sorted { $0.weekStartDate > $1.weekStartDate }
-    }
-
-    // MARK: - Anchors
-
-    func saveAnchor(_ anchor: DailyAnchor) {
-        growthData.anchors.append(anchor)
-        saveData()
-    }
-
-    func getAnchors(days: Int = 30) -> [DailyAnchor] {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
-        return growthData.anchors.filter { $0.timestamp >= cutoff }
-    }
-
-    /// Get anchor completion rate for last N days
-    func getAnchorComplianceRate(days: Int = 30) -> (morning: Double, evening: Double) {
-        let activities = growthData.dailyActivities.suffix(days)
-        guard !activities.isEmpty else { return (0, 0) }
-        let morningCount = activities.filter { $0.morningAnchorCompleted }.count
-        let eveningCount = activities.filter { $0.eveningAnchorCompleted }.count
-        return (
-            morning: Double(morningCount) / Double(activities.count),
-            evening: Double(eveningCount) / Double(activities.count)
-        )
     }
 
     // MARK: - Activity Data
@@ -293,7 +271,9 @@ final class GrowthTrackingService: ObservableObject {
             growthData.identityProgression.stageHistory.append(entry)
             growthData.identityProgression.currentStage = newStage
             growthData.identityProgression.stageReachedDate = Date()
+            #if DEBUG
             print("🌱 Identity stage advanced: \(currentStage.rawValue) -> \(newStage.rawValue)")
+            #endif
         }
 
         growthData.identityProgression.observedTraits = newTraits
@@ -379,13 +359,6 @@ final class GrowthTrackingService: ObservableObject {
             growthData.weeklySnapshots.append(contentsOf: newSnapshots)
         }
 
-        // Merge anchors by ID
-        let localAnchorIDs = Set(growthData.anchors.map { $0.id })
-        let newAnchors = cloudData.anchors.filter { !localAnchorIDs.contains($0.id) }
-        if !newAnchors.isEmpty {
-            growthData.anchors.append(contentsOf: newAnchors)
-        }
-
         // Merge unique characters used
         growthData.uniqueCharactersUsed.formUnion(cloudData.uniqueCharactersUsed)
 
@@ -403,11 +376,15 @@ final class GrowthTrackingService: ObservableObject {
         // Save locally without triggering another cloud upload
         do {
             let data = try JSONEncoder().encode(growthData)
-            try data.write(to: fileURL)
+            try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
         } catch {
+            #if DEBUG
             print("🌱 Error saving merged growth data: \(error)")
+            #endif
         }
+        #if DEBUG
         print("🌱 Merged cloud growth data")
+        #endif
     }
 
     // MARK: - Helpers

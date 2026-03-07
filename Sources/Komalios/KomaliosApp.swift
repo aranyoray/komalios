@@ -76,7 +76,7 @@ struct ContentView: View {
                 appState.savePreferences()
 
                 // Commit eye tracking data and stop session
-                Task { @MainActor in
+                Task {
                     if EyeTrackingService.shared.isTracking {
                         EyeTrackingService.shared.commitDailySummary()
                         EyeTrackingService.shared.stopTracking()
@@ -85,13 +85,15 @@ struct ContentView: View {
             }
             if scenePhase == .active {
                 // Resume eye tracking if enabled, supported, and user is authenticated
-                Task { @MainActor in
+                Task {
                     if appState.parentSettings.eyeTrackingEnabled
                         && EyeTrackingService.isSupported
                         && (authViewModel.user != nil || appState.isGuestUser) {
                         EyeTrackingService.shared.startTracking()
                     }
                 }
+                // Record foreground time for session duration estimation
+                IntentInferenceService.shared.recordForegroundDate()
                 // Update streak on app open
                 GrowthTrackingService.shared.updateStreakOnAppOpen(retentionState: &appState.retentionState)
 
@@ -110,7 +112,9 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            print("📱 ContentView appeared - user: \(authViewModel.user?.uid ?? "nil"), hasCompletedOnboarding: \(appState.hasCompletedOnboarding)")
+            #if DEBUG
+            print("📱 ContentView appeared - hasCompletedOnboarding: \(appState.hasCompletedOnboarding)")
+            #endif
             // Request notification permission
             NotificationService.shared.requestPermission()
             // Schedule anchor notifications
@@ -130,14 +134,18 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserDidSignOut"))) { _ in
             // Backup: Force update authViewModel state if notification is received
+            #if DEBUG
             print("📢 Received UserDidSignOut notification")
+            #endif
             Task { @MainActor in
                 appState.isGuestUser = false
                 authViewModel.user = nil
                 authViewModel.loginState = .notRunning
                 pathManager.popToRoot()
                 pathManager.push(Routes.loginView)
+                #if DEBUG
                 print("✅ Updated authViewModel from notification")
+                #endif
             }
         }
     }

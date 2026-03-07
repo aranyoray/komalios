@@ -83,6 +83,10 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     private var blockedPopupRecentlyDismissed = false
     private var gateDismissTask: Task<Void, Never>?
 
+    deinit {
+        gateDismissTask?.cancel()
+    }
+
     // MARK: Dependencies
 
     private let networkService = ScanNetworkService()
@@ -133,7 +137,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             triggerBlockedEmojiPopup()
             loading = false
             historyService.logBlocked(
-                url: URL(string: "blocked://\(urlInput)") ?? URL(string: "about:blank")!,
+                url: URL(string: "blocked://\(urlInput.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? "unknown")") ?? URL(string: "about:blank")!,
                 category: "Content Filter",
                 reason: "Searched for: \(flagged)"
             )
@@ -191,6 +195,41 @@ final class KomalSafetyScannerViewModel: ObservableObject {
             interventionTrigger = .urlKeyword(host)
             currentSubcategory = host
             triggerBlockedEmojiPopup()
+            return
+        }
+
+        // YouTube — allow navigation, per-video analysis handled by JS scanner
+        if let url = URL(string: normalizedURL), Constants.isYouTubeDomain(url) {
+            // Still check search keywords in YouTube URLs
+            if let query = BrowserState.extractSearchQuery(from: url),
+               let flagged = BrowserState.checkForInappropriateContent(query, isSearchQuery: true) {
+                debugLogLine("[DEBUG-SCAN] Blocked YouTube search query: \(flagged)")
+                historyService.logBlocked(url: url, category: "Content Filter", reason: "YouTube search: \(flagged)")
+                await appHistoryService.logEvent(
+                    url: normalizedURL, action: "BLOCK",
+                    category: "Content Filter", subcategory: flagged,
+                    childName: appState.activeProfile.name,
+                    ageGroup: appState.activeProfile.ageGroup.rawValue
+                )
+                resetStates()
+                interventionTrigger = .searchQuery(flagged)
+                currentSubcategory = flagged
+                triggerBlockedEmojiPopup()
+                loading = false
+                return
+            }
+            debugLogLine("[DEBUG-SCAN] YouTube domain - per-video JS analysis: \(url.host ?? "")")
+            lastSafeURL = url
+            currentURL = url
+            historyService.logEvent(url: url, type: .allowed, category: "YouTube (Monitored)", action: .allow)
+            loading = false
+            await appHistoryService.logEvent(
+                url: normalizedURL,
+                searchQuery: looksLikeURL ? nil : trimmed,
+                action: "ALLOW", category: "YouTube (Monitored)",
+                childName: appState.activeProfile.name,
+                ageGroup: appState.activeProfile.ageGroup.rawValue
+            )
             return
         }
 
@@ -391,7 +430,9 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         if url == lastCountedPageURL { return }
         lastCountedPageURL = url
         pagesLoadedSinceLastEmoji += 1
+        #if DEBUG
         print("📊 Page finished: \(url.host ?? "?") — pages since last emoji: \(pagesLoadedSinceLastEmoji)")
+        #endif
 
         if pagesLoadedSinceLastEmoji >= 5 {
             guard !showGate, !showBlocked, !showBlockedEmojiPopup,
@@ -421,10 +462,14 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         // Skip cloud scan to avoid false positives on legitimate searches
         // (e.g. "belly dance", cultural/educational content).
         if Constants.isTrustedDomain(url) {
+            #if DEBUG
             print("☁️ Background scan skipped for trusted domain: \(url.host ?? "")")
+            #endif
             return
         }
+        #if DEBUG
         print("☁️ Background scan starting for query: \(searchQuery)")
+        #endif
         do {
             let input = buildContentAnalysisInput(url: url.absoluteString)
             let decision = try await contentAnalysisService.analyzeContent(
@@ -442,11 +487,15 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 ?? getMostRestrictiveAction(from: decision.ageActions)
 
             guard let ageAction else {
+                #if DEBUG
                 print("☁️ Background scan: no action found, allowing")
+                #endif
                 return
             }
 
+            #if DEBUG
             print("☁️ Background scan result: \(ageAction.action.rawValue) (score: \(ageAction.score))")
+            #endif
 
             if ageAction.action == .block || ageAction.action == .gate {
                 unifiedDecision = decision
@@ -465,7 +514,9 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 )
             }
         } catch {
+            #if DEBUG
             print("⚠️ Background search scan failed: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -500,7 +551,10 @@ final class KomalSafetyScannerViewModel: ObservableObject {
              normalized.contains(".co"))
 
         if looksLikeUrl {
-            if !normalized.hasPrefix("http://") && !normalized.hasPrefix("https://") {
+            // Force HTTPS — never allow plaintext HTTP connections
+            if normalized.hasPrefix("http://") {
+                normalized = "https://" + normalized.dropFirst(7)
+            } else if !normalized.hasPrefix("https://") {
                 normalized = "https://" + normalized
             }
             return normalized
@@ -560,13 +614,16 @@ final class KomalSafetyScannerViewModel: ObservableObject {
                 await processWithAction(normalizedURL: normalizedURL, decision: decision, ageAction: fallback)
                 return
             }
-            debugLogLine("[DEBUG-SCAN] No actions available at all, allowing by default")
+            debugLogLine("[DEBUG-SCAN] No actions available at all, blocking by default (fail-closed)")
             loading = false
             if let url = URL(string: normalizedURL) {
-                lastSafeURL = url
-                currentURL = url
+                blockReason = LanguageManager.localized("browser.content_unverified")
+                category = .unknown
+                currentURL = nil
+                showBlocked = true
+                historyService.logBlocked(url: url, category: "No Age Actions", reason: "Empty ageActions from decision")
                 await appHistoryService.logEvent(
-                    url: normalizedURL, action: "allowed_no_actions", category: "unclassified",
+                    url: normalizedURL, action: "BLOCK", category: "No Age Actions",
                     childName: appState.activeProfile.name,
                     ageGroup: appState.activeProfile.ageGroup.rawValue
                 )

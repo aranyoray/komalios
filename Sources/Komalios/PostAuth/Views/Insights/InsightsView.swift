@@ -997,16 +997,10 @@ struct PageSummaryRow: View {
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
                             .lineLimit(1)
-                        
-                        HStack(spacing: 8) {
-                            Label("\(page.estimatedWordsRead)", systemImage: "text.alignleft")
-                            Label("\(page.imagesViewed)", systemImage: "photo")
-                            if page.videosViewed > 0 {
-                                Label("\(page.videosViewed)", systemImage: "play.rectangle")
-                            }
-                        }
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundColor(KomalColors.textSecondary)
+
+                        Text("Pages explored: 1")
+                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .foregroundColor(KomalColors.textSecondary)
                     }
                     
                     Spacer()

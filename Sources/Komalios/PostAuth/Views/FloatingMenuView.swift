@@ -48,32 +48,28 @@ struct FloatingMenuView: View {
     }
 
     var body: some View {
-        // Only the tab bar — no full-screen VStack/Spacer overlay.
-        // Positioned at the bottom via ZStack(alignment: .bottom) in RootView.
-        HStack(spacing: 0) {
-            ForEach(NavigationTab.allCases, id: \.self) { tab in
-                TabButton(
-                    tab: tab,
-                    isSelected: selectedTab == tab,
-                    namespace: animation,
-                    displayNameOverride: tab == .riki ? rikiDisplayName : nil,
-                    iconImageOverride: tab == .riki ? rikiIconImageName : nil
-                ) {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+        // Bottom-docked tab bar, flush with safe area
+        VStack(spacing: 0) {
+            Divider()
+
+            HStack(spacing: 0) {
+                ForEach(NavigationTab.allCases, id: \.self) { tab in
+                    TabButton(
+                        tab: tab,
+                        isSelected: selectedTab == tab,
+                        namespace: animation,
+                        displayNameOverride: tab == .riki ? rikiDisplayName : nil,
+                        iconImageOverride: tab == .riki ? rikiIconImageName : nil
+                    ) {
                         selectedTab = tab
                     }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
             }
+            .padding(.top, 8)
+            .padding(.bottom, 4)
         }
-        .padding(.vertical, 6)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: -2)
-        )
-        .padding(.horizontal, 6)
-        .padding(.bottom, 2)
+        .background(Color(UIColor.systemBackground))
         .ignoresSafeArea(.keyboard)
     }
 }

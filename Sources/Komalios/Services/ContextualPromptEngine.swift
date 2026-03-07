@@ -92,6 +92,13 @@ final class ContextualPromptEngine {
     private let bypassTabThreshold = 5
     private let bypassTabWindow: TimeInterval = 15.0
 
+    /// Exposes tab switch rate as a 0-1 score for IntentInferenceService
+    var recentTabSwitchRate: Double {
+        let now = Date()
+        let recent = recentTabSwitches.filter { now.timeIntervalSince($0) < bypassTabWindow }
+        return min(1.0, Double(recent.count) / Double(bypassTabThreshold))
+    }
+
     private init() {
         if let data = UserDefaults.standard.data(forKey: lastShownKey),
            let decoded = try? JSONDecoder().decode([String: Date].self, from: data) {
@@ -357,6 +364,13 @@ final class ContextualPromptEngine {
             if Double.random(in: 0..<1) < skipChance { return nil }
         }
 
+        // IntentVector modulation: if dysregulation is moderate+, increase prompt likelihood
+        let intent = IntentInferenceService.shared.currentIntent
+        if intent.dysregulationProbability >= 0.5 && trigger == .tabSwitch {
+            // Override the 1-in-3 skip for tab switches when child is dysregulated
+            // (handled below by not returning early)
+        }
+
         // Edge Case A: Bypass detection — track rapid tab switching
         if trigger == .tabSwitch {
             let now = Date()
@@ -403,8 +417,8 @@ final class ContextualPromptEngine {
 
         guard !eligible.isEmpty else { return nil }
 
-        // For tab switches, only show 1 in 3 times
-        if trigger == .tabSwitch {
+        // For tab switches, only show 1 in 3 times (unless dysregulated)
+        if trigger == .tabSwitch && intent.dysregulationProbability < 0.5 {
             guard Int.random(in: 0..<3) == 0 else { return nil }
         }
 

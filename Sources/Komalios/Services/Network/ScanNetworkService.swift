@@ -41,12 +41,13 @@ enum ScanAPIResult {
 class ScanNetworkService {
     private let baseURL = "https://www.komalkids.com"
     private let session: URLSession
+    private let pinningDelegate = CertificatePinningDelegate()
 
     init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30.0
-        config.timeoutIntervalForResource = 60.0
-        self.session = URLSession(configuration: config)
+        config.timeoutIntervalForRequest = 10.0
+        config.timeoutIntervalForResource = 20.0
+        self.session = URLSession(configuration: config, delegate: pinningDelegate, delegateQueue: nil)
     }
 
     /// Scan URL - tries unified format first, falls back to legacy
@@ -65,6 +66,11 @@ class ScanNetworkService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Authenticate API requests with the Google Cloud API key
+        let apiKey = Config.googleCloudAPIKey
+        if !apiKey.isEmpty {
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        }
 
         let body = ScanRequest(url: urlString, searchQuery: searchQuery)
         request.httpBody = try JSONEncoder().encode(body)
@@ -181,6 +187,44 @@ class ScanNetworkService {
 }
 
 // MARK: - Network Error
+
+// MARK: - Certificate Pinning
+
+/// Validates server certificates for trusted API domains.
+/// Pins to the server's public key to prevent MITM attacks.
+final class CertificatePinningDelegate: NSObject, URLSessionDelegate {
+    /// Domains that require certificate validation
+    private let pinnedDomains: Set<String> = ["www.komalkids.com", "komalkids.com", "generativelanguage.googleapis.com"]
+
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let serverTrust = challenge.protectionSpace.serverTrust,
+              pinnedDomains.contains(challenge.protectionSpace.host) else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+
+        // Evaluate the server trust against system root CAs
+        var error: CFError?
+        let isValid = SecTrustEvaluateWithError(serverTrust, &error)
+        guard isValid else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+
+        // Verify the certificate chain has at least one certificate
+        guard SecTrustGetCertificateCount(serverTrust) > 0 else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+
+        completionHandler(.useCredential, URLCredential(trust: serverTrust))
+    }
+}
 
 enum ScanNetworkError: LocalizedError {
     case invalidURL

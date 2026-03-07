@@ -60,29 +60,29 @@ final class AppState: ObservableObject {
     func savePreferences() {
         let encoder = JSONEncoder()
         
-        // Save content filter preferences
+        // Save content filter preferences securely (controls filtering strictness)
         if let data = try? encoder.encode(contentFilterPreferences) {
-            UserDefaults.standard.set(data, forKey: "komal.contentFilterPreferences")
+            KeychainService.saveSecureData(data, forKey: "komal.contentFilterPreferences")
         }
-        
-        // Save active profile
+
+        // Save active profile securely (contains age group for filtering)
         if let profileData = try? encoder.encode(activeProfile) {
-            UserDefaults.standard.set(profileData, forKey: "komal.activeProfile")
+            KeychainService.saveSecureData(profileData, forKey: "komal.activeProfile")
         }
-        
-        // Save account mode
+
+        // Save account mode securely
         if let modeData = try? encoder.encode(accountMode) {
-            UserDefaults.standard.set(modeData, forKey: "komal.accountMode")
+            KeychainService.saveSecureData(modeData, forKey: "komal.accountMode")
         }
-        
+
         // Save parent settings securely in Keychain (blocked keywords, hosts, etc.)
         if let parentData = try? encoder.encode(parentSettings) {
             KeychainService.saveSecureData(parentData, forKey: "komal.parentSettings")
         }
 
-        // Save retention state
+        // Save retention state securely
         if let retentionData = try? encoder.encode(retentionState) {
-            UserDefaults.standard.set(retentionData, forKey: "komal.retentionState")
+            KeychainService.saveSecureData(retentionData, forKey: "komal.retentionState")
         }
 
         // Upload to Firestore (fire-and-forget)
@@ -104,40 +104,59 @@ final class AppState: ObservableObject {
     func loadPreferences() {
         let decoder = JSONDecoder()
         
-        // Load content filter preferences
-        if let data = UserDefaults.standard.data(forKey: "komal.contentFilterPreferences"),
+        // Load content filter preferences from Keychain (migrate from UserDefaults if needed)
+        if let data = KeychainService.loadSecureData(forKey: "komal.contentFilterPreferences"),
            let prefs = try? decoder.decode(ContentFilterPreferences.self, from: data) {
             contentFilterPreferences = prefs
+        } else if let data = UserDefaults.standard.data(forKey: "komal.contentFilterPreferences"),
+                  let prefs = try? decoder.decode(ContentFilterPreferences.self, from: data) {
+            contentFilterPreferences = prefs
+            KeychainService.saveSecureData(data, forKey: "komal.contentFilterPreferences")
+            UserDefaults.standard.removeObject(forKey: "komal.contentFilterPreferences")
         }
-        
-        // Load active profile
-        if let profileData = UserDefaults.standard.data(forKey: "komal.activeProfile"),
+
+        // Load active profile from Keychain (migrate from UserDefaults if needed)
+        if let profileData = KeychainService.loadSecureData(forKey: "komal.activeProfile"),
            let profile = try? decoder.decode(ChildProfile.self, from: profileData) {
             activeProfile = profile
+        } else if let profileData = UserDefaults.standard.data(forKey: "komal.activeProfile"),
+                  let profile = try? decoder.decode(ChildProfile.self, from: profileData) {
+            activeProfile = profile
+            KeychainService.saveSecureData(profileData, forKey: "komal.activeProfile")
+            UserDefaults.standard.removeObject(forKey: "komal.activeProfile")
         }
-        
-        // Load account mode
-        if let modeData = UserDefaults.standard.data(forKey: "komal.accountMode"),
+
+        // Load account mode from Keychain (migrate from UserDefaults if needed)
+        if let modeData = KeychainService.loadSecureData(forKey: "komal.accountMode"),
            let mode = try? decoder.decode(AccountMode.self, from: modeData) {
             accountMode = mode
+        } else if let modeData = UserDefaults.standard.data(forKey: "komal.accountMode"),
+                  let mode = try? decoder.decode(AccountMode.self, from: modeData) {
+            accountMode = mode
+            KeychainService.saveSecureData(modeData, forKey: "komal.accountMode")
+            UserDefaults.standard.removeObject(forKey: "komal.accountMode")
         }
-        
+
         // Load parent settings from Keychain (migrate from UserDefaults if needed)
         if let parentData = KeychainService.loadSecureData(forKey: "komal.parentSettings"),
            let settings = try? decoder.decode(ParentSettings.self, from: parentData) {
             parentSettings = settings
         } else if let parentData = UserDefaults.standard.data(forKey: "komal.parentSettings"),
                   let settings = try? decoder.decode(ParentSettings.self, from: parentData) {
-            // One-time migration from UserDefaults to Keychain
             parentSettings = settings
             KeychainService.saveSecureData(parentData, forKey: "komal.parentSettings")
             UserDefaults.standard.removeObject(forKey: "komal.parentSettings")
         }
 
-        // Load retention state
-        if let retentionData = UserDefaults.standard.data(forKey: "komal.retentionState"),
+        // Load retention state from Keychain (migrate from UserDefaults if needed)
+        if let retentionData = KeychainService.loadSecureData(forKey: "komal.retentionState"),
            let state = try? decoder.decode(RetentionState.self, from: retentionData) {
             retentionState = state
+        } else if let retentionData = UserDefaults.standard.data(forKey: "komal.retentionState"),
+                  let state = try? decoder.decode(RetentionState.self, from: retentionData) {
+            retentionState = state
+            KeychainService.saveSecureData(retentionData, forKey: "komal.retentionState")
+            UserDefaults.standard.removeObject(forKey: "komal.retentionState")
         }
 
     }
@@ -164,19 +183,19 @@ final class AppState: ObservableObject {
     private func savePreferencesLocally() {
         let encoder = JSONEncoder()
         if let data = try? encoder.encode(contentFilterPreferences) {
-            UserDefaults.standard.set(data, forKey: "komal.contentFilterPreferences")
+            KeychainService.saveSecureData(data, forKey: "komal.contentFilterPreferences")
         }
         if let profileData = try? encoder.encode(activeProfile) {
-            UserDefaults.standard.set(profileData, forKey: "komal.activeProfile")
+            KeychainService.saveSecureData(profileData, forKey: "komal.activeProfile")
         }
         if let modeData = try? encoder.encode(accountMode) {
-            UserDefaults.standard.set(modeData, forKey: "komal.accountMode")
+            KeychainService.saveSecureData(modeData, forKey: "komal.accountMode")
         }
         if let parentData = try? encoder.encode(parentSettings) {
             KeychainService.saveSecureData(parentData, forKey: "komal.parentSettings")
         }
         if let retentionData = try? encoder.encode(retentionState) {
-            UserDefaults.standard.set(retentionData, forKey: "komal.retentionState")
+            KeychainService.saveSecureData(retentionData, forKey: "komal.retentionState")
         }
     }
 }

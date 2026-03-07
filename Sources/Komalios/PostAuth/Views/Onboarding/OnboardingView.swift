@@ -35,6 +35,7 @@ struct PostAuthOnboardingView: View {
     @State private var pinEntry: String = ""
     @State private var pinConfirm: String = ""
     @State private var pinMismatchError: Bool = false
+    @State private var pinWeakError: Bool = false
     @State private var enableBiometric: Bool = false
     @State private var showPlanSelection = false
 
@@ -341,7 +342,7 @@ struct PostAuthOnboardingView: View {
                                             onTap: {
                                                 if surveyData.favoriteWebsites.contains(website.1) {
                                                     surveyData.favoriteWebsites.remove(website.1)
-                                                } else if surveyData.favoriteWebsites.count < 5 {
+                                                } else if surveyData.favoriteWebsites.count < 10 {
                                                     surveyData.favoriteWebsites.insert(website.1)
                                                 }
                                             }
@@ -354,9 +355,9 @@ struct PostAuthOnboardingView: View {
                     .padding(.horizontal, 24)
 
                     // Selection count
-                    Text(lang.localized("common.selected_count", surveyData.favoriteWebsites.count, 5))
+                    Text(lang.localized("common.selected_count", surveyData.favoriteWebsites.count, 10))
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(surveyData.favoriteWebsites.count == 5 ? KomalColors.lavenderPurple : KomalColors.textSecondary)
+                        .foregroundColor(surveyData.favoriteWebsites.count == 10 ? KomalColors.lavenderPurple : KomalColors.textSecondary)
                 }
                 .padding(.bottom, 60)
             }
@@ -771,7 +772,10 @@ struct PostAuthOnboardingView: View {
                                         .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
                                 )
                                 .onChange(of: pinEntry) {
-                                    if pinEntry.count > 4 { pinEntry = String(pinEntry.prefix(4)) }
+                                    let filtered = String(pinEntry.filter(\.isNumber).prefix(4))
+                                    if filtered != pinEntry { pinEntry = filtered }
+                                    pinMismatchError = false
+                                    pinWeakError = false
                                 }
                         }
 
@@ -789,16 +793,24 @@ struct PostAuthOnboardingView: View {
                                 .cornerRadius(12)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(pinMismatchError ? Color.red : Color.black.opacity(0.1), lineWidth: pinMismatchError ? 2 : 0.5)
+                                        .stroke((pinMismatchError || pinWeakError) ? Color.red : Color.black.opacity(0.1), lineWidth: (pinMismatchError || pinWeakError) ? 2 : 0.5)
                                 )
                                 .onChange(of: pinConfirm) {
-                                    if pinConfirm.count > 4 { pinConfirm = String(pinConfirm.prefix(4)) }
+                                    let filtered = String(pinConfirm.filter(\.isNumber).prefix(4))
+                                    if filtered != pinConfirm { pinConfirm = filtered }
+                                    pinMismatchError = false
+                                    pinWeakError = false
                                 }
 
                             if pinMismatchError {
                                 Text(lang.localized("onboarding.pin.mismatch"))
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.red)
+                            }
+                            if pinWeakError {
+                                Text(lang.localized("onboarding.pin.weak"))
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.orange)
                             }
                         }
 
@@ -849,14 +861,17 @@ struct PostAuthOnboardingView: View {
                 onBack: { withAnimation { currentPage = 7 } },
                 onNext: {
                     UIApplication.shared.hideKeyboard()
-                    if pinEntry == pinConfirm {
-                        pinMismatchError = false
+                    pinMismatchError = false
+                    pinWeakError = false
+                    if pinEntry != pinConfirm {
+                        pinMismatchError = true
+                    } else if KeychainService.isWeakPin(pinEntry) {
+                        pinWeakError = true
+                    } else {
                         KeychainService.savePin(pinEntry)
                         BiometricAuthService.isBiometricEnabled = enableBiometric
                         appState.parentSettings.biometricEnabled = enableBiometric
-                        withAnimation { currentPage = 9 }  // Go to avatar selection
-                    } else {
-                        pinMismatchError = true
+                        withAnimation { currentPage = 9 }
                     }
                 }
             )
@@ -864,6 +879,8 @@ struct PostAuthOnboardingView: View {
     }
 
     // MARK: - Screen 10: Guided Access Setup
+
+    @State private var guidedAccessEnabled = UIAccessibility.isGuidedAccessEnabled
 
     private var guidedAccessScreen: some View {
         VStack(spacing: 0) {
@@ -874,66 +891,82 @@ struct PostAuthOnboardingView: View {
                     // Shield + lock icon header
                     ZStack {
                         Circle()
-                            .fill(KomalColors.lavenderPurple.opacity(0.15))
+                            .fill(guidedAccessEnabled ? Color.green.opacity(0.15) : KomalColors.lavenderPurple.opacity(0.15))
                             .frame(width: 90, height: 90)
 
-                        Image(systemName: "lock.shield.fill")
+                        Image(systemName: guidedAccessEnabled ? "checkmark.shield.fill" : "lock.shield.fill")
                             .font(.system(size: 40))
-                            .foregroundColor(KomalColors.lavenderPurple)
+                            .foregroundColor(guidedAccessEnabled ? .green : KomalColors.lavenderPurple)
                     }
 
                     VStack(spacing: 8) {
-                        Text(lang.localized("onboarding.guided_access.title"))
+                        Text(lang.localized(guidedAccessEnabled ? "onboarding.guided_access.enabled_title" : "onboarding.guided_access.title"))
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(KomalColors.textPrimary)
 
-                        Text(lang.localized("onboarding.guided_access.explanation"))
+                        Text(lang.localized(guidedAccessEnabled ? "onboarding.guided_access.enabled_explanation" : "onboarding.guided_access.explanation"))
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(KomalColors.textSecondary)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal, 24)
 
-                    // Step cards
-                    VStack(spacing: 12) {
-                        GuidedAccessStepCard(
-                            stepNumber: 1,
-                            text: lang.localized("onboarding.guided_access.step1")
-                        )
-                        GuidedAccessStepCard(
-                            stepNumber: 2,
-                            text: lang.localized("onboarding.guided_access.step2")
-                        )
-                        GuidedAccessStepCard(
-                            stepNumber: 3,
-                            text: lang.localized("onboarding.guided_access.step3")
-                        )
-                    }
-                    .padding(.horizontal, 24)
+                    if !guidedAccessEnabled {
+                        // Detailed step cards
+                        VStack(spacing: 16) {
+                            GuidedAccessDetailCard(
+                                stepNumber: 1,
+                                title: lang.localized("onboarding.guided_access.step1_title"),
+                                detail: lang.localized("onboarding.guided_access.step1_detail"),
+                                iconName: "gearshape.fill"
+                            )
+                            GuidedAccessDetailCard(
+                                stepNumber: 2,
+                                title: lang.localized("onboarding.guided_access.step2_title"),
+                                detail: lang.localized("onboarding.guided_access.step2_detail"),
+                                iconName: "switch.2"
+                            )
+                            GuidedAccessDetailCard(
+                                stepNumber: 3,
+                                title: lang.localized("onboarding.guided_access.step3_title"),
+                                detail: lang.localized("onboarding.guided_access.step3_detail"),
+                                iconName: "hand.tap.fill"
+                            )
+                        }
+                        .padding(.horizontal, 24)
 
-                    // Open Settings button
-                    Button(action: {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
+                        // Open Accessibility Settings button
+                        Button(action: {
+                            if let accessibilityURL = URL(string: "App-Prefs:root=ACCESSIBILITY") {
+                                UIApplication.shared.open(accessibilityURL, options: [:]) { success in
+                                    if !success, let fallback = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(fallback)
+                                    }
+                                }
+                            } else if let fallback = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(fallback)
+                            }
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "accessibility")
+                                    .font(.system(size: 18, weight: .semibold))
+                                Text(lang.localized("onboarding.guided_access.open_accessibility"))
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(KomalColors.lavenderPurple)
+                            .cornerRadius(14)
                         }
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "gear")
-                                .font(.system(size: 16, weight: .semibold))
-                            Text(lang.localized("onboarding.guided_access.open_settings"))
-                                .font(.system(size: 16, weight: .semibold))
-                        }
-                        .foregroundColor(KomalColors.lavenderPurple)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(KomalColors.lavenderPurple.opacity(0.1))
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(KomalColors.lavenderPurple, lineWidth: 1)
-                        )
+                        .padding(.horizontal, 24)
+
+                        Text(lang.localized("onboarding.guided_access.return_hint"))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(KomalColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
                     }
-                    .padding(.horizontal, 24)
 
                     ResearchNote(
                         text: lang.localized("onboarding.guided_access.research_note")
@@ -941,6 +974,9 @@ struct PostAuthOnboardingView: View {
                     .padding(.horizontal, 24)
                 }
                 .padding(.bottom, 60)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                guidedAccessEnabled = UIAccessibility.isGuidedAccessEnabled
             }
 
             SurveyNavigation(
@@ -1338,6 +1374,48 @@ struct GuidedAccessStepCard: View {
         .background(Color.white)
         .cornerRadius(14)
         .shadow(color: Color.black.opacity(0.04), radius: 6, y: 2)
+    }
+}
+
+struct GuidedAccessDetailCard: View {
+    let stepNumber: Int
+    let title: String
+    let detail: String
+    let iconName: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(KomalColors.lavenderPurple)
+                    .frame(width: 36, height: 36)
+
+                Text("\(stepNumber)")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: iconName)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(KomalColors.lavenderPurple)
+                    Text(title)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(KomalColors.textPrimary)
+                }
+
+                Text(detail)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(KomalColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .cornerRadius(14)
+        .shadow(color: Color.black.opacity(0.06), radius: 8, y: 3)
     }
 }
 
