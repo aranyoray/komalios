@@ -35,9 +35,9 @@
         },
         "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/firebase-ios-sdk/FirebaseFirestoreInternal/FirebaseFirestoreInternal.xcframework",
         "source" : {
-          "checksum" : "20d59ef59734ab7125273d6433aa32f1c48ac87a91bab6d169aeff089ef4faa6",
+          "checksum" : "33fcca717674959e120b53462e41cee0d00937d8a0dfc8c937dd54df6047d74e",
           "type" : "remote",
-          "url" : "https://dl.google.com/firebase/ios/bin/firestore/12.9.0/rc0/FirebaseFirestoreInternal.zip"
+          "url" : "https://dl.google.com/firebase/ios/bin/firestore/12.10.0/rc0/FirebaseFirestoreInternal.zip"
         },
         "targetName" : "FirebaseFirestoreInternal"
       },
@@ -55,9 +55,9 @@
         },
         "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/firebase-ios-sdk/FirebaseAnalytics/FirebaseAnalytics.xcframework",
         "source" : {
-          "checksum" : "7b10e5c90cff02d70af6ad6ab5f997d00dcbe1ed8ad6100d8207844d65187850",
+          "checksum" : "454b51b9b1a85732ca4c6524843e7fb308078d0365a0c2e6f0810a5e2a2ab790",
           "type" : "remote",
-          "url" : "https://dl.google.com/firebase/ios/swiftpm/12.8.0/FirebaseAnalytics.zip"
+          "url" : "https://dl.google.com/firebase/ios/swiftpm/12.10.0/FirebaseAnalytics.zip"
         },
         "targetName" : "FirebaseAnalytics"
       },
@@ -75,9 +75,9 @@
         },
         "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/google-ads-on-device-conversion-ios-sdk/GoogleAdsOnDeviceConversion/GoogleAdsOnDeviceConversion.xcframework",
         "source" : {
-          "checksum" : "4d4641e481589242b2ee76e0ad756dbe4059b46d781969441b47d5c2c2aca111",
+          "checksum" : "316a858c8017193eea7171bc6ba28c058762ebf466b3688927f4b31f70d607b0",
           "type" : "remote",
-          "url" : "https://dl.google.com/firebase/ios/appads/3.2.0/GoogleAdsOnDeviceConversion.zip"
+          "url" : "https://dl.google.com/firebase/ios/appads/3.3.0/GoogleAdsOnDeviceConversion.zip"
         },
         "targetName" : "GoogleAdsOnDeviceConversion"
       },
@@ -93,13 +93,13 @@
           "location" : "https://github.com/google/GoogleAppMeasurement.git",
           "name" : "GoogleAppMeasurement"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/googleappmeasurement/GoogleAppMeasurement/GoogleAppMeasurement.xcframework",
+        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/googleappmeasurement/GoogleAppMeasurementIdentitySupport/GoogleAppMeasurementIdentitySupport.xcframework",
         "source" : {
-          "checksum" : "7303edc854d900129979367c3844c9de861513965b466eb5ddae5bdbba7bf677",
+          "checksum" : "a8f62342ff436ffc16a9cea95d60a7b224deda22169dade004062e6001a08105",
           "type" : "remote",
-          "url" : "https://dl.google.com/firebase/ios/swiftpm/12.8.0/GoogleAppMeasurement.zip"
+          "url" : "https://dl.google.com/firebase/ios/swiftpm/12.10.0/GoogleAppMeasurementIdentitySupport.zip"
         },
-        "targetName" : "GoogleAppMeasurement"
+        "targetName" : "GoogleAppMeasurementIdentitySupport"
       },
       {
         "kind" : {
@@ -113,13 +113,13 @@
           "location" : "https://github.com/google/GoogleAppMeasurement.git",
           "name" : "GoogleAppMeasurement"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/googleappmeasurement/GoogleAppMeasurementIdentitySupport/GoogleAppMeasurementIdentitySupport.xcframework",
+        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/googleappmeasurement/GoogleAppMeasurement/GoogleAppMeasurement.xcframework",
         "source" : {
-          "checksum" : "f05ccd0b9012281105d1c951adf17d3f1ff6906d2c17072926e4dfed157a39d7",
+          "checksum" : "4bcdead4d115fdb56e296169c43b469bbfda039defcd1597144c148a9834bb21",
           "type" : "remote",
-          "url" : "https://dl.google.com/firebase/ios/swiftpm/12.8.0/GoogleAppMeasurementIdentitySupport.zip"
+          "url" : "https://dl.google.com/firebase/ios/swiftpm/12.10.0/GoogleAppMeasurement.zip"
         },
-        "targetName" : "GoogleAppMeasurementIdentitySupport"
+        "targetName" : "GoogleAppMeasurement"
       },
       {
         "kind" : {
@@ -153,13 +153,13 @@
           "location" : "https://github.com/google/grpc-binary.git",
           "name" : "gRPC"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/grpc-binary/grpc/grpc.xcframework",
+        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/grpc-binary/grpcpp/grpcpp.xcframework",
         "source" : {
-          "checksum" : "61bb6e29798cdc6898d7fcdf2d6a5e5191524dea4ece59d582329a1a56ebbfb3",
+          "checksum" : "c965a70fc06c1323d631d909168ba801fb783df964e3625ca922250dd625b197",
           "type" : "remote",
-          "url" : "https://dl.google.com/firebase/ios/bin/grpc/1.69.1/rc0/grpc.zip"
+          "url" : "https://dl.google.com/firebase/ios/bin/grpc/1.69.1/rc0/grpcpp.zip"
         },
-        "targetName" : "grpc"
+        "targetName" : "grpcpp"
       },
       {
         "kind" : {
@@ -173,13 +173,13 @@
           "location" : "https://github.com/google/grpc-binary.git",
           "name" : "gRPC"
         },
-        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/grpc-binary/grpcpp/grpcpp.xcframework",
+        "path" : "/Users/aranyoray/Documents/komalios/.build/artifacts/grpc-binary/grpc/grpc.xcframework",
         "source" : {
-          "checksum" : "c965a70fc06c1323d631d909168ba801fb783df964e3625ca922250dd625b197",
+          "checksum" : "61bb6e29798cdc6898d7fcdf2d6a5e5191524dea4ece59d582329a1a56ebbfb3",
           "type" : "remote",
-          "url" : "https://dl.google.com/firebase/ios/bin/grpc/1.69.1/rc0/grpcpp.zip"
+          "url" : "https://dl.google.com/firebase/ios/bin/grpc/1.69.1/rc0/grpc.zip"
         },
-        "targetName" : "grpcpp"
+        "targetName" : "grpc"
       }
     ],
     "dependencies" : [
@@ -244,8 +244,8 @@
         },
         "state" : {
           "checkoutState" : {
-            "revision" : "9b3aed4fa6226125305b82d4d86c715bef250785",
-            "version" : "12.9.0"
+            "revision" : "85560b48b0ff099ad83fe53d67df3c67fbc2b7a6",
+            "version" : "12.10.0"
           },
           "name" : "sourceControlCheckout"
         },
@@ -261,8 +261,8 @@
         },
         "state" : {
           "checkoutState" : {
-            "revision" : "35b601a60fbbea2de3ea461f604deaaa4d8bbd0c",
-            "version" : "3.2.0"
+            "revision" : "a5cd95c80e8efdd02155c6cea1cecf743bb683a5",
+            "version" : "3.3.0"
           },
           "name" : "sourceControlCheckout"
         },
@@ -278,8 +278,8 @@
         },
         "state" : {
           "checkoutState" : {
-            "revision" : "2ffd220823f3716904733162e9ae685545c276d1",
-            "version" : "12.8.0"
+            "revision" : "68ba955e540dcff5e0805970ef4b1fd0150be100",
+            "version" : "12.10.0"
           },
           "name" : "sourceControlCheckout"
         },

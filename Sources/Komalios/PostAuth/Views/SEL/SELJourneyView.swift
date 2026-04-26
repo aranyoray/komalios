@@ -364,11 +364,9 @@ struct SELJourneyView: View {
         return f
     }()
 
-    private static let displayDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "EEE, MMM d"
-        return f
-    }()
+    private static var displayDateFormatter: DateFormatter {
+        LocaleFormatterCache.dateFormatter(format: "EEE, MMM d")
+    }
 
     private func formatDate(_ dateStr: String) -> String {
         guard let date = SELJourneyView.inputDateFormatter.date(from: dateStr) else { return dateStr }
@@ -466,11 +464,9 @@ struct SELLineChart: View {
         return f
     }()
 
-    private static let dayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "E"
-        return f
-    }()
+    private static var dayFormatter: DateFormatter {
+        LocaleFormatterCache.dateFormatter(format: "E")
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -517,6 +513,7 @@ struct SELLineChart: View {
                     }
                 }
             }
+            .flipsForRightToLeftLayoutDirection(true)
         }
     }
 }
@@ -617,6 +614,7 @@ struct SELMiniSparkline: View {
                 }
                 context.stroke(path, with: .color(KomalColors.lavenderPurple), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
             }
+            .flipsForRightToLeftLayoutDirection(true)
         }
     }
 }

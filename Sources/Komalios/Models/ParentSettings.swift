@@ -8,6 +8,8 @@ struct ParentSettings: Codable {
     var safeSearchEnabled: Bool
     var biometricEnabled: Bool
     var eyeTrackingEnabled: Bool
+    /// Maximum voice chat session duration in minutes. 0 = no limit. Default: 20.
+    var voiceChatSessionCapMinutes: Int
 
     static let sample = ParentSettings(
         blockedKeywords: [],
@@ -16,20 +18,22 @@ struct ParentSettings: Codable {
         notifyOnBlock: true,
         safeSearchEnabled: true,
         biometricEnabled: false,
-        eyeTrackingEnabled: false
+        eyeTrackingEnabled: false,
+        voiceChatSessionCapMinutes: 20
     )
 
     // Support decoding old data that still has parentPin
     enum CodingKeys: String, CodingKey {
         case blockedKeywords, blockedHosts, blockedInterests
         case notifyOnBlock, safeSearchEnabled, biometricEnabled, eyeTrackingEnabled
+        case voiceChatSessionCapMinutes
         // Legacy key for migration
         case parentPin
     }
 
     init(blockedKeywords: [String], blockedHosts: [String], blockedInterests: [String],
          notifyOnBlock: Bool, safeSearchEnabled: Bool, biometricEnabled: Bool = false,
-         eyeTrackingEnabled: Bool = false) {
+         eyeTrackingEnabled: Bool = false, voiceChatSessionCapMinutes: Int = 20) {
         self.blockedKeywords = blockedKeywords
         self.blockedHosts = blockedHosts
         self.blockedInterests = blockedInterests
@@ -37,6 +41,7 @@ struct ParentSettings: Codable {
         self.safeSearchEnabled = safeSearchEnabled
         self.biometricEnabled = biometricEnabled
         self.eyeTrackingEnabled = eyeTrackingEnabled
+        self.voiceChatSessionCapMinutes = voiceChatSessionCapMinutes
     }
 
     init(from decoder: Decoder) throws {
@@ -48,6 +53,7 @@ struct ParentSettings: Codable {
         safeSearchEnabled = try container.decodeIfPresent(Bool.self, forKey: .safeSearchEnabled) ?? true
         biometricEnabled = try container.decodeIfPresent(Bool.self, forKey: .biometricEnabled) ?? false
         eyeTrackingEnabled = try container.decodeIfPresent(Bool.self, forKey: .eyeTrackingEnabled) ?? false
+        voiceChatSessionCapMinutes = try container.decodeIfPresent(Int.self, forKey: .voiceChatSessionCapMinutes) ?? 20
         // parentPin is silently ignored on decode (migrated to Keychain)
     }
 
@@ -60,5 +66,6 @@ struct ParentSettings: Codable {
         try container.encode(safeSearchEnabled, forKey: .safeSearchEnabled)
         try container.encode(biometricEnabled, forKey: .biometricEnabled)
         try container.encode(eyeTrackingEnabled, forKey: .eyeTrackingEnabled)
+        try container.encode(voiceChatSessionCapMinutes, forKey: .voiceChatSessionCapMinutes)
     }
 }

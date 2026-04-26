@@ -97,7 +97,10 @@
       "Bash(npx next:*)",
       "Bash(/usr/libexec/PlistBuddy:*)",
       "Bash(/Users/aranyoray/Documents/komalios/Secrets.xcconfig.template:*)",
-      "Bash(log show:*)"
+      "Bash(log show:*)",
+      "Bash(for i:*)",
+      "Bash(git:*)",
+      "WebFetch(domain:www.komalkids.com)"
     ]
   }
 }

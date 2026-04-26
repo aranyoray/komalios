@@ -71,22 +71,40 @@ struct FreeChatSessionView: View {
     private let memoryService = ConversationMemoryService.shared
     private let geminiService = GeminiChatService()
 
+    @State private var reflectIconPulse = false
+
     var body: some View {
         VStack(spacing: 0) {
+            // Reflect icon header
+            ReflectIconHeader(isPulsing: $reflectIconPulse)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
+                        reflectIconPulse = true
+                    }
+                }
+
             // Messages
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(messages) { message in
                             FreeChatBubble(message: message)
+                                .transition(.asymmetric(
+                                    insertion: .scale(scale: 0.8, anchor: message.isFromUser ? .trailing : .leading)
+                                        .combined(with: .opacity),
+                                    removal: .opacity
+                                ))
                         }
 
                         if isGenerating {
                             HStack {
-                                HStack(spacing: 6) {
-                                    ProgressView()
-                                        .scaleEffect(0.7)
-                                    Text(LanguageManager.localized("reflect.free_chat.thinking"))
+                                HStack(spacing: 5) {
+                                    ForEach(0..<3) { index in
+                                        ReflectTypingDot(delay: Double(index) * 0.2)
+                                    }
+                                    Text(LanguageManager.localized("riki.typing"))
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(KomalColors.textSecondary)
                                 }
@@ -98,6 +116,7 @@ struct FreeChatSessionView: View {
                                 )
                                 Spacer(minLength: 60)
                             }
+                            .transition(.opacity)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -106,7 +125,7 @@ struct FreeChatSessionView: View {
                     .id("bottom")
                 }
                 .onChange(of: messages.count) {
-                    withAnimation {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         proxy.scrollTo("bottom", anchor: .bottom)
                     }
                 }
@@ -199,8 +218,10 @@ struct FreeChatSessionView: View {
 
     private func startSpeechToText() {
         Task {
-            let hasPermission = await requestMicrophonePermission()
+            let hasPermission = await SpeechRecognizer.requestPermissions()
             if hasPermission {
+                // Configure audio session for recording before starting
+                SpeechRecognizer.configureVoiceChatSession()
                 await MainActor.run {
                     isRecording = true
                     speechRecognizer.startRecording()
@@ -215,29 +236,6 @@ struct FreeChatSessionView: View {
             inputText = speechRecognizer.transcript
         }
         isRecording = false
-    }
-
-    private func requestMicrophonePermission() async -> Bool {
-        if #available(iOS 17.0, *) {
-            let micStatus = AVAudioApplication.shared.recordPermission
-            if micStatus == .undetermined {
-                return await AVAudioApplication.requestRecordPermission()
-            }
-            return micStatus == .granted
-        } else {
-            let session = AVAudioSession.sharedInstance()
-            if session.recordPermission == .undetermined {
-                var granted = false
-                await withCheckedContinuation { continuation in
-                    session.requestRecordPermission { isGranted in
-                        granted = isGranted
-                        continuation.resume()
-                    }
-                }
-                return granted
-            }
-            return session.recordPermission == .granted
-        }
     }
 
     private func sendMessage() {
@@ -354,6 +352,47 @@ struct FreeChatBubble: View {
 
             if !message.isFromUser { Spacer(minLength: 60) }
         }
+    }
+}
+
+// MARK: - Reflect Icon Header
+
+private struct ReflectIconHeader: View {
+    @Binding var isPulsing: Bool
+
+    var body: some View {
+        Image(systemName: "brain.head.profile")
+            .font(.system(size: 20, weight: .medium))
+            .foregroundColor(KomalColors.lavenderPurple)
+            .frame(width: 40, height: 40)
+            .background(
+                Circle()
+                    .fill(KomalColors.lavenderPurple.opacity(0.12))
+            )
+            .opacity(isPulsing ? 1.0 : 0.6)
+    }
+}
+
+// MARK: - Reflect Typing Dot
+
+private struct ReflectTypingDot: View {
+    let delay: Double
+
+    @State private var animating = false
+
+    var body: some View {
+        Circle()
+            .fill(KomalColors.lavenderPurple.opacity(0.6))
+            .frame(width: 8, height: 8)
+            .scaleEffect(animating ? 1.4 : 0.6)
+            .opacity(animating ? 1.0 : 0.3)
+            .animation(
+                .easeInOut(duration: 0.6)
+                .repeatForever(autoreverses: true)
+                .delay(delay),
+                value: animating
+            )
+            .onAppear { animating = true }
     }
 }
 

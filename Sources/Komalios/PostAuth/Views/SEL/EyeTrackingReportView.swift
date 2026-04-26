@@ -406,11 +406,9 @@ struct EyeTrackingReportView: View {
         return f
     }()
 
-    private static let dayLabelFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "E"
-        return f
-    }()
+    private static var dayLabelFormatter: DateFormatter {
+        LocaleFormatterCache.dateFormatter(format: "E")
+    }
 
     private func dayLabel(_ dateStr: String) -> String {
         guard let date = Self.inputDateFormatter.date(from: dateStr) else { return "" }
@@ -484,6 +482,7 @@ struct EyeTrackingLineChart: View {
                     context.draw(context.resolve(text), at: CGPoint(x: x, y: h - 2), anchor: .bottom)
                 }
             }
+            .flipsForRightToLeftLayoutDirection(true)
         }
     }
 }

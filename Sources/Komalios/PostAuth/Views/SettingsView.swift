@@ -1217,7 +1217,7 @@ struct SettingsView: View {
                                     Text(language.nativeName)
                                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                                         .foregroundColor(KomalColors.textPrimary)
-                                    Text(language.displayName)
+                                    Text(language.nativeName)
                                         .font(.caption)
                                         .foregroundColor(KomalColors.textSecondary)
                                 }
@@ -1866,18 +1866,13 @@ struct BillingHistoryView: View {
     @State private var renewalDate: Date?
     @State private var isLoading = true
 
-    private static let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .short
-        return f
-    }()
+    private static var dateFormatter: DateFormatter {
+        LocaleFormatterCache.dateFormatter(style: .medium, timeStyle: .short)
+    }
 
-    private static let shortDateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        return f
-    }()
+    private static var shortDateFormatter: DateFormatter {
+        LocaleFormatterCache.dateFormatter(style: .medium)
+    }
 
     var body: some View {
         NavigationStack {
@@ -2012,12 +2007,9 @@ struct BillingHistoryView: View {
 private struct TransactionRow: View {
     let transaction: SubscriptionService.TransactionInfo
 
-    private static let dateFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .short
-        return f
-    }()
+    private static var dateFormatter: DateFormatter {
+        LocaleFormatterCache.dateFormatter(style: .medium, timeStyle: .short)
+    }
 
     private var statusColor: Color {
         if transaction.isRevoked { return .red }

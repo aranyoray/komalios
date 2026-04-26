@@ -9,30 +9,73 @@ actor TextToSpeechService {
     private init() {}
 
     private struct VoiceConfig {
-        let name: String, pitch: Double, speakingRate: Double
+        let pitch: Double, speakingRate: Double
+        /// Voice variant index used to differentiate characters within the same locale.
+        /// Maps to a specific Neural2 voice per language (see `voiceName(for:variant:)`).
+        let variant: Int
     }
 
+    // Variants give each character a distinct voice. The actual Neural2 voice name
+    // is resolved per-locale in voiceName(for:variant:).
     private let voices: [String: VoiceConfig] = [
-        "Komal": .init(name: "en-US-Neural2-F", pitch: 1.0, speakingRate: 0.95),
-        "Momo": .init(name: "en-US-Neural2-A", pitch: 4.0, speakingRate: 1.15),
-        "Goldie": .init(name: "en-US-Neural2-F", pitch: 0.0, speakingRate: 1.0),
-        "Oreo": .init(name: "en-US-Neural2-C", pitch: 2.0, speakingRate: 1.05),
-        "Leo": .init(name: "en-US-Neural2-J", pitch: -2.0, speakingRate: 0.95),
-        "Bunny": .init(name: "en-US-Neural2-C", pitch: 3.0, speakingRate: 0.9),
-        "Tiki": .init(name: "en-US-Neural2-D", pitch: 0.0, speakingRate: 1.05),
-        "Fluffy": .init(name: "en-US-Neural2-F", pitch: 2.0, speakingRate: 0.85),
-        "Kitty": .init(name: "en-US-Neural2-E", pitch: 1.0, speakingRate: 1.1),
-        "Panda": .init(name: "en-US-Neural2-A", pitch: -1.0, speakingRate: 0.9),
-        "Ellie": .init(name: "en-US-Neural2-F", pitch: -1.0, speakingRate: 0.95),
-        "Ducky": .init(name: "en-US-Neural2-E", pitch: 3.0, speakingRate: 1.1),
+        "Komal":  .init(pitch: 1.0, speakingRate: 1.15, variant: 0),
+        "Momo":   .init(pitch: 4.0, speakingRate: 1.30, variant: 1),
+        "Goldie": .init(pitch: 0.0, speakingRate: 1.20, variant: 0),
+        "Oreo":   .init(pitch: 2.0, speakingRate: 1.20, variant: 2),
+        "Leo":    .init(pitch: -2.0, speakingRate: 1.10, variant: 3),
+        "Bunny":  .init(pitch: 3.0, speakingRate: 1.05, variant: 2),
+        "Tiki":   .init(pitch: 0.0, speakingRate: 1.20, variant: 4),
+        "Fluffy": .init(pitch: 2.0, speakingRate: 1.05, variant: 0),
+        "Kitty":  .init(pitch: 1.0, speakingRate: 1.25, variant: 5),
+        "Panda":  .init(pitch: -1.0, speakingRate: 1.10, variant: 1),
+        "Ellie":  .init(pitch: -1.0, speakingRate: 1.10, variant: 0),
+        "Ducky":  .init(pitch: 3.0, speakingRate: 1.30, variant: 5),
     ]
 
+    /// Maps (locale, variant) to a Google Cloud TTS voice name.
+    /// English uses en-IN Journey voices (warm, conversational, Indian English accent).
+    /// Other locales use Neural2 voices.
+    private func voiceName(for locale: String, variant: Int) -> String {
+        let pool: [String]
+        switch locale {
+        case "fr-FR":
+            pool = ["fr-FR-Neural2-A", "fr-FR-Neural2-B", "fr-FR-Neural2-C",
+                     "fr-FR-Neural2-D", "fr-FR-Neural2-E", "fr-FR-Neural2-A"]
+        case "es-ES":
+            pool = ["es-ES-Neural2-A", "es-ES-Neural2-B", "es-ES-Neural2-C",
+                     "es-ES-Neural2-D", "es-ES-Neural2-E", "es-ES-Neural2-F"]
+        case "pt-BR":
+            pool = ["pt-BR-Neural2-A", "pt-BR-Neural2-B", "pt-BR-Neural2-C",
+                     "pt-BR-Neural2-A", "pt-BR-Neural2-B", "pt-BR-Neural2-C"]
+        case "ar-SA":
+            // Arabic has fewer Neural2 options; fall back to ar-XA
+            pool = ["ar-XA-Neural2-A", "ar-XA-Neural2-C", "ar-XA-Neural2-D",
+                     "ar-XA-Neural2-A", "ar-XA-Neural2-C", "ar-XA-Neural2-D"]
+        default: // en-IN (Indian English) — Journey voices for warm, human-like quality
+            pool = ["en-IN-Neural2-D", "en-IN-Neural2-A", "en-IN-Neural2-C",
+                     "en-IN-Neural2-B", "en-IN-Neural2-D", "en-IN-Neural2-A"]
+        }
+        return pool[variant % pool.count]
+    }
+
+    /// Returns the TTS locale code for API requests.
+    /// Maps internal locale strings to the correct Google Cloud TTS languageCode.
+    private func ttsLocaleCode(for locale: String) -> String {
+        switch locale {
+        case "ar-SA": return "ar-XA"
+        default: return locale.hasPrefix("en") ? "en-IN" : locale
+        }
+    }
+
     func synthesize(text: String, characterName: String) async throws -> Data {
-        let voice = voices[characterName] ?? VoiceConfig(name: "en-US-Neural2-F", pitch: 0.0, speakingRate: 1.0)
+        let voice = voices[characterName] ?? VoiceConfig(pitch: 0.0, speakingRate: 1.0, variant: 0)
+        let locale = LanguageManager.speechRecognitionLocale
+        let ttsLocale = ttsLocaleCode(for: locale)
+        let resolvedVoiceName = voiceName(for: locale, variant: voice.variant)
 
         let body: [String: Any] = [
             "input": ["text": text],
-            "voice": ["languageCode": "en-US", "name": voice.name],
+            "voice": ["languageCode": ttsLocale, "name": resolvedVoiceName],
             "audioConfig": ["audioEncoding": "LINEAR16", "pitch": voice.pitch, "speakingRate": voice.speakingRate]
         ]
 

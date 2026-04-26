@@ -173,6 +173,42 @@ final class BrowserState: ObservableObject {
         "murder", "suicid", "tortur",
         "antisemit"
     ]
+
+    // MARK: - Arabic Content Filter Keywords
+    // Uses contains() matching (not word boundary) because Arabic attaches
+    // prefixes (ال al-) and suffixes to words, making \b unreliable.
+
+    /// Arabic strict keywords — block in both URLs and search queries.
+    static let arabicStrictKeywords: Set<String> = [
+        // Explicit adult content
+        "إباحي", "إباحية", "بورنو", "سكس",
+        "عاري", "عارية", "عري",
+        // Violence extremes
+        "ذبح", "قتل وحشي", "مجزرة",
+        // Child exploitation
+        "استغلال أطفال", "اعتداء على أطفال", "تحرش بأطفال",
+        "اتجار بالأطفال", "استدراج أطفال"
+    ]
+
+    /// Arabic search-only keywords — only checked in search queries.
+    static let arabicSearchKeywords: Set<String> = [
+        // Sexual content
+        "جنس", "جنسي", "جنسية", "زنا", "دعارة",
+        "عاهرة", "بغاء", "فاحشة",
+        // Violence
+        "عنف", "قتل", "سلاح", "أسلحة", "إرهاب", "إرهابي",
+        "انتحار", "إيذاء النفس", "تعذيب",
+        "إطلاق نار", "تفجير",
+        // Drugs
+        "مخدرات", "حشيش", "كوكايين", "هيروين",
+        "أفيون", "ترامادول", "كبتاغون",
+        // Gambling
+        "قمار", "ميسر", "مراهنات",
+        // Profanity
+        "كلب", "حمار", "شرموطة", "عاهر",
+        // Hate / extremism
+        "داعش", "تطرف", "كراهية"
+    ]
     
     // MARK: - Search Query Extraction
     static func extractSearchQuery(from url: URL) -> String? {
@@ -208,6 +244,7 @@ final class BrowserState: ObservableObject {
     
     /// Check if text contains inappropriate content as a whole word
     /// Uses word boundary matching to avoid false positives (e.g., "class" matching "ass")
+    /// Arabic keywords use contains() because Arabic attaches prefixes/suffixes to words.
     static func checkForInappropriateContent(_ text: String, isSearchQuery: Bool = true) -> String? {
         let lowercased = text.lowercased()
 
@@ -225,6 +262,13 @@ final class BrowserState: ObservableObject {
             }
         }
 
+        // Always check Arabic strict keywords (contains matching for Arabic script)
+        for keyword in arabicStrictKeywords {
+            if lowercased.contains(keyword) {
+                return keyword
+            }
+        }
+
         // Only check search-only keywords if this is a search query
         if isSearchQuery {
             for keyword in searchOnlyKeywords {
@@ -234,6 +278,13 @@ final class BrowserState: ObservableObject {
             }
             for keyword in searchOnlyPrefixKeywords {
                 if matchesAsPrefix(keyword, in: lowercased) {
+                    return keyword
+                }
+            }
+
+            // Arabic search-only keywords (contains matching)
+            for keyword in arabicSearchKeywords {
+                if lowercased.contains(keyword) {
                     return keyword
                 }
             }

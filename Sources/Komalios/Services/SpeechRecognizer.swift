@@ -18,7 +18,7 @@ class SpeechRecognizer: ObservableObject {
     
     // MARK: - Private Properties
     
-    private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+    private var speechRecognizer: SFSpeechRecognizer?
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
@@ -26,9 +26,17 @@ class SpeechRecognizer: ObservableObject {
     // MARK: - Initialization
     
     init() {
+        let localeId = LanguageManager.speechRecognitionLocale
+        self.speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: localeId))
         Task {
             await requestAuthorization()
         }
+    }
+
+    /// Update the recognizer locale (e.g. when the user changes language).
+    func updateLocale() {
+        let localeId = LanguageManager.speechRecognitionLocale
+        speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: localeId))
     }
     
     // MARK: - Authorization
@@ -70,13 +78,14 @@ class SpeechRecognizer: ObservableObject {
         // Clean up any previous session without triggering re-entrant stop
         cleanupPreviousSession()
 
-        // Configure audio session for recording
+        // Ensure audio session is active (category is managed by the caller — e.g.
+        // FocusedChatView sets .playAndRecord for the entire session to avoid
+        // category-switching races that cause 0 Hz format bugs).
         let audioSession = AVAudioSession.sharedInstance()
         do {
-            try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.duckOthers, .defaultToSpeaker])
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
-            errorMessage = "Failed to configure audio session: \(error.localizedDescription)"
+            errorMessage = "Failed to activate audio session: \(error.localizedDescription)"
             return
         }
 
@@ -94,8 +103,8 @@ class SpeechRecognizer: ObservableObject {
         let inputNode = audioEngine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
 
-        // Guard against 0-channel format (common on iOS Simulator with no mic hardware)
-        guard recordingFormat.channelCount > 0 else {
+        // Guard against invalid format (0 Hz / 0 channels — common on iOS Simulator with no mic hardware)
+        guard recordingFormat.channelCount > 0, recordingFormat.sampleRate > 0 else {
             errorMessage = "No microphone input available"
             return
         }
@@ -147,6 +156,7 @@ class SpeechRecognizer: ObservableObject {
             audioEngine.stop()
         }
         audioEngine.inputNode.removeTap(onBus: 0)
+        audioEngine.reset()
 
         recognitionRequest?.endAudio()
         recognitionRequest = nil
@@ -161,17 +171,6 @@ class SpeechRecognizer: ObservableObject {
 
         cleanupPreviousSession()
         isRecording = false
-
-        // Restore audio session for playback so TTS can work after recording
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
-            try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-            #if DEBUG
-            print("[SpeechRecognizer] Failed to restore audio session: \(error.localizedDescription)")
-            #endif
-        }
-
         isStopping = false
     }
     
@@ -181,6 +180,67 @@ class SpeechRecognizer: ObservableObject {
         } else {
             startRecording()
         }
+    }
+
+    // MARK: - Audio Session Helpers
+
+    /// Configure the shared audio session for a voice chat session.
+    /// Call once on view appear; do NOT switch categories mid-session.
+    static func configureVoiceChatSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(
+                .playAndRecord,
+                mode: .default,
+                options: [.duckOthers, .defaultToSpeaker, .allowBluetoothHFP]
+            )
+            try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            #if DEBUG
+            print("[SpeechRecognizer] Failed to configure voice chat session: \(error.localizedDescription)")
+            #endif
+        }
+    }
+
+    // MARK: - Shared Permission Check
+
+    /// Check and request microphone + speech recognition permissions.
+    /// Returns true only if both are granted.
+    static func requestPermissions() async -> Bool {
+        // Microphone
+        let micGranted: Bool
+        if #available(iOS 17.0, *) {
+            let micStatus = AVAudioApplication.shared.recordPermission
+            if micStatus == .undetermined {
+                micGranted = await AVAudioApplication.requestRecordPermission()
+            } else {
+                micGranted = (micStatus == .granted)
+            }
+        } else {
+            let session = AVAudioSession.sharedInstance()
+            if session.recordPermission == .undetermined {
+                micGranted = await withCheckedContinuation { continuation in
+                    session.requestRecordPermission { granted in
+                        continuation.resume(returning: granted)
+                    }
+                }
+            } else {
+                micGranted = (session.recordPermission == .granted)
+            }
+        }
+
+        guard micGranted else { return false }
+
+        // Speech recognition
+        let speechStatus = SFSpeechRecognizer.authorizationStatus()
+        if speechStatus == .notDetermined {
+            let status = await withCheckedContinuation { continuation in
+                SFSpeechRecognizer.requestAuthorization { authStatus in
+                    continuation.resume(returning: authStatus)
+                }
+            }
+            return status == .authorized
+        }
+        return speechStatus == .authorized
     }
 }
 #endif

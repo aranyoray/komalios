@@ -20,7 +20,9 @@ struct KomaliosApp: App {
                 .environmentObject(authViewModel)
                 .environmentObject(pathManager)
                 .environmentObject(languageManager)
+                .environment(\.layoutDirection, languageManager.currentLanguage.layoutDirection)
                 .preferredColorScheme(.light)
+                .animation(.easeInOut(duration: 0.3), value: languageManager.currentLanguage.isRTL)
         }
     }
 }

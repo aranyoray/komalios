@@ -206,6 +206,42 @@ final class SELAssessmentService: ObservableObject {
         return record
     }
 
+    /// Save a voice curriculum session record. Local-only — does NOT sync to Firestore.
+    /// Each step fans out to one SELCheckResult per domain in targetDomains.
+    func saveVoiceSessionRecord(stepResults: [(stepId: String, score: Int, domains: [SELDomain], competency: String)]) {
+        var checkResults: [SELCheckResult] = []
+        for result in stepResults {
+            for domain in result.domains {
+                checkResults.append(SELCheckResult(
+                    checkId: result.stepId,
+                    domain: domain,
+                    competency: result.competency,
+                    score: result.score
+                ))
+            }
+        }
+
+        var records = loadRecords()
+        let today = todayString()
+        let record = SELDailyRecord(
+            id: UUID().uuidString,
+            date: today,
+            completedAt: SELAssessmentService.iso8601Formatter.string(from: Date()),
+            domainScores: computeAllDomainScores(results: checkResults),
+            checkResults: checkResults,
+            mindfulnessCompleted: false
+        )
+
+        if let idx = records.firstIndex(where: { $0.date == today }) {
+            records[idx] = record
+        } else {
+            records.append(record)
+        }
+
+        saveRecords(records)
+        // NO Firestore upload — local-only for COPPA compliance
+    }
+
     func getRecords(days: Int = 30) -> [SELDailyRecord] {
         let records = loadRecords()
         let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()

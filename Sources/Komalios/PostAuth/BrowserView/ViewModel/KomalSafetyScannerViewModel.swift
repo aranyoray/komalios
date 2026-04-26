@@ -109,7 +109,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     /// Navigate to a URL programmatically (e.g. from browsing history).
     /// Populates the omnibox and runs the same pipeline as manual submission.
     func navigateToURL(_ url: URL) async {
-        urlInput = url.absoluteString
+        urlInput = LocaleFormatterCache.stripBiDiOverrides(url.absoluteString)
         await handleUrlSubmit()
     }
 
@@ -314,7 +314,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         pendingURL = nil
         blockedPopupRecentlyDismissed = false
         lastSafeURL = url
-        urlInput = url.host ?? url.absoluteString
+        urlInput = LocaleFormatterCache.stripBiDiOverrides(url.host ?? url.absoluteString)
         gateDismissTask?.cancel()
         gateDismissTask = Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 300_000_000)
@@ -327,7 +327,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
     func handleBlockedDismissed() {
         guard !loading else { return }
         if let safeURL = lastSafeURL {
-            urlInput = safeURL.host ?? safeURL.absoluteString
+            urlInput = LocaleFormatterCache.stripBiDiOverrides(safeURL.host ?? safeURL.absoluteString)
             currentURL = safeURL
         } else {
             urlInput = "google.com"
@@ -347,7 +347,7 @@ final class KomalSafetyScannerViewModel: ObservableObject {
         } else {
             blockedPopupRecentlyDismissed = true
             if let safeURL = lastSafeURL {
-                urlInput = safeURL.host ?? safeURL.absoluteString
+                urlInput = LocaleFormatterCache.stripBiDiOverrides(safeURL.host ?? safeURL.absoluteString)
                 currentURL = safeURL
             } else {
                 urlInput = "google.com"

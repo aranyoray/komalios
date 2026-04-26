@@ -6,9 +6,9 @@ struct MoodHistoryMiniView: View {
     private static let dateKeyFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
     }()
-    private static let dayLabelFormatter: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "EEE"; return f
-    }()
+    private static var dayLabelFormatter: DateFormatter {
+        LocaleFormatterCache.dateFormatter(format: "EEE")
+    }
     @ObservedObject private var moodService = MoodTrackingService.shared
     private let trend: [(date: String, emotion: String)]
 

@@ -193,6 +193,22 @@ struct FocusedChatView: View {
     @State private var silenceTierTimer: Timer?
     @State private var silenceTierLevel: Int = 0  // 0=none, 1=10s, 2=20s, 3=30s
 
+    // Mic permission error state (Issue 3 — child-friendly feedback)
+    @State private var micPermissionDenied: Bool = false
+
+    // Curriculum session state
+    @State private var showCurriculumSession: Bool = false
+
+    // Avatar micro-animation state
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isBreathing = false
+    @State private var messageWiggle = false
+
+    // Session duration cap (Issue 10 — COPPA: limit continuous mic access)
+    @State private var sessionStartTime: Date?
+    @State private var sessionCapTimer: Timer?
+
     @StateObject private var speechRecognizer = SpeechRecognizer()
     @StateObject private var audioPlayback = AudioPlaybackManager()
     @ObservedObject private var rageDetector = RageDetectionService.shared
@@ -201,9 +217,9 @@ struct FocusedChatView: View {
     private let geminiService = GeminiChatService()
     private let memoryService = ConversationMemoryService.shared
 
-    /// Last 3 messages for display (fewer = less clutter during active chat)
+    /// Last 6 messages for display (3 back-and-forth exchanges visible at once)
     private var recentMessages: [RikiChatMessage] {
-        Array(messages.suffix(3))
+        Array(messages.suffix(6))
     }
 
     /// Glow color changes based on state
@@ -215,6 +231,67 @@ struct FocusedChatView: View {
     }
 
     /// Status text
+    private var curriculumSessionButton: some View {
+        let progress = CurriculumSessionView.loadProgress()
+        let completed = progress.completedSessionIds.count
+        let hasInProgress = progress.currentSessionId != nil
+        let nextNum = progress.nextSessionNumber
+
+        return Button(action: { showCurriculumSession = true }) {
+            HStack(spacing: 6) {
+                Image(systemName: "book.circle.fill")
+                    .font(.system(size: 16))
+                if hasInProgress {
+                    Text(LanguageManager.localized("curriculum.continue", nextNum))
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } else if completed >= 5 {
+                    Text(LanguageManager.localized("curriculum.start"))
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                } else {
+                    Text(LanguageManager.localized("curriculum.start"))
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                }
+                if completed > 0 && completed < 5 {
+                    Text(LanguageManager.localized("curriculum.completed_badge", completed, 5))
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundColor(KomalColors.lavenderPurple.opacity(0.7))
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Capsule().fill(KomalColors.lavenderPurple.opacity(0.15)))
+            .foregroundColor(KomalColors.lavenderPurple)
+        }
+        .fullScreenCover(isPresented: $showCurriculumSession) {
+            CurriculumSessionView(character: character)
+                .environmentObject(appState)
+        }
+        .onChange(of: showCurriculumSession) { _, isPresented in
+            if isPresented {
+                // Pause Riki's voice loop while curriculum session is active
+                // MUST release audio engine tap before CurriculumSessionView installs its own
+                if isListening { stopListening() }
+                speechRecognizer.stopRecording() // Release AVAudioEngine tap
+                silenceTimer?.invalidate()
+                silenceTimer = nil
+                silenceTierTimer?.invalidate()
+                silenceTierTimer = nil
+                idleRestartTask?.cancel()
+                idleRestartTask = nil
+                audioPlayback.stop()
+            } else {
+                // Resume after session closes — 0.5s delay for session's cleanup() to finish
+                if greetingSpoken && !isPaused && !isLoading {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        SpeechRecognizer.configureVoiceChatSession()
+                        startListening()
+                        startSilenceTierMonitoring(reset: true)
+                    }
+                }
+            }
+        }
+    }
+
     private var statusText: String? {
         if isPaused { return LanguageManager.localized("riki.paused") }
         if audioPlayback.isPlaying {
@@ -229,14 +306,26 @@ struct FocusedChatView: View {
         return nil
     }
 
-    private let tabBarClearance: CGFloat = 80
+    /// Micro-scale for breathing/bounce — layered ON TOP of existing listening shrink
+    private var avatarMicroScale: CGFloat {
+        if reduceMotion { return 1.0 }
+        if audioPlayback.isPlaying { return isBreathing ? 1.05 : 1.0 }
+        return isBreathing ? 1.03 : 1.0
+    }
+
+    private var avatarRotation: Angle {
+        if reduceMotion { return .zero }
+        if messageWiggle { return .degrees(2) }
+        return .zero
+    }
 
     var body: some View {
         GeometryReader { geo in
-            let usableHeight = geo.size.height - geo.safeAreaInsets.top - tabBarClearance
+            let bottomClearance = max(geo.safeAreaInsets.bottom, 49) + 8
+            let usableHeight = geo.size.height - geo.safeAreaInsets.top - bottomClearance
             let avatarZoneHeight = min(220, usableHeight * 0.30)
             let avatarSize = avatarZoneHeight * 0.5
-            let messagesMaxHeight = min(200, max(100, usableHeight * 0.22))
+            let messagesMaxHeight = min(360, max(160, usableHeight * 0.38))
 
             VStack(spacing: 0) {
                 Spacer().frame(height: 12)
@@ -245,6 +334,10 @@ struct FocusedChatView: View {
                 Text(character.name)
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundColor(KomalColors.textPrimary)
+
+                // Curriculum session button
+                curriculumSessionButton
+                    .padding(.top, 6)
 
                 Spacer().frame(height: 8)
 
@@ -258,6 +351,27 @@ struct FocusedChatView: View {
                 // Status indicator
                 statusBadge
                     .padding(.top, 4)
+
+                // Mic permission error banner
+                if micPermissionDenied {
+                    HStack(spacing: 8) {
+                        Image(systemName: "mic.slash.fill")
+                            .foregroundColor(.white)
+                        Text(LanguageManager.localized("riki.mic_permission_needed"))
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(KomalColors.bubblegumPink.opacity(0.85))
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 4)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
 
                 Spacer().frame(height: 4)
 
@@ -279,12 +393,16 @@ struct FocusedChatView: View {
                 Spacer()
 
                 // Pause/Resume control
-                pauseButton
+                pauseButton(bottomPadding: bottomClearance)
             }
             .animation(.easeInOut(duration: 0.2), value: isListening)
         }
         .ignoresSafeArea(.keyboard)
         .onAppear {
+            // Set audio session once for the entire voice chat session (Issue 1)
+            SpeechRecognizer.configureVoiceChatSession()
+            sessionStartTime = Date()
+
             memoryService.startSession(characterId: character.id, characterName: character.name)
             conversationContext = memoryService.buildContextSummary(characterId: character.id)
 
@@ -301,12 +419,22 @@ struct FocusedChatView: View {
             GrowthTrackingService.shared.recordActivity(type: .chat)
             GrowthTrackingService.shared.recordCharacterUsed(character.id)
 
+            // Start session duration cap timer (Issue 10)
+            startSessionCapTimer()
+
+            // Start breathing animation
+            if !reduceMotion {
+                withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+                    isBreathing = true
+                }
+            }
+
             Task {
                 await audioPlayback.speak(text: greeting, characterName: character.name)
                 // Greeting TTS finished — now safe to start auto-listen cycle
                 greetingSpoken = true
                 startListening()
-                startSilenceTierMonitoring()
+                startSilenceTierMonitoring(reset: true)
             }
         }
         .onDisappear {
@@ -314,27 +442,63 @@ struct FocusedChatView: View {
             silenceTimer = nil
             silenceTierTimer?.invalidate()
             silenceTierTimer = nil
+            sessionCapTimer?.invalidate()
+            sessionCapTimer = nil
             idleRestartTask?.cancel()
             idleRestartTask = nil
             memoryService.endCurrentSession(characterId: character.id)
             rageDetector.reset()
         }
+        .onChange(of: scenePhase) {
+            if scenePhase == .background {
+                isBreathing = false
+            } else if scenePhase == .active && !reduceMotion {
+                withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
+                    isBreathing = true
+                }
+            }
+        }
         .onReceive(speechRecognizer.$transcript) { newValue in
             if !newValue.isEmpty {
-                inputText = String(newValue.prefix(2000))
-                displayTranscript = BrowserState.censorForDisplay(newValue)
-                // Reset silence tiers when child starts speaking
-                resetSilenceTiers()
-                // Extract emojis from child's speech
-                let detected = ChatEmojiMapper.emojis(for: newValue)
-                if !detected.isEmpty {
-                    activeEmojis = detected
-                    if !showEmojis {
-                        withAnimation { showEmojis = true }
+                // Speaker echo guard: if the transcript is a substring of the
+                // bot's most recent reply, the mic picked up TTS bleed. Ignore it.
+                let lastBotMessage = messages.last(where: { !$0.isFromUser })?.text ?? ""
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                let isEcho = !lastBotMessage.isEmpty
+                    && trimmed.count < 40
+                    && lastBotMessage.lowercased().contains(trimmed)
+
+                if !isEcho {
+                    // Stop-phrase detection: child explicitly asks to stop
+                    let stopPhrases = ["shut up", "stop talking", "be quiet", "leave me alone",
+                                       "go away", "i don't want to talk", "stop it", "just stop"]
+                    let lowerTranscript = newValue.lowercased()
+                    if stopPhrases.contains(where: { lowerTranscript.contains($0) }) {
+                        audioPlayback.stop()
+                        stopListening()
+                        isPaused = true
+                        let gentle = LanguageManager.localized("riki.stop_acknowledged")
+                        withAnimation {
+                            messages.append(RikiChatMessage(id: UUID(), text: gentle, isFromUser: false))
+                        }
+                        return
+                    }
+
+                    inputText = String(newValue.prefix(2000))
+                    displayTranscript = BrowserState.censorForDisplay(newValue)
+                    // Reset silence tiers when child starts speaking
+                    resetSilenceTiers()
+                    // Extract emojis from child's speech
+                    let detected = ChatEmojiMapper.emojis(for: newValue)
+                    if !detected.isEmpty {
+                        activeEmojis = detected
+                        if !showEmojis {
+                            withAnimation { showEmojis = true }
+                        }
                     }
                 }
             }
-            if isListening && !newValue.isEmpty {
+            if isListening && !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 silenceTimer?.invalidate()
                 silenceTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
                     Task { @MainActor in
@@ -354,17 +518,20 @@ struct FocusedChatView: View {
             }
             // Seamless Siri-like flow: auto-listen after every TTS reply finishes.
             // Guard on greetingSpoken to prevent premature listen before greeting plays.
-            if !playing && greetingSpoken && !isPaused && !isListening && !isLoading {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            if !playing && greetingSpoken && !isPaused && !isListening && !isLoading && !showCurriculumSession {
+                // 3.0s delay after TTS finishes to give the child breathing room
+                // before opening the mic. Also prevents STT from picking up the bot's
+                // last words as the child's speech input.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                     // Re-check all conditions after delay — TTS may have started again
-                    if !audioPlayback.isPlaying && !isPaused && !isListening && !isLoading {
+                    if !audioPlayback.isPlaying && !isPaused && !isListening && !isLoading && !showCurriculumSession {
                         startListening()
                         startSilenceTierMonitoring()
                     }
                 }
             }
             // Fallback idle restart: if somehow idle for 2s, auto-start listening
-            scheduleIdleRestart()
+            if !showCurriculumSession { scheduleIdleRestart() }
         }
     }
 
@@ -395,8 +562,15 @@ struct FocusedChatView: View {
                         Circle()
                             .stroke(glowColor.opacity(0.5), lineWidth: 3)
                     )
+                    .scaleEffect(avatarMicroScale)
+                    .rotationEffect(avatarRotation)
+                    .rotation3DEffect(
+                        isListening && !reduceMotion ? .degrees(3) : .degrees(0),
+                        axis: (x: 0, y: 1, z: 0)
+                    )
             }
         }
+        .clipped()
         .animation(.easeInOut(duration: 0.6), value: glowColor)
         .overlay(alignment: .trailing) {
             if !activeEmojis.isEmpty {
@@ -415,7 +589,7 @@ struct FocusedChatView: View {
                 conversationInterruptionNote = "[The child interrupted while you were speaking. Acknowledge naturally — say something like 'Okay, I'm listening' and pick up from what they say next.]"
                 audioPlayback.interruptForChildSpeech()
                 startListening()
-                startSilenceTierMonitoring()
+                startSilenceTierMonitoring(reset: true)
             }
         }
     }
@@ -440,7 +614,7 @@ struct FocusedChatView: View {
     private func messagesSection(maxHeight: CGFloat) -> some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 6) {
+                VStack(spacing: 8) {
                     ForEach(Array(recentMessages.enumerated()), id: \.element.id) { index, message in
                         let totalCount = recentMessages.count
                         let fadeOpacity = totalCount <= 1 ? 1.0 : (0.4 + 0.6 * Double(index) / Double(totalCount - 1))
@@ -460,19 +634,46 @@ struct FocusedChatView: View {
                                             ? KomalColors.lavenderPurple
                                             : glowColor.opacity(0.12))
                                 )
-                                .lineLimit(message.id == recentMessages.last?.id ? 4 : 2)
+                                .fixedSize(horizontal: false, vertical: true)
 
                             if !message.isFromUser { Spacer(minLength: 60) }
                         }
                         .opacity(fadeOpacity)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.8, anchor: message.isFromUser ? .trailing : .leading)
+                                .combined(with: .opacity),
+                            removal: .opacity
+                        ))
                         .id(message.id)
                     }
+
+                    // Typing indicator
+                    if isLoading {
+                        HStack {
+                            HStack(spacing: 5) {
+                                ForEach(0..<3) { index in
+                                    WaveformDot(delay: Double(index) * 0.2, color: glowColor)
+                                }
+                                Text(LanguageManager.localized("riki.typing"))
+                                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                                    .foregroundColor(KomalColors.textSecondary)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(glowColor.opacity(0.12))
+                            )
+                            Spacer(minLength: 60)
+                        }
+                        .transition(.opacity)
+                    }
                 }
+                .padding(.vertical, 8)
             }
             .onChange(of: messages.count) {
                 if let lastId = recentMessages.last?.id {
-                    withAnimation(.easeOut(duration: 0.2)) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         proxy.scrollTo(lastId, anchor: .bottom)
                     }
                 }
@@ -483,7 +684,8 @@ struct FocusedChatView: View {
         .animation(.easeInOut(duration: 0.3), value: messages.count)
     }
 
-    private var pauseButton: some View {
+    @ViewBuilder
+    private func pauseButton(bottomPadding: CGFloat) -> some View {
         Button(action: togglePause) {
             Image(systemName: isPaused ? "play.fill" : "pause.fill")
                 .font(.system(size: 16, weight: .medium))
@@ -491,7 +693,7 @@ struct FocusedChatView: View {
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(.ultraThinMaterial))
         }
-        .padding(.bottom, tabBarClearance)
+        .padding(.bottom, bottomPadding)
     }
 
     // MARK: - Actions
@@ -635,6 +837,12 @@ struct FocusedChatView: View {
                     }
                     let persistedModelMsg = PersistedChatMessage(text: displayResponse, isFromUser: false, characterId: character.id)
                     memoryService.saveMessage(persistedModelMsg)
+
+                    // Avatar wiggle on new bot message
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) { messageWiggle = true }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        withAnimation { messageWiggle = false }
+                    }
                 }
 
                 await audioPlayback.speak(text: displayResponse, characterName: character.name)
@@ -661,15 +869,22 @@ struct FocusedChatView: View {
 
     // MARK: - Silence Tier Monitoring (per spec edge case C)
 
-    private func startSilenceTierMonitoring() {
+    /// Resume silence monitoring without resetting the tier level.
+    /// Called by the auto-listen cycle after a silence prompt's TTS finishes.
+    /// Only startSilenceTierMonitoring(reset:true) resets the tier (used on
+    /// first listen start and after the child actually speaks).
+    private func startSilenceTierMonitoring(reset: Bool = false) {
         silenceTierTimer?.invalidate()
-        silenceTierLevel = 0
-        silenceTierTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { _ in
+        if reset { silenceTierLevel = 0 }
+
+        // If we already hit tier 3, don't restart monitoring
+        guard silenceTierLevel < 3 else { return }
+
+        silenceTierTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: false) { _ in
             Task { @MainActor in
                 guard isListening && speechRecognizer.transcript.isEmpty && !isPaused else {
                     silenceTierTimer?.invalidate()
                     silenceTierTimer = nil
-                    silenceTierLevel = 0
                     return
                 }
 
@@ -677,7 +892,8 @@ struct FocusedChatView: View {
 
                 switch silenceTierLevel {
                 case 1:
-                    // 10s: Gentle prompt
+                    // 10s: Gentle prompt — stop listening first so TTS works
+                    stopListening()
                     let gentlePrompt = "I'm right here whenever you're ready to talk."
                     withAnimation {
                         messages.append(RikiChatMessage(id: UUID(), text: gentlePrompt, isFromUser: false))
@@ -685,7 +901,8 @@ struct FocusedChatView: View {
                     Task { await audioPlayback.speak(text: gentlePrompt, characterName: character.name) }
 
                 case 2:
-                    // 20s: Offer opt-out
+                    // 20s: Offer opt-out — stop listening first so TTS works
+                    stopListening()
                     let optOut = "No pressure at all! We can chat later if you'd like."
                     withAnimation {
                         messages.append(RikiChatMessage(id: UUID(), text: optOut, isFromUser: false))
@@ -693,19 +910,16 @@ struct FocusedChatView: View {
                     Task { await audioPlayback.speak(text: optOut, characterName: character.name) }
 
                 case 3:
-                    // 30s: Close loop respectfully
+                    // 30s: Close loop respectfully — no auto-restart after this
+                    stopListening()
                     let closing = "I'll be here whenever you want to talk. See you soon!"
                     withAnimation {
                         messages.append(RikiChatMessage(id: UUID(), text: closing, isFromUser: false))
                     }
                     Task { await audioPlayback.speak(text: closing, characterName: character.name) }
-                    stopListening()
-                    silenceTierTimer?.invalidate()
-                    silenceTierTimer = nil
 
                 default:
-                    silenceTierTimer?.invalidate()
-                    silenceTierTimer = nil
+                    break
                 }
             }
         }
@@ -720,7 +934,7 @@ struct FocusedChatView: View {
     private func scheduleIdleRestart() {
         idleRestartTask?.cancel()
         idleRestartTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            try? await Task.sleep(nanoseconds: 4_000_000_000) // 4s (must exceed 3.0s main delay)
             guard !Task.isCancelled else { return }
             if greetingSpoken && !isPaused && !isListening && !isLoading && !audioPlayback.isPlaying {
                 startListening()
@@ -733,23 +947,31 @@ struct FocusedChatView: View {
         silenceTimer?.invalidate()
         silenceTimer = nil
 
+        // Don't start if session cap reached
+        guard !isPaused else { return }
+
         // Track if we're interrupting the avatar
         if audioPlayback.isPlaying {
             conversationInterruptionNote = "[The child interrupted while you were speaking. Pick up naturally — acknowledge what they said and continue the flow smoothly.]"
             audioPlayback.interruptForChildSpeech()
         }
 
+        // Clear stale input from previous cycle to prevent re-sending old messages
+        inputText = ""
+        displayTranscript = ""
+
         Task {
-            let hasPermission = await requestMicrophonePermission()
+            let hasPermission = await SpeechRecognizer.requestPermissions()
             if hasPermission {
                 await MainActor.run {
+                    micPermissionDenied = false
                     withAnimation(KomalAnimations.spring) { isListening = true }
                     speechRecognizer.startRecording()
                 }
             } else {
-                #if DEBUG
-                print("Microphone or speech permission denied")
-                #endif
+                await MainActor.run {
+                    withAnimation { micPermissionDenied = true }
+                }
             }
         }
     }
@@ -765,49 +987,27 @@ struct FocusedChatView: View {
         withAnimation(KomalAnimations.spring) { isListening = false }
     }
 
-    private func requestMicrophonePermission() async -> Bool {
-        let micPermissionGranted: Bool
-        if #available(iOS 17.0, *) {
-            let micStatus = AVAudioApplication.shared.recordPermission
-            if micStatus == .undetermined {
-                let granted = await AVAudioApplication.requestRecordPermission()
-                if !granted { return false }
-                micPermissionGranted = granted
-            } else if micStatus == .denied {
-                return false
-            } else {
-                micPermissionGranted = (micStatus == .granted)
-            }
-        } else {
-            let session = AVAudioSession.sharedInstance()
-            let micStatus = session.recordPermission
-            if micStatus == .undetermined {
-                var granted = false
-                await withCheckedContinuation { continuation in
-                    session.requestRecordPermission { isGranted in
-                        granted = isGranted
-                        continuation.resume()
-                    }
-                }
-                if !granted { return false }
-                micPermissionGranted = granted
-            } else if micStatus == .denied {
-                return false
-            } else {
-                micPermissionGranted = (micStatus == .granted)
-            }
-        }
+    // MARK: - Session Duration Cap (Issue 10)
 
-        let speechStatus = SFSpeechRecognizer.authorizationStatus()
-        if speechStatus == .notDetermined {
-            await withCheckedContinuation { continuation in
-                SFSpeechRecognizer.requestAuthorization { _ in
-                    continuation.resume()
+    private func startSessionCapTimer() {
+        let capMinutes = appState.parentSettings.voiceChatSessionCapMinutes
+        guard capMinutes > 0 else { return } // 0 = no limit
+        let capSeconds = TimeInterval(capMinutes) * 60
+
+        sessionCapTimer?.invalidate()
+        sessionCapTimer = Timer.scheduledTimer(withTimeInterval: capSeconds, repeats: false) { _ in
+            Task { @MainActor in
+                // Gentle wind-down
+                if isListening { stopListening() }
+                audioPlayback.stop()
+                let windDown = LanguageManager.localized("riki.session_cap_reached")
+                withAnimation {
+                    messages.append(RikiChatMessage(id: UUID(), text: windDown, isFromUser: false))
                 }
+                isPaused = true
+                Task { await audioPlayback.speak(text: windDown, characterName: character.name) }
             }
         }
-        let speechAuthorized = SFSpeechRecognizer.authorizationStatus() == .authorized
-        return speechAuthorized && micPermissionGranted
     }
 }
 

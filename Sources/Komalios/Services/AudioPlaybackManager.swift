@@ -13,18 +13,18 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
 
     override init() {
         super.init()
-        configureAudioSession()
+        ensureAudioSessionActive()
     }
 
-    /// Configure audio session for playback. Must be called before each play
-    /// because SpeechRecognizer switches the session to .record mode.
-    private func configureAudioSession() {
+    /// Ensure the audio session is active. Category is now managed at the
+    /// session level (SpeechRecognizer.configureVoiceChatSession()) to avoid
+    /// category-switching races that cause 0 Hz format bugs.
+    private func ensureAudioSessionActive() {
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             #if DEBUG
-            print("[AudioPlayback] Failed to configure audio session: \(error.localizedDescription)")
+            print("[AudioPlayback] Failed to activate audio session: \(error.localizedDescription)")
             #endif
         }
     }
@@ -32,9 +32,7 @@ class AudioPlaybackManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     func speak(text: String, characterName: String) async {
         stop()
 
-        // Reconfigure audio session for playback before each speak call,
-        // since SpeechRecognizer may have switched it to .record mode.
-        configureAudioSession()
+        ensureAudioSessionActive()
 
         // Defense-in-depth: strip any inappropriate words before TTS synthesis
         let sanitized = BrowserState.stripForTTS(text)

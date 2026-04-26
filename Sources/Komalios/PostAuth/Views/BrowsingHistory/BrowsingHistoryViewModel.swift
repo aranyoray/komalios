@@ -272,24 +272,17 @@ final class BrowsingHistoryViewModel: ObservableObject {
         return counts.max(by: { $0.value < $1.value })?.key
     }
 
-    private static let dateTimeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .short
-        return f
-    }()
+    private static var dateTimeFormatter: DateFormatter {
+        LocaleFormatterCache.dateFormatter(style: .medium, timeStyle: .short)
+    }
 
-    private static let timeOnlyFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.timeStyle = .short
-        return f
-    }()
+    private static var timeOnlyFormatter: DateFormatter {
+        LocaleFormatterCache.dateFormatter(style: .none, timeStyle: .short)
+    }
 
-    private static let dateOnlyFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        return f
-    }()
+    private static var dateOnlyFormatter: DateFormatter {
+        LocaleFormatterCache.dateFormatter(style: .medium)
+    }
 
     static func formatTimeRange(events: [LocalHistoryEvent]) -> String {
         guard let first = events.last, let last = events.first else { return "" }
